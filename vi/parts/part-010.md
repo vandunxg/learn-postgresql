@@ -1,0 +1,314 @@
+Như bạn có thể thấy, PostgreSQL cảnh báo rằng nó không thể xóa một role nếu role đó không tồn tại.
+
+> Bạn không thể phá hỏng PostgreSQL! PostgreSQL sẽ tự bảo vệ mình trước những sai lầm của bạn và làm rất tốt việc giữ an toàn cho dữ liệu của bạn! Ví dụ trước đó về việc xóa một role không tồn tại cho thấy PostgreSQL bảo vệ mình trước những sai lầm của bạn như thế nào để bảo đảm một service luôn ổn định.
+
+Statement `DROP ROLE` hỗ trợ clause `IF EXIST`, giúp PostgreSQL không phàn nàn về việc xóa một role bị thiếu:
+
+```text
+postgres=# DROP ROLE IF EXIST this_role_does_not_exist;
+NOTICE:   role "this_role_does_not_exist" does not exist, skipping
+DROP ROLE
+```
+
+Như bạn có thể thấy, lần này PostgreSQL không báo error; thay vào đó, nó hiển thị một notice cho biết role không tồn tại. Tuy nhiên, nó vẫn thực thi statement, không làm gì nhưng báo thành công thay vì thất bại. Điều này có thể hữu ích trong trường hợp nào? Hãy hình dung bạn có một tác vụ tự động chịu trách nhiệm xóa nhiều role: nếu `DROP ROLE` báo failure, tác vụ của bạn có thể bị gián đoạn, còn với `IF EXIST`, bạn có thể yên tâm rằng PostgreSQL sẽ không gây abort do thiếu role.
+
+> Có một số statement hỗ trợ clause `IF EXIST`, như bạn sẽ thấy trong các chapter sau. Ý tưởng là tránh báo error khi bạn không quan tâm đến việc bắt error đó, và bạn nên sử dụng clause này trong các chương trình tự động hóa bất cứ khi nào có thể.
+
+Điều gì xảy ra nếu bạn xóa một group? Các member role vẫn được giữ nguyên, nhưng tất nhiên association với group sẽ mất (vì group đã bị xóa). Nói cách khác, xóa một group không cascade đến các member của nó.
+
+## Inspect các role hiện có
+
+Bây giờ bạn đã biết cách tạo và xóa role, vậy làm thế nào để inspect các role hiện có, bao gồm cả role của bạn? Có nhiều cách khác nhau để lấy thông tin về các role hiện có, và tất cả đều dựa vào PostgreSQL catalog, nguồn introspection duy nhất trong cluster.
+
+Để lấy thông tin về role hiện tại của bạn, hãy sử dụng keyword đặc biệt `CURRENT_ROLE`: bạn có thể query nó bằng một statement `SELECT` (những statement như vậy sẽ được trình bày trong các chapter sau, nên hiện tại hãy cứ sử dụng máy móc như trong ví dụ):
+
+```text
+postgres=# SELECT current_role;
+ current_role
+--------------
+ postgres
+(1 row)
+```
+
+Nếu bạn connect đến database bằng một user khác, bạn sẽ thấy kết quả khác:
+
+```text
+$ psql -U luca postgres
+psql (16.0)
+Type "help" for help.
+
+postgres=> SELECT current_role;
+ current_role
+--------------
+ luca
+(1 row)
+```
+
+Biết role của chính mình là điều quan trọng, nhưng lấy thông tin về các role hiện có và các property của chúng còn có thể cho biết nhiều điều hơn. `psql` cung cấp meta-command đặc biệt `\du` (describe users) để liệt kê tất cả role hiện có trong system:
+
+```text
+$ psql -U postgres
+psql (16.0)
+Type "help" for help.
+
+postgres=# \du
+                                      List of roles
+   Role name     |                               Attributes
+--------------+----------------------------------------------------------
+--
+ book_authors | Cannot login
+ enrico          |
+ forum           |
+ forum_admins | Cannot login
+ forum_emails | No inheritance, Cannot login
+ forum_stats     | No inheritance, Cannot login
+ luca            | 1 connection
+ postgres        | Superuser, Create role, Create DB, Replication, Bypass RLS
+```
+
+Column `Attributes` hiển thị các option và property của role; nhiều trong số đó sẽ được thảo luận trong *Chapter 10, Users, Roles, and Database Security*. Về các property login, nếu một role bị ngăn không cho connect interactive đến cluster, một thông báo `Cannot login` sẽ được hiển thị trên dòng `book_authors`, như trong ví dụ trước.
+
+Meta-command đặc biệt `\drg` của `psql` sẽ hiển thị tất cả group mà một role là member.
+
+Bạn có thể lấy thông tin về một role cụ thể bằng cách query trực tiếp catalog `pg_roles`, một catalog chứa thông tin về tất cả role PostgreSQL. Ví dụ, để lấy thông tin connection cơ bản của role `luca`, bạn có thể thực thi query sau:
+
+```text
+postgres=# SELECT rolname, rolcanlogin,
+               rolconnlimit, rolpassword
+               FROM pg_roles
+               WHERE rolname = 'luca';
+-[ RECORD 1 ]--+---------
+rolname           | luca
+rolcanlogin       | t
+rolconnlimit      | 1
+rolpassword       | ******
+```
+
+Như bạn có thể thấy, password không được hiển thị vì lý do security, ngay cả khi cluster superuser yêu cầu nó. Không thể lấy password ở dạng plain text: như chúng ta đã thấy, password luôn được lưu ở dạng encrypted.
+
+Catalog đặc biệt `pg_authid` là nền tảng của thông tin `pg_roles`, và có thể được query bằng chính statement đó, nhưng báo cáo password của user (dưới dạng encrypted text).
+
+Đoạn code sau cho thấy kết quả query `pg_authid` cho chính user như trong listing thứ tư; hãy lưu ý rằng field `rolpassword` lần này chứa thêm một số thông tin hữu ích:
+
+```text
+postgres=# SELECT rolname, rolcanlogin, rolconnlimit, rolpassword
+              FROM pg_authid WHERE rolname = 'luca';
+-[ RECORD 1 ]--+------------------------------------
+rolname           | luca
+rolcanlogin       | t
+rolconnlimit      | 1
+rolpassword       | SCRAM-SHA-256$4096:EC42FTTKy6bi/hfslsa4Sw=
+```
+
+Password được biểu diễn dưới dạng hash và phần đầu chỉ rõ encryption algorithm được sử dụng, hiện nay mặc định là SCRAM-SHA-256. Đáng lưu ý là trong khi `pg_roles` có thể được query bởi cả superuser lẫn user thông thường, `pg_authid` chỉ có thể được query bởi superuser.
+
+## Quản lý connection đến ở role level
+
+Khi một connection mới được thiết lập đến cluster, PostgreSQL validate request đến ở role level. Việc role có property `LOGIN` không đủ để nó mở một connection đến bất kỳ database nào trong cluster. Đó là vì PostgreSQL kiểm tra request connection đến dựa trên một dạng firewall table, trước đây được gọi là host-based access, được định nghĩa trong file `pg_hba.conf`.
+
+Nếu table cho biết role có thể mở connection đến database được chỉ định, connection sẽ được cấp (với điều kiện role có property `LOGIN`); nếu không, connection sẽ bị reject.
+
+Mỗi khi sửa file `pg_hba.conf`, bạn cần yêu cầu cluster reload các rule mới bằng signal HUP hoặc bằng command `reload` trong `pg_ctl`.
+
+Vì vậy, workflow thông thường khi làm việc với `pg_hba.conf` tương tự như sau:
+
+```text
+$ $EDITOR $PGDATA/pg_hba.conf
+... modify the file as you wish ...
+
+
+$ sudo -u postgres pg_ctl reload -D $PGDATA
+server signaled
+```
+
+> Trong ví dụ code trước, `$EDITOR` được dùng để khởi chạy editor ưa thích, nếu nó đã được thiết lập. Bạn có thể thiết lập environment variable `EDITOR` trong nhiều shell bằng cách nhập `export EDITOR=/bin/vim` (hoặc path đến editor ưa thích của bạn).
+>
+> Trong các Docker image được cung cấp cho cuốn sách này, variable `PGDATA` đã được thiết lập. Ngoài ra, interactive shell đã được khởi chạy với user `postgres`. Vì vậy, để reload configuration của cluster, bạn không cần quan tâm đến `EDITOR`, `PGDATA` hay `sudo`, và có thể chỉ cần viết `pg_ctl reload` tại shell prompt.
+
+Đáng lưu ý là một superuser role có thể yêu cầu cluster reload configuration bằng một SQL statement. Gọi function đặc biệt `pg_reload_conf()` sẽ thực hiện cùng hành động như gửi một reload đến `pg_ctl`:
+
+```text
+postgres=# SELECT pg_reload_conf();
+ pg_reload_conf
+----------------
+ t
+```
+
+## Cú pháp của pg_hba.conf
+
+File `pg_hba.conf` chứa firewall cho các connection đến. Mỗi dòng trong file có cấu trúc sau:
+
+```text
+<connection-type> <database> <role> <remote-machine> <auth-method>
+```
+
+Mỗi phần của dòng có ý nghĩa như sau:
+
+- `connection-type` là loại connection được PostgreSQL hỗ trợ và có thể là `local` (nghĩa là qua operating-system socket), `host` (connection TCP/IP, có thể encrypted hoặc không), `hostssl` (chỉ connection TCP/IP encrypted), hoặc `nohostssl` (connection TCP/IP không encrypted).
+- `database` là tên của một database cụ thể mà dòng đó áp dụng cho, hoặc keyword đặc biệt `all`, có nghĩa là mọi database hiện có. Keyword đặc biệt `replication` được dùng để xử lý một loại connection đặc biệt dùng để replicate dữ liệu sang cluster khác, và sẽ được giải thích trong các chapter sau.
+- `role` là role cụ thể (một username hoặc group) mà dòng đó áp dụng cho, hoặc keyword đặc biệt `all`, có nghĩa là tất cả role (và group) hiện có.
+- `remote-machine` là hostname, IP address hoặc subnet mà connection được mong đợi sẽ xuất phát từ đó. Keyword đặc biệt `all` khớp với mọi remote machine mà connection được thiết lập từ đó, còn các keyword đặc biệt `samehost` và `samenet` khớp với mọi hostname hoặc subnet mà cluster được gắn vào.
+- `auth-method` quy định cách connection phải được xử lý; nói rộng hơn, nó xử lý việc kiểm tra login credential như thế nào. Các method chính là `scram-sha-256`, `md5` (method được dùng trong các version cũ hơn), `reject` để luôn từ chối connection, và `trust` để luôn chấp nhận connection bất kể credential được cung cấp.
+
+> Bạn không thể đặt tên database hoặc user bằng một trong các keyword đặc biệt, ví dụ `replication`.
+
+Để hiểu rõ hơn cách system hoạt động, sau đây là một đoạn trích từ một file `pg_hba.conf` có thể có:
+
+```text
+host      all          luca       carmensita           scram-sha-256
+hostssl all            test       192.168.222.1/32 scram-sha-256
+host      digikamdb pgwatch2 192.168.222.4/32 trust
+host      digikamdb enrico        carmensita           reject
+```
+
+Dòng đầu tiên cho biết user `luca` có thể connect đến mọi database trong cluster (thông qua clause `all`) bằng connection TCP/IP (thông qua clause `host`) xuất phát từ host có tên `carmensita`, nhưng phải cung cấp username/password hợp lệ để xác minh authentication method SCRAM.
+
+Dòng thứ hai cho biết user `test` có thể connect đến mọi database trong system qua connection được SSL-encrypt (xem clause `hostssl`), nhưng chỉ từ machine có IPv4 address là `192.168.222.1`; một lần nữa, credential phải vượt qua authentication method SCRAM.
+
+Dòng thứ ba cho biết quyền truy cập vào database `digikamdb` chỉ được cấp cho user `pgwatch2` qua connection không encrypted từ host `192.168.222.4`; lần này, quyền truy cập được cấp (`trust`) mà không yêu cầu credential.
+
+Cuối cùng, dòng cuối cùng reject mọi connection đến từ host có tên `carmensita`, do user `enrico` mở đến `digikamdb`; nói cách khác, `enrico` không thể connect đến `digikamdb` từ host `carmensita`.
+
+> Không bao giờ nên sử dụng authentication method `trust`; nó cho phép bất kỳ role nào connect đến database nếu Host-Based-Access (HBA) có rule khớp với connection đến. Đây là method được dùng khi cluster được initialize để cho phép superuser vừa được tạo connect đến cluster. Bạn luôn có thể dùng thủ thuật này như phương án cuối cùng nếu tự khóa mình khỏi cluster của chính mình.
+
+## Thứ tự rule trong pg_hba.conf
+
+Thứ tự liệt kê các rule trong file `pg_hba.conf` rất quan trọng. Rule đầu tiên thỏa mãn logic sẽ được áp dụng, còn các rule khác bị bỏ qua. Để hiểu rõ hơn, hãy hình dung rằng chúng ta muốn cho phép `luca` connect đến mọi database trong cluster ngoại trừ `forumdb`. Đoạn sau không thực hiện được điều đó:
+
+```text
+host all        luca all scram-sha-256
+host forumdb luca all reject
+```
+
+Tại sao code trước đó không hoạt động?
+
+Hãy hình dung user `luca` cố mở connection đến database `forumdb`: machine nơi connection được thử sẽ khớp với keyword `all` trong dòng chứa `luca`, sau đó tên database sẽ khớp với keyword `all` của field database.
+
+Vì cả remote machine lẫn tên database đều là tập con của `all`, connection được chuyển qua authentication method SCRAM-256; nếu user authentication thành công, connection được mở. Vì vậy, dòng `reject` bị bỏ qua do dòng đầu tiên khớp. Ngược lại, đổi thứ tự các rule như trong code sau sẽ hoạt động:
+
+```text
+host forumdb luca all reject
+host all        luca all scram-sha-256
+```
+
+Theo cách này, khi `luca` cố connect đến một database, user sẽ bị reject nếu database là `forumdb`; nếu không, user có thể connect (nếu vượt qua authentication method được yêu cầu).
+
+## Gộp nhiều rule thành một rule duy nhất
+
+Một dòng khai báo ít nhất một rule, nhưng có thể merge nhiều dòng thành một dòng duy nhất. Thực tế, các field role, database và remote-machine cho phép định nghĩa nhiều match, mỗi match được phân tách bằng dấu `,` (comma).
+
+Ví dụ, giả sử chúng ta muốn cấp quyền truy cập cho các role `luca` và `enrico` (từ cùng network nơi cluster đang chạy) đến các database `forumdb` và `learnpgdb`, để `pg_hba.conf` có dạng như sau:
+
+```text
+host forumdb       luca    samenet scram-sha-256
+host forumdb       enrico samenet scram-sha-256
+host learnpgdb luca        samenet scram-sha-256
+host learnpgdb enrico samenet scram-sha-256
+```
+
+Vì các field database và role có thể liệt kê nhiều hơn một item, code trước đó có thể được rút gọn thành:
+
+```text
+host forumdb,learnpgdb         luca     samenet scram-sha-256
+host forumdb,learnpgdb         enrico samenet scram-sha-256
+```
+
+Chúng ta có thể rút gọn các rule thêm một bước nữa vì machine nơi connection database có thể được thiết lập thực sự giống nhau cho cả hai rule, và do đó code cuối cùng là:
+
+```text
+host forumdb,learnpgdb         luca, enrico      samenet scram-sha-256
+```
+
+Đến đây hẳn đã rõ rằng nếu nhiều rule có cùng authentication method và connection protocol, có thể gộp chúng thành một nhóm. Điều này có thể giúp bạn quản lý host-based access configuration.
+
+## Dùng group thay cho role đơn lẻ
+
+Field role trong mỗi rule `pg_hba.conf` có thể được thay thế bằng tên của một group (hãy nhớ rằng group bản thân nó cũng là một role); tuy nhiên, để rule có hiệu lực với mọi member của group, bạn phải thêm dấu `+` trước tên group.
+
+Để hiểu rõ hơn, hãy xét ví dụ về group `book_authors`, trong đó có member `luca`. Rule sau sẽ không cho phép role `luca` truy cập database:
+
+```text
+host forumdb book_authors all scram-sha-256
+```
+
+Ngay cả khi user là member của role `book_authors`, user vẫn bị từ chối quyền login vào database; host-based access policy của cluster yêu cầu role `book_authors` phải được một rule match chính xác, còn trong command sau, role `luca` không match rule nào:
+
+```text
+$ psql -U luca forumdb
+psql: error: could not connect to server:
+FATAL: no pg_hba.conf entry for host "192.168.222.1", user "luca",
+database "forumdb", SSL off
+```
+
+Mặt khác, nếu chỉ rõ rằng chúng ta muốn dùng role `book_authors` làm tên group, và do đó cho phép tất cả member của nó, connection có thể được thiết lập bởi bất kỳ role nào là member của group, bao gồm cả `luca`. Vì vậy, chúng ta thay đổi rule thành:
+
+```text
+host forumdb +book_authors all scram-sha-256
+```
+
+Điều này (có lưu ý đến dấu cộng) khiến connection có thể được thiết lập, như minh họa sau:
+
+```text
+$ psql   -U luca forumdb
+
+
+forumdb=>
+```
+
+Các rule `pg_hba.conf` khi áp dụng cho một group name (nghĩa là có dấu `+` đứng trước role name) bao gồm tất cả member trực tiếp và gián tiếp.
+
+Nếu muốn cho phép mọi member của group ngoại trừ một member truy cập database thì sao? Nhớ rằng rule engine dừng ở match đầu tiên, ta có thể đặt một rule `reject` trước rule chấp nhận group. Ví dụ, để cho phép mọi member của group `book_authors` truy cập database nhưng ngăn riêng role `luca` connect, bạn có thể dùng:
+
+```text
+host forumdb luca              all reject
+host forumdb +book_authors all scram-sha-256
+```
+
+Dòng đầu tiên sẽ ngăn role `luca` connect, ngay cả khi dòng sau cho phép mọi member của `book_authors` (bao gồm `luca`) connect: match đầu tiên thắng, vì vậy `luca` bị khóa khỏi database.
+
+## Dùng file thay cho role đơn lẻ
+
+Field role của một rule cũng có thể được chỉ định dưới dạng text file, phân tách theo dòng hoặc bằng dấu comma. Điều này hữu ích khi bạn xử lý username hoặc group name dài, hoặc các list được tạo tự động từ batch process.
+
+Nếu chỉ định field role bằng prefix là dấu “at” (`@`), tên đó được diễn giải là một text file phân tách theo dòng (dùng tên tương đối so với directory `PGDATA`). Chẳng hạn, để reject connection đến tất cả user và group được liệt kê trong file `rejected_users.txt`, đồng thời cho phép connection đến tất cả username và group được chỉ định trong file `allowed_users.txt`, file `pg_hba.conf` phải có dạng như đoạn sau:
+
+```text
+host forumdb @rejected_users.txt           all reject
+host forumdb @allowed_users.txt            all scram-sha-256
+```
+
+Sau đây là nội dung của file `rejected_users.txt`, tiếp theo là file `allowed_users.txt`:
+
+```text
+$ sudo cat $PGDATA/rejected_users.txt
+luca
+enrico
+
+
+$ sudo cat $PGDATA/allowed_users.txt
++book_authors, postgres
+```
+
+Như bạn có thể thấy, có thể chỉ định nội dung file dưới dạng list username phân tách theo dòng hoặc phân tách bằng comma. Cũng có thể chỉ định role nào được dùng làm group bằng cách đặt dấu `+` trước tên role.
+
+## Inspect rule của pg_hba.conf
+
+File `pg_hba.conf` chứa các rule được áp dụng cho connection đến, nhưng vì file này có thể bị thay đổi thủ công mà không làm cluster reload, làm thế nào bạn chắc chắn được những rule nào đang được áp dụng tại thời điểm hiện tại? PostgreSQL cung cấp một catalog đặc biệt có tên `pg_hba_file_rules`, cho biết những rule nào đã được áp dụng vào cluster.
+
+Bạn có thể query các catalog như một table thông thường và lấy thông tin về mọi dòng của file `pg_hba.conf` đã được hiểu và áp dụng cho cluster đang chạy hiện tại. Ví dụ, trong một PostgreSQL installation mới, có thể bạn sẽ thấy output như sau:
+
+```text
+postgres=# SELECT line_number, type,
+                           database, user_name,
+                           address, auth_method
+                           FROM pg_hba_file_rules;
+ line_number | type       |    database       | user_name |      address    |   auth_method
+-------------+-------+---------------+-----------+-----------+------------
+---
+          89 | local | {all}                | {all}        |              | trust
+          91 | host     | {all}             | {all}        | 127.0.0.1 | trust
+          93 | host     | {all}             | {all}        | ::1          | trust
+          96 | local | {replication} | {all}               |              | trust
+          97 | host     | {replication} | {all}            | 127.0.0.1 | trust
+          98 | host     | {replication} | {all}            | ::1          | trust
+```

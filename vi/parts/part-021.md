@@ -1,0 +1,301 @@
+Chỉ có ý nghĩa khi sử dụng frame clause nếu `ORDER BY` clause cũng hiện diện. Chúng ta sẽ sử dụng `ROWS BETWEEN` clause khi muốn xem xét một tập record cụ thể tương đối với row hiện tại. Chúng ta sẽ sử dụng `RANGE BETWEEN` clause khi muốn xem xét một khoảng value trong một column cụ thể tương đối với value trong row hiện tại.
+
+## `ROWS BETWEEN` start_point và end_point
+
+Bây giờ chúng ta sẽ xem một số ví dụ đơn giản để giải thích rõ hơn các `frame_set` clause. Những clause này thường được dùng cho các tác vụ như data analysis chuyên sâu và data mining, cùng nhiều tác vụ khác. Hãy bắt đầu với một vài ví dụ, bắt đầu ở đây:
+
+```text
+      forumdb=> select x from (select generate_series(1,5) as x) V WINDOW w as
+      (order by x) ;
+       x
+      ---
+       1
+       2
+       3
+       4
+       5
+      (5 rows)
+```
+
+Giả sử chúng ta muốn có một incremental sum theo từng row. Mục tiêu cần đạt được là:
+
+| x | sum(x) |
+| --- | --- |
+| 1 | 1 |
+| 2 | 3 |
+| 3 | 6 |
+| 4 | 10 |
+| 5 | 15 |
+
+Có thể đạt được điều này bằng query sau:
+
+```text
+      forumdb=> select x, sum(x) over (order by x) from generate_series(1,5) as
+      x;
+       x | sum
+      ---+-----
+       1 |   1
+       2 |   3
+       3 |   6
+       4 |  10
+       5 |  15
+      (5 rows)
+```
+
+Có thể viết cùng query theo cách sau:
+
+```text
+   forumdb=> SELECT x, SUM(x) OVER w
+    FROM (select generate_series(1,5) as x) V
+    WINDOW w AS (ORDER BY x ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT
+   ROW);
+    x | sum
+   ---+-----
+    1 |      1
+    2 |      3
+    3 |      6
+    4 |     10
+    5 |     15
+   (5 rows)
+```
+
+Bây giờ hãy tưởng tượng query được thực thi theo các bước liên tiếp, mỗi bước cho một row của table. Trong các diagram sau, chúng ta sẽ mô phỏng behavior nội bộ của PostgreSQL để hiểu rõ hơn cách `ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW` clause hoạt động:
+
+1. Trước hết, PostgreSQL sử dụng condition `order_by_clause` để order data bên trong window, như mũi tên màu xanh trong diagram sau:
+
+![Hình 6.3: `order by` clause](../assets/part-021-figure-6-3-000.png)
+
+*Hình 6.3: `order by` clause*
+
+Ở bên phải image, như có thể thấy, chúng ta có thêm hai pointer: pointer màu xanh lá cho `UNBOUNDED PRECEDING` clause và pointer màu cam cho `CURRENT ROW` clause. Result là `1`, vì vậy trong bước đầu tiên cả hai pointer đều trỏ đến row đầu tiên. Bây giờ hãy xem điều gì xảy ra trong các bước tiếp theo.
+
+2. Trong bước này, pointer `UNBOUNDED PRECEDING` vẫn trỏ đến row đầu tiên, trong khi pointer `CURRENT ROW` giờ trỏ đến row thứ hai, và result của sum là `1+2 = 3`:
+
+![Hình 6.4: unbounded preceding và current row (1)](../assets/part-021-figure-6-4-000.png)
+
+*Hình 6.4: unbounded preceding và current row (1)*
+
+3. Tiếp theo, pointer `UNBOUNDED PRECEDING` vẫn trỏ đến row đầu tiên, trong khi pointer `CURRENT ROW` trỏ đến row thứ ba, và result của sum là `1+2+3 = 6`:
+
+![Hình 6.5: unbounded preceding và current row (2)](../assets/part-021-figure-6-5-000.png)
+
+*Hình 6.5: unbounded preceding và current row (2)*
+
+4. Ở bước thứ tư, pointer `UNBOUNDED PRECEDING` vẫn trỏ đến row đầu tiên, trong khi pointer `CURRENT ROW` giờ trỏ đến row thứ tư, và result của sum là `1+2+3+4 = 10`:
+
+![Hình 6.6: unbounded preceding và current row (3)](../assets/part-021-figure-6-6-000.png)
+
+*Hình 6.6: unbounded preceding và current row (3)*
+
+5. Ở bước thứ năm và cũng là bước cuối cùng, chúng ta có result mong muốn:
+
+![Hình 6.7: unbounded preceding và current row (4)](../assets/part-021-figure-6-7-000.png)
+
+*Hình 6.7: unbounded preceding và current row (4)*
+
+Đó là cách một frameset clause hoạt động!
+
+Hãy xem thêm một số ví dụ về cách frame clause hoạt động với các option khác nhau. Nếu muốn tìm sum của row hiện tại với row đứng trước cho mỗi row của table, chúng ta sẽ bắt đầu với:
+
+| X |
+| --- |
+| 1 |
+| 2 |
+| 3 |
+| 4 |
+| 5 |
+
+Chúng ta muốn có result như sau:
+
+| x | sum(x) |
+| --- | --- |
+| 1 | 1 |
+| 2 | 3 |
+| 3 | 5 |
+| 4 | 7 |
+| 5 | 9 |
+
+Query cần thực hiện được mô tả trong ví dụ sau:
+
+```text
+   forumdb=> SELECT x, SUM(x) OVER w
+    FROM (select generate_series(1,5) as x) V
+    WINDOW w AS (ORDER BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW);
+   x | sum
+   ---+-----
+    1 |      1
+    2 |      3
+    3 |      5
+    4 |      7
+    5 |      9
+   (5 rows)
+```
+
+Query trước hoạt động tương tự những gì chúng ta đã thấy trước đó. Điểm khác biệt duy nhất là range tính toán bây giờ nằm giữa row đầu tiên và row hiện tại của partition, như được viết trong statement `BETWEEN 1 PRECEDING AND CURRENT ROW`. Trong ví dụ này, chỉ hai line được dùng để tính sum. Có thể sử dụng cùng cơ chế để thực hiện incremental sum, như trong ví dụ sau:
+
+```text
+   forumdb=> SELECT x, SUM(x) OVER w
+   FROM (select generate_series(1,5) as x) V
+   WINDOW w AS (ORDER by x ROWS UNBOUNDED PRECEDING);
+    x | sum
+   ---+-----
+    1 |      1
+    2 |      3
+    3 |      6
+    4 |     10
+    5 |     15
+   (5 rows)
+```
+
+Khác biệt duy nhất bây giờ là range tính toán là `ROWS UNBOUNDED PRECEDING`, chứ không phải `BETWEEN 1 PRECEDING AND CURRENT ROW`.
+
+Hãy xem một ví dụ khác, trong đó window function giúp công việc đơn giản hơn. Vẫn bắt đầu từ series đã thấy trước đó, chúng ta biết total sum là `1+2+3+4+5 = 15`. Bây giờ giả sử chúng ta muốn thực hiện reverse sum bắt đầu từ max value của table, tức là `5`.
+
+Trong ví dụ này, chúng ta muốn result như sau:
+
+| x | sum(x) |
+| --- | --- |
+| 1 | 15 |
+| 2 | 14 |
+| 3 | 12 |
+| 4 | 9 |
+| 5 | 5 |
+
+Query thực hiện điều này là:
+
+```text
+      forumdb=> SELECT x, SUM(x) OVER w
+      FROM (select generate_series(1,5) as x) V
+      WINDOW w AS (ORDER BY X ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING);
+          x | sum
+      ---+-----
+          1 |   15
+          2 |   14
+          3 |   12
+          4 |    9
+          5 |    5
+      (5 rows)
+```
+
+Điều làm cho việc này khả thi là `UNBOUNDED FOLLOWING` clause, hoạt động theo hướng ngược lại với `UNBOUNDED PRECEDING`. Điều này xảy ra vì:
+
+- Ở row đầu tiên, tất cả value được cộng: `1+2+3+4+5 = 15`.
+- Ở row thứ hai, các value sau được cộng: `2+3+4+5 = 14`.
+- Ở row thứ ba, các value sau được cộng: `3+4+5 = 12`.
+
+## `RANGE BETWEEN` start_point và end_point
+
+Như đã thảo luận trước đó, khi sử dụng `RANGE BETWEEN`, chúng ta sẽ xem xét một khoảng value liên quan đến value trong row hiện tại. Điểm khác biệt so với `ROWS` clause là nếu field dùng cho `ORDER BY` không chứa các value unique cho từng row, `RANGE` sẽ gộp tất cả row gặp phải có cùng value, thay vì xử lý từng row một.
+
+Ngược lại, `ROWS` sẽ đưa tất cả row trong nhóm có value trùng nhau vào nhưng xử lý riêng từng row:
+
+1. Trước hết, hãy tạo một dataset đơn giản với dữ liệu duplicate:
+
+   ```text
+       forumdb=> select generate_series(1,8) % 4 as x order by 1;
+        x
+       ---
+        0
+        0
+        1
+        1
+        2
+        2
+        3
+        3
+       (8 rows)
+   ```
+
+2. Bây giờ hãy thực hiện một số test để quan sát sự khác biệt giữa `ROWS` và `RANGE` clause. Hãy bắt đầu với `ROWS` clause:
+
+   ```text
+       forumdb=> SELECT x, row_number() OVER w, SUM(x) OVER w FROM (select
+       generate_series(1,8) % 4 as x) V
+       WINDOW w AS (ORDER BY x ROWS BETWEEN 1 PRECEDING AND CURRENT ROW);
+        x | row_number | sum
+       ---+------------+-----
+        0 |             1 |     0
+        0 |             2 |     0
+        1 |             3 |     1
+        1 |             4 |     2
+        2 |             5 |     3
+        2 |             6 |     4
+        3 |             7 |     5
+        3 |             8 |     6
+       (8 rows)
+   ```
+
+   Query trước hoạt động chính xác như đã thấy trước đó; nó tính tổng row trước với row hiện tại.
+
+3. Bây giờ hãy xem điều gì xảy ra nếu sử dụng `RANGE` clause thay cho `ROWS` clause:
+
+   ```text
+           forumdb=> SELECT x, row_number() OVER w, SUM(x) OVER w
+           FROM (select generate_series(1,8) % 4 as x) V
+           WINDOW w AS (ORDER BY x RANGE BETWEEN 1 PRECEDING AND CURRENT ROW);
+            x | row_number | sum
+           ---+------------+-----
+            0 |            1 |           0
+            0 |            2 |           0
+            1 |            3 |           2
+            1 |            4 |           2
+            2 |            5 |           6
+            2 |            6 |           6
+            3 |            7 |       10
+            3 |            8 |       10
+           (8 rows)
+   ```
+
+Hãy lấy result này:
+
+| x | row_number | sum |
+| --- | --- | --- |
+| 0 | 1 | 0 |
+| 0 | 2 | 0 |
+| 1 | 3 | 2 |
+| 1 | 4 | 2 |
+| 2 | 5 | 6 |
+| 2 | 6 | 6 |
+| 3 | 7 | 10 |
+| 3 | 8 | 10 |
+
+Bây giờ hãy xem result từ góc nhìn của frame:
+
+| x | row_number | sum | Frame Number |
+| --- | --- | --- | --- |
+| 0 | 1 | 0 | 1 |
+| 0 | 2 | 0 | 1 |
+| 1 | 3 | 2 | 2 |
+| 1 | 4 | 2 | 2 |
+| 2 | 5 | 6 | 3 |
+| 2 | 6 | 6 | 3 |
+| 3 | 7 | 10 | 4 |
+| 3 | 8 | 10 | 4 |
+
+Như có thể thấy, table cuối có bốn frame, vì vậy bên trong PostgreSQL hoạt động như sau: trước tiên, PostgreSQL chia window function thành các frame bằng `order by` clause, sau đó aggregate data giữa các frame; ví dụ:
+
+- Sum của row number 3 là kết quả của sum row number 1 + row number 2 + row number 3 + row number 4: `0+0+1+1=2`.
+- Sum của row number 4 là kết quả của sum row number 1 + row number 2 + row number 3 + row number 4: `0+0+1+1=2`.
+- Sum của row number 5 là kết quả của sum row number 3 + row number 4 + row number 5 + row number 6: `1+1+2+2=6`.
+- Sum của row number 6 là kết quả của sum row number 3 + row number 4 + row number 5 + row number 6: `1+1+2+2=6`.
+
+Trong ví dụ trước, chúng ta đã xem xét một partition được order theo chiều tăng dần. Trong ví dụ tiếp theo, partition được sort theo chiều giảm dần và chúng ta sẽ thấy sự khác biệt giữa `ROWS` và `RANGE` trong tình huống này.
+
+Đây là query cho `RANGE` clause:
+
+```text
+   forumdb=> SELECT x,row_number() OVER w, dense_rank() OVER w,sum(x) OVER w
+   FROM (select generate_series(1,8) % 4 as x) V
+   WINDOW w AS (ORDER BY x desc RANGE BETWEEN 1 PRECEDING AND CURRENT ROW);
+       x | row_number | dense_rank | sum
+   ----+------------+------------+-----
+       3 |          1 |                1 |    6
+       3 |          2 |                1 |    6
+       2 |          3 |                2 |   10
+       2 |          4 |                2 |   10
+       1 |          5 |                3 |    6
+       1 |          6 |                3 |    6
+       0 |          7 |                4 |    2
+       0 |          8 |                4 |    2
+   (8 rows)
+```

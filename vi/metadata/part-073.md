@@ -1,0 +1,22 @@
+# Part Metadata
+
+- Part: `part-073`
+- Source file: `parts/part-073.pdf`
+- Source page range: 1-10 of part PDF (printed pages 688-697)
+- Output file: `vi/parts/part-073.md`
+- Begins mid-sentence: no
+- Ends mid-sentence: no
+- Begins inside paragraph: no
+- Ends inside paragraph: no
+- Begins inside SQL/code: no
+- Ends inside SQL/code: no
+- Begins inside table/result set: no
+- Ends inside table/result set: no
+- Begins inside query plan: no
+- Ends inside query plan: no
+- Begins inside list: no
+- Ends inside list: no
+- Begins inside index: no
+- Ends inside index: yes
+- Unresolved extraction issue: no
+- Notes: The left boundary starts with a complete paragraph and a complete `psql` session after part-072's `\q`; no content from part-072 was copied. The fifth PDF page is intentionally blank. The right boundary ends after the `LEAD 164` entry in the `basic statement window functions` index section; part-074 continues the same index with `NTILE 165, 166`. No neighbor content was copied into the translation.

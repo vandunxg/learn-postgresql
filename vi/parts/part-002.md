@@ -1,0 +1,306 @@
+    - Xác nhận kích thước database • 80
+    - Phương thức `psql` • 80
+    - Phương thức SQL • 81
+    - Cơ chế phía sau việc tạo database • 81
+- **Quản lý table** • 84
+  - Tùy chọn `EXISTS` • 85
+  - Quản lý temporary table • 86
+  - Quản lý unlogged table • 88
+  - Tạo table • 89
+- **Tìm hiểu các statement thao tác table cơ bản** • 90
+  - INSERT và SELECT data • 90
+  - Giá trị `NULL` • 94
+  - Sắp xếp với giá trị `NULL` • 96
+  - Tạo table bắt đầu từ một table khác • 97
+  - UPDATE data • 98
+  - DELETE data • 99
+- **Tóm tắt** • 101
+- **Kiểm tra kiến thức** • 101
+- **Tài liệu tham khảo** • 102
+
+- **Chương 5: Các statement nâng cao** • 105
+  - Yêu cầu kỹ thuật • 105
+  - Khám phá statement `SELECT` • 105
+  - Sử dụng clause `like` • 106
+  - Sử dụng `ilike` • 108
+  - Sử dụng `distinct` • 108
+  - Sử dụng `limit` và `offset` • 111
+  - Sử dụng subquery • 112
+    - Subquery và điều kiện `IN/NOT IN` • 113
+    - Subquery và điều kiện `EXISTS/NOT EXISTS` • 116
+  - Tìm hiểu về join • 117
+    - Sử dụng `INNER JOIN` • 119
+    - `INNER JOIN` so với `EXISTS/IN` • 120
+    - Sử dụng `LEFT JOINS` • 121
+    - Sử dụng `RIGHT JOIN` • 125
+    - Sử dụng `FULL OUTER JOIN` • 127
+    - Sử dụng `LATERAL JOIN` • 129
+  - Aggregate functions • 130
+    - `UNION/UNION ALL` • 133
+    - `EXCEPT/INTERSECT` • 135
+  - Sử dụng `UPSERT` • 137
+    - UPSERT – cách của PostgreSQL • 137
+  - Tìm hiểu clause `RETURNING` cho `INSERT` • 140
+    - Trả về tuple từ query • 141
+    - `UPDATE` liên quan đến nhiều record • 141
+    - `MERGE` • 142
+    - Khám phá `UPDATE ... RETURNING` • 144
+    - Khám phá `DELETE ... RETURNING` • 145
+  - Khám phá CTE • 145
+    - Khái niệm CTE • 145
+  - CTE trong PostgreSQL từ version 12 • 146
+    - CTE – các use case • 147
+    - Đệ quy query • 149
+    - Recursive CTEs • 150
+  - Tóm tắt • 151
+  - Kiểm tra kiến thức • 152
+  - Tài liệu tham khảo • 153
+
+- **Chương 6: Window Functions** • 155
+  - Yêu cầu kỹ thuật • 155
+  - Sử dụng các statement window function cơ bản • 156
+    - Sử dụng function `PARTITION BY` và clause `WINDOW` • 157
+    - Giới thiệu một số function hữu ích • 158
+      - Function `ROW_NUMBER` • 159
+      - Clause `ORDER BY` • 159
+      - `FIRST_VALUE` • 160
+      - `LAST_VALUE` • 161
+      - `RANK` • 161
+      - `DENSE_RANK` • 162
+      - Function `LAG` và `LEAD` • 163
+      - Function `CUME_DIST` • 165
+      - Function `NTILE` • 165
+  - Sử dụng các statement window function nâng cao • 167
+    - Frame clause • 167
+      - `ROWS BETWEEN start_point and end_point` • 168
+      - `RANGE BETWEEN start_point and end_point` • 174
+  - Tóm tắt • 178
+  - Kiểm tra kiến thức • 179
+  - Tài liệu tham khảo • 180
+
+- **Chương 7: Lập trình phía server** • 181
+  - Yêu cầu kỹ thuật • 182
+  - Khám phá data types • 182
+    - Khái niệm extensibility • 182
+    - Standard data types • 182
+    - Boolean data type • 183
+    - Numeric data type • 184
+      - Integer types • 185
+      - Data type number với precision cố định • 186
+      - Data type number với precision tùy ý • 186
+    - Character data type • 188
+      - Data types char fixed-length • 188
+      - Data types char variable-length có giới hạn • 190
+      - Data types char variable-length không giới hạn • 191
+    - Date/timestamp data type • 192
+      - Date data type • 192
+      - Timestamp data type • 195
+  - Data type NoSQL • 197
+    - Data type hstore • 198
+    - Data type JSON • 201
+  - Khám phá functions và languages • 205
+    - Functions • 205
+    - SQL functions • 206
+    - Basic functions • 206
+    - SQL functions trả về một set phần tử • 207
+    - SQL functions trả về một table • 208
+    - Polymorphic SQL functions • 210
+    - PL/pgSQL functions • 211
+    - Tổng quan ban đầu • 211
+    - Xóa function • 213
+    - Khai báo parameter của function • 213
+      - Parameter `IN/OUT` • 214
+      - Các category volatility của function • 216
+    - Control structure • 219
+    - Conditional statement • 220
+      - Statement `IF` • 220
+      - Statement `CASE` • 222
+    - Loop statement • 225
+      - Data type record • 226
+    - Statement xử lý exception • 228
+    - Security definer • 229
+  - Tóm tắt • 231
+  - Kiểm tra kiến thức • 231
+  - Tài liệu tham khảo • 232
+
+- **Chương 8: Triggers và Rules** • 233
+  - Yêu cầu kỹ thuật • 234
+  - Khám phá rules trong PostgreSQL • 234
+    - Tìm hiểu variables `OLD` và `NEW` • 234
+    - Rule trên `INSERT` • 235
+      - Tùy chọn `ALSO` • 236
+      - Tùy chọn `INSTEAD OF` • 237
+    - Rule trên `DELETE/UPDATE` • 239
+      - Tạo table `new_tags` • 240
+      - Tạo hai table • 241
+    - Quản lý rule trên các event `INSERT`, `DELETE` và `UPDATE` • 242
+      - Rule `INSERT` • 243
+      - Rule `DELETE` • 245
+      - Rule `UPDATE` • 247
+  - Quản lý triggers trong PostgreSQL • 249
+    - Cú pháp trigger • 250
+    - Triggers trên `INSERT` • 252
+    - Variable `TG_OP` • 257
+    - Trigger trên `UPDATE` / `DELETE` • 257
+  - Event triggers • 264
+    - Một ví dụ về event trigger • 265
+  - Tóm tắt • 267
+  - Kiểm tra kiến thức • 268
+  - Tài liệu tham khảo • 269
+
+- **Chương 9: Partitioning** • 271
+  - Yêu cầu kỹ thuật • 271
+  - Các khái niệm cơ bản • 271
+    - Range partitioning • 273
+    - List partitioning • 274
+    - Hash partitioning • 275
+    - Table inheritance • 276
+      - Xóa tables • 280
+  - Khám phá declarative partitioning • 280
+    - List partitioning • 281
+    - Range partitioning • 284
+    - Partition maintenance • 288
+      - Attach partition mới • 288
+      - Detach partition hiện có • 289
+      - Attach table hiện có vào parent table • 290
+  - Default partition • 291
+  - Partitioning và tablespaces • 292
+  - Một case study đơn giản • 295
+  - Tóm tắt • 303
+  - Kiểm tra kiến thức • 303
+  - Tài liệu tham khảo • 305
+
+- **Chương 10: Users, Roles và Database Security** • 307
+  - Yêu cầu kỹ thuật • 308
+  - Tìm hiểu roles • 308
+    - Properties liên quan đến objects mới • 308
+    - Properties liên quan đến superusers • 309
+    - Properties liên quan đến replication • 309
+    - Properties liên quan đến RLS • 309
+    - Thay đổi properties của role hiện có: statement `ALTER ROLE` • 310
+      - Đổi tên role hiện có • 310
+      - `SESSION_USER` so với `CURRENT_USER` • 311
+      - Configuration parameter theo role • 312
+    - Kiểm tra roles • 313
+    - Roles kế thừa từ roles khác • 316
+      - Tìm hiểu cách privilege được resolve • 319
+      - Tổng quan về role inheritance • 323
+  - ACLs • 323
+    - ACLs mặc định • 327
+      - Tìm hiểu ACL mặc định • 330
+  - Cấp và thu hồi permissions • 331
+    - Permissions liên quan đến table • 332
+    - Permissions theo column • 333
+    - Permissions liên quan đến sequence • 337
+    - Permissions liên quan đến schema • 339
+      - Tất cả object trong schema • 341
+    - Permissions liên quan đến programming language • 342
+    - Permissions liên quan đến routine • 342
+    - Permissions liên quan đến database • 343
+    - Các statements `GRANT` và `REVOKE` khác • 344
+    - Gán owner cho object • 344
+    - Kiểm tra ACL • 345
+  - RLS • 346
+  - Mã hóa password của role • 352
+  - SSL connections • 353
+    - Cấu hình cluster cho SSL • 353
+    - Kết nối đến cluster qua SSL • 354
+  - Tóm tắt • 355
+  - Kiểm tra kiến thức • 356
+  - Tài liệu tham khảo • 356
+
+- **Chương 11: Transactions, MVCC, WALs và Checkpoints** • 359
+  - Yêu cầu kỹ thuật • 360
+  - Giới thiệu transactions • 360
+    - So sánh transactions implicit và explicit • 362
+      - Thời gian bên trong transaction • 368
+    - Thông tin thêm về transaction identifier – vấn đề XID wraparound • 369
+      - Transaction identifier virtual và real • 371
+    - Multi-version concurrency control • 373
+  - Các isolation level của transaction • 379
+    - `READ UNCOMMITTED` • 381
+    - `READ COMMITTED` • 381
+    - `REPEATABLE READ` • 381
+    - `SERIALIZABLE` • 382
+  - Giải thích MVCC • 384
+  - Savepoints • 387
+  - Deadlocks • 390
+  - PostgreSQL xử lý persistency và consistency như thế nào: WALs • 393
+    - WALs • 393
+      - WALs như một phương thức cứu hộ khi xảy ra crash • 397
+      - Checkpoints • 398
+    - Configuration parameters của checkpoint • 399
+      - `checkpoint_timeout` và `max_wal_size` • 400
+    - Checkpoint throttling • 402
+    - Phát hành checkpoint thủ công • 403
+  - `VACUUM` • 403
+    - `VACUUM` thủ công • 404
+    - `VACUUM` tự động • 410
+  - Tóm tắt • 412
+  - Kiểm tra kiến thức • 413
+  - Tài liệu tham khảo • 414
+
+- **Chương 12: Mở rộng Database – Extension Ecosystem** • 415
+  - Yêu cầu kỹ thuật • 415
+  - Giới thiệu extensions • 416
+    - Extension ecosystem • 417
+    - Các thành phần của extension • 418
+      - Control file • 419
+    - Script file • 420
+  - Quản lý extensions • 421
+    - Tạo extension • 421
+    - Xem extension đã cài đặt • 422
+    - Tìm các version extensions khả dụng • 423
+    - Thay đổi extension hiện có • 424
+    - Gỡ extension hiện có • 427
+  - Khám phá PGXN client • 428
+    - Cài đặt pgxnclient trên Debian GNU/Linux và các derivatives • 429
+    - Cài đặt pgxnclient trên Fedora Linux và các distributions dựa trên Red Hat • 429
+    - Cài đặt pgxnclient trên FreeBSD • 429
+    - Cài đặt pgxnclient từ sources • 429
+    - Command-line interface của pgxnclient • 430
+  - Cài đặt extensions • 432
+    - Cài đặt extension qua pgxnclient • 432
+    - Cài đặt extension thủ công • 433
+    - Sử dụng extension đã cài đặt • 436
+    - Gỡ extension đã cài đặt • 437
+      - Gỡ extension qua pgxnclient • 439
+      - Gỡ extension được compile thủ công • 439
+  - Tạo extension của riêng bạn • 439
+    - Định nghĩa một extension mẫu • 439
+    - Tạo các file extension • 440
+    - Cài đặt extension • 442
+    - Tạo bản upgrade cho extension • 443
+    - Thực hiện upgrade extension • 445
+  - Tóm tắt • 446
+  - Kiểm tra kiến thức • 446
+  - Tài liệu tham khảo • 447
+
+- **Chương 13: Query Tuning, Indexes và Performance Optimization** • 449
+  - Yêu cầu kỹ thuật • 450
+  - Thực thi một statement • 450
+    - Các giai đoạn thực thi • 451
+    - Optimizer • 452
+    - Các nodes được optimizer sử dụng • 454
+      - Sequential nodes • 454
+      - Parallel nodes • 457
+      - Khi nào optimizer chọn parallel plan? • 458
+      - Utility nodes • 459
+    - Cost của nodes • 460
+  - Indexes • 462
+    - Loại index • 462
+    - Tạo index • 463
+    - Kiểm tra index • 465
+    - Xóa index • 468
+    - Invalidate index • 469
+    - Rebuild index • 470
+  - Statement `EXPLAIN` • 470
+    - Formats output của `EXPLAIN` • 473
+    - `EXPLAIN ANALYZE` • 474
+    - Tùy chọn `EXPLAIN` • 476
+  - Ví dụ về query tuning • 480
+  - `ANALYZE` và cách cập nhật statistics • 491
+  - Auto-explain • 494
+  - Tóm tắt • 498
+  - Kiểm tra kiến thức • 499
+  - Tài liệu tham khảo • 500
