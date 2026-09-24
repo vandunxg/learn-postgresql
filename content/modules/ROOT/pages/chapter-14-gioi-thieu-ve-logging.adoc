@@ -1,0 +1,264 @@
+= Giới thiệu về logging
+
+Giống như nhiều service và database khác, PostgreSQL cung cấp logging infrastructure của riêng mình để administrator luôn có thể inspect daemon process đang làm gì và trạng thái hiện tại của database system. Dù log không thiết yếu đối với data và các hoạt động database, chúng đại diện cho thông tin rất quan trọng về những gì đã hoặc đang xảy ra trong toàn bộ system, đồng thời cung cấp một manh mối quan trọng nhờ đó administrator có thể hành động.
+
+PostgreSQL có log infrastructure rất linh hoạt và có thể configure, cho phép thực hiện nhiều kiểu logging configuration, rotation, archiving và post-analysis khác nhau.
+
+Log được lưu dưới dạng text, nhờ vậy có thể dễ dàng phân tích bằng các log analysis tool phổ biến, bao gồm các operating system utility như `grep(1)`, `sed(1)` và text editor.
+
+[quote]
+____
+*Lưu ý:* Thuật ngữ “log” trong chapter này chỉ system textual log, không phải Write-Ahead Logs (WALs), vốn lại rất quan trọng trong life cycle của database (xem Chapter 11, *Transactions, MVCC, WALs, and Checkpoints*).
+
+____
+Trong một installation mặc định, log nằm trong một sub-folder cụ thể của directory `PGDATA`, nhưng như bạn sẽ thấy trong các subsection sau, bạn được tự do chuyển log tới gần như bất kỳ nơi nào bạn muốn trong storage của operating system.
+
+Mọi event xảy ra trong database đều được log trên một dòng text riêng trong log, đây là một khía cạnh quan trọng và hữu ích khi bạn muốn phân tích log bằng các line-oriented tool như những Unix command phổ biến (ví dụ `grep(1)`). Dĩ nhiên, ghi một lượng thông tin khổng lồ vào log cũng có nhược điểm; việc này cần system resource và có thể lấp đầy storage nơi log được đặt. Vì lý do đó, điều quan trọng là quản lý logging infrastructure phù hợp với mục đích của cluster, tức chỉ log lượng thông tin tối thiểu có thể dùng cho post-analysis.
+
+[quote]
+____
+*Lưu ý:* Log có thể nhanh chóng làm đầy disk storage nếu bạn không configure chúng phù hợp, vì vậy bạn nên bảo đảm cluster không tạo ra nhiều log hơn khả năng system có thể xử lý.
+
+____
+Theo triết lý Unix phổ biến, PostgreSQL cho phép gửi log tới một component bên ngoài có tên syslog. Ý tưởng là trong infrastructure của riêng bạn có thể có một component hoặc một machine chịu trách nhiệm thu thập log từ mọi service hiện có, bao gồm database, web server, application server, v.v. Vì vậy, bạn có thể redirect PostgreSQL log tới cùng syslog facility chung và thu thập cluster log tại chính nơi bạn đã thu thập log của các service khác. Tuy nhiên, đây không phải lúc nào cũng là lựa chọn tốt, đó là lý do PostgreSQL cung cấp component riêng có tên logging collector để lưu log.
+
+Thực tế, dưới tải nặng, centralized collector của syslog có thể bắt đầu loại bỏ (và do đó làm mất) các log entry, trong khi PostgreSQL logging collector được thiết kế rõ ràng để không làm mất một mẩu thông tin log nào. Vì vậy, logging collector đi kèm PostgreSQL thường là cách được ưu tiên để theo dõi log, nhờ đó bạn có thể chắc chắn rằng khi bắt đầu phân tích log, bạn có toàn bộ thông tin cluster đã tạo ra và không thiếu gì.
+
+PostgreSQL logging được configure thông qua các tunable nằm trong main cluster configuration, cụ thể là file `postgresql.conf`. Trong các subsection sau, bạn sẽ được giới thiệu về PostgreSQL logging configuration và thấy cách tune log của riêng mình cho phù hợp với nhu cầu.
+
+== Ghi log ở đâu
+
+Bước đầu tiên khi configure logging system là quyết định nơi và cách lưu textual log. Parameter chính điều khiển logging system là `log_destination`, có thể nhận một hoặc nhiều giá trị sau:
+
+* `stderr` nghĩa là cluster log sẽ được gửi tới standard error của postmaster process, thường có nghĩa chúng sẽ xuất hiện trên console nơi cluster được start.
+* `syslog` nghĩa là log sẽ được gửi tới một syslog component bên ngoài.
+* `csvlog` nghĩa là log sẽ được tạo dưới dạng comma-separated value, hữu ích cho việc tự động phân tích log (sẽ nói thêm về việc này sau).
+* `jsonlog` nghĩa là log sẽ được tạo dưới dạng JSON tuple, một format khác rất hữu ích cho việc tự động phân tích log (sẽ nói thêm về việc này sau).
+* `eventlog` là một component đặc biệt chỉ có trên platform Microsoft Windows, dùng để thu thập log của rất nhiều service.
+
+Có thể thiết lập logging destination bằng nhiều giá trị, nhờ đó sẽ tạo ra các destination và type log khác nhau.
+
+Một setting quan trọng khác của logging infrastructure là `log_collector`, một giá trị boolean kích hoạt một process (có tên logging collector) để thu thập mọi log được gửi tới standard error và lưu chúng ở nơi bạn muốn. Nói ngắn gọn, đặt `log_destination = stderr` sẽ buộc PostgreSQL gửi mọi log message tới standard error, tức console nơi service được launch. Thông thường không có console được gắn vào vì daemon được launch ở background, hơn nữa không nhiều người muốn giữ một console mở chỉ để xem log message cuộn trên màn hình. Vì lý do đó, `logging_collector = on` enable PostgreSQL logging capture process, process này đọc mọi message được tạo trên standard error và gửi chúng tới destination phù hợp. Thông thường, destination sẽ là text file, file Comma-Separated Values (CSV), hoặc một thứ khác. Vì vậy, `log_destination` quyết định nơi PostgreSQL emit log message, còn `logging_collector` kích hoạt một process chuyên dụng để capture các log đã emit đó và gửi chúng đi nơi khác. Điều quan trọng cần lưu ý là một số logging destination cũng yêu cầu logging collector phải được bật: `cvslog` và `jsonlog` yêu cầu `logging_collector` được enable.
+
+Tóm lại, hai parameter nêu trên có phần phụ thuộc lẫn nhau: bạn cần chọn nơi gửi các log mà PostgreSQL luôn tạo ra (`log_destination`), và trong trường hợp bạn chỉ gửi chúng (hoặc gửi thêm) tới standard error hoặc một custom format (như `csvlog`), bạn cần bật một process chuyên dụng (giá trị `logging_collector`) để bắt mọi log entry và lưu chúng trên disk. Điều này có nghĩa logging configuration của bạn sẽ luôn có dạng tương tự như sau:
+
+[source,text]
+....
+   log_destination = 'stderr'
+   logging_collector = on
+....
+
+Ở đây, dòng đầu tiên bảo cluster gửi log đã tạo tới standard error, nhưng từ đó chúng sẽ được một process chuyên dụng có tên logging collector quản lý và lưu trữ.
+
+Trong phần còn lại của section này, chúng ta sẽ tập trung vào việc configure logging collector. Logging collector có thể được configure để đặt log trong directory bạn muốn, đặt tên log file theo ý muốn và tự động rotate chúng. Log rotation là một feature khá phổ biến trong mọi logging system và có nghĩa là khi một log file đã tăng tới size được chỉ định, hoặc khi đủ thời gian đã trôi qua, log file sẽ được đóng lại và một file mới (với tên khác) được tạo ra. Ví dụ, bạn có thể quyết định tự động rotate log file khi một file đạt 100 MB hoặc sau mỗi 2 ngày: điều kiện nào xảy ra trước sẽ trigger rotation, để PostgreSQL tạo một log file khác ít nhất hai ngày một lần hoặc sau mỗi 100 MB thông tin text.
+
+[quote]
+____
+*Lưu ý:* Log rotation hữu ích vì cho phép tạo các log file nhỏ hơn, có thể giới hạn trong một khoảng thời gian cụ thể. Một mặt, việc này sẽ phân tán log qua nhiều file (có thể nhỏ); mặt khác, nó không tạo ra một log file duy nhất (có thể rất lớn), vốn có thể khó phân tích.
+
+____
+Sau khi enable logging collector, bạn phải configure nó để lưu log theo cách và tại nơi bạn muốn. Thực tế, bạn có thể dùng các parameter sau để configure logging collector process bằng cách đặt giá trị phù hợp cho từng setting trong PostgreSQL configuration file:
+
+* `log_directory`: Đây là directory nơi các log file riêng lẻ phải được lưu. Nó có thể là relative path, được tính tương đối với `PGDATA`, hoặc absolute path (nơi process phải có khả năng ghi). Rõ ràng, đây phải là path mà operating system user chạy cluster có quyền write.
+* `log_filename`: Đây là một filename đơn lẻ hoặc một pattern để chỉ định tên của mọi log file (bên trong `log_directory`). Pattern có thể được chỉ định theo `strftime(3)` để format nó bằng date và time. Ví dụ, giá trị `postgresql-%Y-%m-%d.log` sẽ tạo filename có date (tương ứng là year, month và day), chẳng hạn `postgresql-2022-07-19.log`.
+* `log_rotation_age`: Giá trị này cho biết log phải chờ bao lâu trước khi áp dụng automatic log rotation. Ví dụ, `1d` nghĩa là 1 day và chỉ định log sẽ được rotate mỗi ngày một lần.
+* `log_rotation_size`: Giá trị này chỉ định size của log file trước khi nó được rotate sang file mới. Ví dụ, `50MB` nghĩa là log file sẽ được rotate khi đạt size 50 MB.
+* `log_truncate_on_rotation`: Boolean parameter này quyết định PostgreSQL phải truncate (tức làm rỗng và bắt đầu lại) một file hiện có khi rotation hay thay vào đó append log data mới vào file hiện có.
+
+[quote]
+____
+*Lưu ý:* Hãy nhớ rằng log rotation không chính xác tuyệt đối: log file có thể vượt quá một chút so với size hoặc age dùng để rotation, tùy thuộc vào logging activity của cluster.
+
+____
+Mọi setting liên quan đến rotation đều yêu cầu `logging_collector` được bật: sau cùng, PostgreSQL chỉ có thể quản lý rotation khi nó chịu trách nhiệm về việc logging.
+Một ví dụ về cấu hình logging trong file `postgresql.conf` có thể như sau:
+
+[source,text]
+....
+   logging_collector = on
+   log_destination       = 'stderr,csvlog,jsonlog'
+   log_directory         = 'log'
+   log_filename          = 'postgresql-%Y-%m-%d.log'
+   log_rotation_age      = '1d'
+   log_rotation_size = '50MB'
+....
+
+Với các setting trên, cluster sẽ tạo một log file mới cho mỗi ngày (hoặc mỗi 50 MB thông tin) trong log directory (tương đối so với `PGDATA`) bằng logging collector, và mọi log file sẽ có thông tin về năm, tháng và ngày nó được tạo. Lưu ý rằng, trong ví dụ này, system sẽ đồng thời tạo log ở các format text, JSON và CSV; PostgreSQL sẽ tự động đổi phần extension của log filename thành `.json` và `.csv` tương ứng cho hai format sau.
+
+Với logging configuration ở trên (cũng được sử dụng trong Docker image của chapter), việc kiểm tra log directory sẽ cho output tương tự như sau:
+
+[source,text]
+....
+   $ ls -1 /postgres/16/data/log
+   postgresql-2023-07-19.csv
+   postgresql-2023-07-19.json
+   postgresql-2023-07-19.log
+   ...
+....
+
+File `.log` là file có format text thuần, còn hai file kia chứa các entry ở format CSV và JSON.
+
+== Khi nào ghi log
+
+Điều quan trọng là quyết định khi nào một event phải được ghi vào log. Có rất nhiều option để kiểm soát việc kích hoạt một log action, được chỉ định thông qua một threshold. Logging threshold có thể nhận một giá trị mnemonic cho biết giá trị tối thiểu mà từ đó log event sẽ được chèn vào log.
+
+Các giá trị thường gặp nhất, theo thứ tự, là `info`, `notice`, `warning`, `error`, `log`, `fatal` và `panic`, trong đó `info` là giá trị thấp nhất còn `fatal` là giá trị cao nhất.
+
+Ví dụ, nếu bạn quyết định `warning` là threshold tối thiểu muốn chấp nhận, mọi log event có threshold thấp hơn (chẳng hạn `info` và `notice`) sẽ không được chèn vào log.
+
+Như bạn có thể thấy, threshold tăng dần khi tiến tới các giá trị error như `fatal` và `panic`; các giá trị này luôn được log tự động vì chúng biểu thị những vấn đề không thể phục hồi. Ngoài ra còn có các level thấp nhất mang tên `debug1` đến `debug5` để lấy thông tin development và chi tiết bên trong quá trình thực thi process (tức là chúng thường được sử dụng khi phát triển với PostgreSQL).
+
+Do đó, cluster sẽ tạo ra các log event khác nhau tại những thời điểm khác nhau, tất cả đều có các priority level khác nhau; các event này lần lượt được chèn vào log tùy theo threshold bạn đã cấu hình.
+
+Cụ thể, có hai parameter có thể dùng để tinh chỉnh logging threshold: `log_min_messages` và `client_min_messages`.
+
+Parameter đầu tiên, `log_min_messages`, quyết định threshold của logging system, còn parameter sau quyết định threshold của mọi user connection mới. Chúng khác nhau như thế nào?
+
+`log_min_messages` chỉ định những gì cluster phải chèn vào log mà không quan tâm đến incoming user connection hay setting của chúng. `client_min_messages` quyết định những log event nào client phải báo cáo cho user trong connection. Cả hai setting này đều có thể nhận một giá trị trong danh sách threshold ở trên.
+
+Một use case điển hình trong development hoặc test environment có thể là:
+
+[source,text]
+....
+   log_min_messages         = 'info'
+   client_min_messages = 'debug1'
+....
+
+Với configuration trên, cluster sẽ chỉ log các message `info` trong textual log, tức những message liên quan đến việc thực thi bình thường của process, còn incoming user connection sẽ trả về cho user các message chi tiết hơn, chẳng hạn message dành cho development.
+
+Setting threshold không phải là cách duy nhất để quyết định thời điểm kích hoạt việc chèn log: còn có một cặp setting khác dùng để xử lý duration của statement và utility.
+
+Nếu bạn quan tâm đến việc logging các statement (tức query) do client thực thi, bạn có các logging parameter sau để tinh chỉnh:
+
+* `log_min_duration_statement` chứa một giá trị integer biểu thị số milli-second. Mọi statement mất nhiều thời gian hơn giá trị đã đặt sẽ được log. Vì vậy, đặt giá trị này thành `0` có nghĩa là mọi statement xảy ra trong system đều sẽ được ghi vào log.
+* `log_min_duration_sample` và `log_statement_sample_rate` là các parameter hoạt động cùng nhau. `log_min_duration_sample` nhận một số milli-second và chỉ log một sample các statement chạy lâu hơn giá trị milli-second đó. Nói cách khác, nó hoạt động tương tự `log_min_duration_statement`, nhưng thay vì log mọi statement, nó chỉ log một phần trong số đó. Tỷ lệ statement được log do `log_statement_sample_rate` quyết định; parameter này nhận giá trị từ 0 đến 1.
+* `log_transaction_sample_rate` là một giá trị từ 0 đến 1 cho biết có bao nhiêu transaction sẽ được log đầy đủ (tức mọi statement trong transaction sẽ xuất hiện trong log), bất kể duration của statement.
+
+Ý tưởng đằng sau các sample parameter là giảm lượng logging activity (và kích thước log), nhưng vẫn cung cấp insight hữu ích về những gì đang xảy ra trong cluster.
+
+Để hiểu rõ hơn các parameter trên, hãy xem configuration sau:
+
+[source,text]
+....
+      log_min_duration_statement = 500
+      log_min_duration_sample = 100
+      log_statement_sample_rate = 0.8
+      log_transaction_sample_rate = 0.5
+....
+
+Configuration trên sẽ log mọi statement chạy lâu hơn 500 milli-second (`log_min_duration_statement`) và 80% số statement chạy lâu hơn 100 milli-second (`log_min_duration_sample` và `log_statement_sample_rate`). Cuối cùng, nó sẽ log một trong hai transaction (`log_transaction_sample_rate`).
+
+Bạn có thể test điều này bằng workload đơn giản sau:
+
+[source,text]
+....
+      forumdb=> BEGIN;
+      BEGIN
+      forumdb=*> SELECT 'transaction 1';
+         ?column?
+      ---------------
+       transaction 1
+      (1 row)
+
+
+      forumdb=*> ROLLBACK;
+      ROLLBACK
+      forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> SELECT 'transaction 2';
+       ?column?
+   ---------------
+    transaction 2
+   (1 row)
+
+
+   forumdb=*> ROLLBACK;
+   ROLLBACK
+   forumdb=> SELECT pg_sleep( 2 );
+    pg_sleep
+   ----------
+
+
+   (1 row)
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> SELECT pg_sleep( 0.120 );           --repeat 10 times
+    pg_sleep
+   ----------
+
+
+   (1 row)
+   forumdb=*> ROLLBACK;
+   ROLLBACK
+....
+
+Trong log, bạn sẽ tìm thấy nội dung tương tự như sau:
+
+[source,text]
+....
+   LOG:      duration: 0.047 ms    statement: BEGIN;
+   LOG:      duration: 0.253 ms    statement: SELECT 'transaction 2';
+   LOG:      duration: 0.068 ms    statement: ROLLBACK;
+   LOG:      duration: 2003.742 ms     statement: SELECT pg_sleep( 2 );
+   LOG:      duration: 121.593 ms    statement: SELECT pg_sleep( 0.120 );
+   LOG:      duration: 121.464 ms    statement: SELECT pg_sleep( 0.120 );
+   LOG:      duration: 120.459 ms    statement: SELECT pg_sleep( 0.120 );
+   LOG:      duration: 121.448 ms    statement: SELECT pg_sleep( 0.120 );
+   LOG:      duration: 121.455 ms    statement: SELECT pg_sleep( 0.120 );
+   LOG:      duration: 121.416 ms    statement: SELECT pg_sleep( 0.120 );
+....
+
+Theo parameter `log_transaction_sample`, chỉ một trong hai transaction được log. Cũng lưu ý rằng `pg_sleep( 2 )` đã được chèn vì nó mất hơn 500 milli-second (`log_min_duration_statement`), cùng với 6 trong 10 lần gọi `pg_sleep( 0.120 )` được chèn vì `log_transaction_sample_rate` được đặt là 0.8 (tức 80% số transaction đang chạy).
+
+Bạn có thể nhận thấy `log_transaction_sample_rate` không phải là một giá trị chính xác: dù configuration yêu cầu PostgreSQL log 80% query, system đã log ít hơn (60%).
+
+== Nội dung nào cần ghi log
+
+Chất lượng của thông tin cần log được cấu hình bằng một tập parameter phong phú, thường là boolean, để bật hoặc tắt việc log một event cụ thể.
+
+Một setting được sử dụng và bị lạm dụng rất nhiều là `log_statement`: nếu bật, nó sẽ log mọi statement được thực thi trên cluster từ mọi connection. Điều này có thể rất hữu ích vì cho phép bạn dựng lại chính xác database đã làm gì và bằng những statement nào, nhưng mặt khác, nó cũng có thể rất nguy hiểm. Logging mọi statement có thể làm cho data private hoặc sensitive xuất hiện trong log, từ đó có thể lọt đến những người không được authorization. Hơn nữa, logging toàn bộ statement có thể nhanh chóng làm đầy log storage, đặc biệt nếu cluster đang chịu heavy load và concurrency cao.
+
+[quote]
+____
+Thông thường, cấu hình setting `log_min_duration_statement` để chỉ log các statement “chậm” hữu ích hơn nhiều so với log tất cả statement.
+
+____
+Có thể tinh chỉnh category của statement cần log thông qua `log_statement`: setting này có thể nhận giá trị `off`, `ddl`, `mod` hoặc `all`. Ý nghĩa của `off` và `all` khá dễ hiểu, nhưng `ddl` có nghĩa là mọi data definition language statement (ví dụ `CREATE TABLE`, `ALTER TABLE`, v.v.) được log, còn `mod` có nghĩa là mọi data manipulation statement (ví dụ `INSERT`, `UPDATE` và `DELETE`) được log. Mỗi log category là một superset của category trước đó, vì vậy `mod` cũng bao gồm `ddl`, còn `all` bao gồm các category trước đó và cho phép log cả các statement loại `SELECT`. Đáng chú ý là nếu một statement chứa syntax error, nó sẽ không được log thông qua `log_statement`, bất kể setting là gì.
+
+Chất lượng thông tin trong log cũng được xác định bởi parameter `log_line_prefix`. `log_line_prefix` là một pattern string xác định nội dung được chèn vào đầu mỗi log line, do đó có thể dùng để mô tả chi tiết event được log. Pattern được tạo bằng một số placeholder theo cách tương tự `sprintf(3)`, còn việc ghi lại mọi option nằm ngoài phạm vi của cuốn sách.
+
+Chỉ cần nói rằng các placeholder hữu ích và phổ biến nhất là:
+
+* `%a` biểu thị application name (ví dụ `psql`).
+* `%u` biểu thị username đang kết nối tới cluster (tên role).
+* `%d` là database nơi event xảy ra.
+* `%p` là process identifier (PID) của operating system.
+* `%h` biểu thị remote host nơi connection tới cluster được thiết lập.
+* `%l` là session line number, một auto-increment counter giúp chúng ta hiểu thứ tự của mọi statement được thực thi trong một interactive session.
+* `%t` là timestamp tại thời điểm event xảy ra.
+
+Ví dụ, configuration sau sẽ tạo một log line bắt đầu bằng timestamp của event, tiếp theo là process identifier của backend process, rồi counter của command trong session, sau đó là user, database và application được dùng để kết nối tới cluster từ remote host:
+
+[source,text]
+....
+   log_line_prefix = '%t [%p]: [%l] user=%u,db=%d,app=%a,client=%h '
+....
+
+Kết quả của configuration trên sẽ tương tự như log line sau:
+
+[source,text]
+....
+   [3] user=forum,db=forumdb,app=psql,client=[local]LOG:              duration: 3004.132
+   ms statement: select pg_sleep( 3 );
+....
+
+Nhờ `log_line_prefix`, có thể chèn vào mỗi log entry thông tin về user và database mà event liên quan tới; điều này giúp bạn hiểu và phân tích tốt hơn những gì đã xảy ra trong cluster.
+
+Ngoài ra còn có một số special event có thể kích hoạt việc chèn log; các event này được cấu hình bằng những parameter sau:
+
+* `log_connections` và `log_disconnections`: Các boolean value này chỉ định liệu PostgreSQL có phải chèn một entry vào log mỗi khi user connection được mở hoặc đóng hay không.
+* `log_checkpoints`: Boolean setting này yêu cầu PostgreSQL log thông tin về checkpoint (xem Chapter 11, Transactions, MVCC, WALs, and Checkpoints để biết thêm chi tiết).
+* `log_temp_files`: Parameter này nhận một integer value chứa kích thước tính bằng kilobyte. Mỗi khi PostgreSQL tạo một temporary file lớn hơn kích thước đã chỉ định, một log entry sẽ được tạo. Vì vậy, đặt parameter này thành `0` có nghĩa là mỗi khi PostgreSQL sử dụng temporary file, một log entry sẽ được thêm vào.
+* `log_lock_waits`: Boolean parameter này cho biết một log entry sẽ được tạo mỗi khi user session chờ quá lâu để acquire lock. Threshold là configuration parameter `deadlock_timeout`.
+
+Sau khi đã tìm hiểu toàn bộ về logging, chúng ta sẽ chuyển sang trích xuất thông tin từ các log đã tạo bằng một tool đặc biệt có tên pgBadger.

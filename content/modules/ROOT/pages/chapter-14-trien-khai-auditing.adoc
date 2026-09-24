@@ -1,0 +1,287 @@
+= Triển khai auditing
+
+Auditing là khả năng thực hiện introspection trên một application hoặc user session, nói cách khác là có thể tái tạo từng bước những gì user hoặc application yêu cầu cluster thực hiện.
+
+Auditing hơi khác logging, vì logging cung cấp một cách đơn giản để lưu các action của user, nhưng không cung cấp cách dễ dàng để reconstruct interaction của user hoặc application với cluster. Thực tế, trong một cluster có tính concurrent cao, nhiều action do các user khác nhau thực hiện sẽ cùng tồn tại trong log dưới dạng một mớ các line trộn lẫn. Hơn nữa, logging không cung cấp logic cụ thể nào về việc nó đang lưu gì, do đó sẽ khó tìm ra user đã làm gì. Điều này càng đúng hơn khi user hoặc application thực thi các statement phức tạp, đặc biệt là các statement không cung cấp tường minh parameter và value.
+
+Ví dụ, hãy xét section đơn giản sau:
+
+[source,text]
+....
+   forumdb=> PREPARE my_query( text ) AS SELECT * FROM forum.categories WHERE
+   title like $1;
+   PREPARE
+   forumdb=>     EXECUTE my_query( 'PROGRAMMING%' );
+      pk |           title             |              description
+   ----+-----------------------+---------------------------------
+      3 | PROGRAMMING LANGUAGES | All about programming languages
+   (1 row)
+....
+
+Với verbose logging, section đó sẽ cho ra output sau:
+
+[source,text]
+....
+   LOG: duration: 19.011 ms statement: PREPARE my_query( text ) AS SELECT *
+   FROM forum.categories WHERE title like $1;
+   LOG:      duration: 6.539 ms    statement: EXECUTE my_query( 'PROGRAMMING%' );
+....
+
+Như bạn thấy, log chứa mọi thứ cần thiết để reconstruct user đã làm gì, nhưng việc đó không đơn giản. Bạn phải hiểu rằng hai line có liên quan với nhau và session thực thi các statement là cùng một session. Điều này không phải lúc nào cũng khả thi, đặc biệt nếu có các query khác được log ở giữa hai line mà bạn quan tâm.
+
+Ngoài ra, có thể log không báo cáo toàn bộ information bạn cần, có lẽ vì bạn đã chọn không log các statement thực thi nhanh hơn một threshold.
+
+Vì vậy, dù có thể dùng logging để thực hiện auditing, đó không phải lúc nào cũng là lựa chọn tốt nhất. Trong section này, bạn sẽ tìm hiểu extension PgAudit, được tạo ra để cung cấp một auditing infrastructure đáng tin cậy và dễ sử dụng. PgAudit tận dụng logging facility xuất sắc của PostgreSQL; vì vậy, bạn cần cấu hình logging infrastructure theo cách phù hợp, như sẽ thấy trong các subsection tiếp theo.
+
+Trước khi đi vào configuration và cách sử dụng PgAudit, có một số detail và concept cần được giải thích. PgAudit có thể hoạt động theo hai cách khác nhau: auditing theo session hoặc theo object. Cách đầu tiên là một cách nhanh và đơn giản để audit một phần (hoặc toàn bộ) session của user hay application; cách thứ hai là cách phức tạp và fine-grained hơn để log các action liên quan tới những database object cụ thể (ví dụ, ai đã delete row từ table đó?).
+
+Auditing theo session hoạt động bằng cách chỉ cần cấu hình các category statement cần audit trong một session. Ngược lại, auditing theo object yêu cầu bạn cấu hình từng database role; tùy theo tập permission được gán, các role đó sẽ trigger việc audit những action cụ thể. Trong các subsection tiếp theo, bạn sẽ thấy cả hai cách được dùng để audit.
+
+== Cài đặt PgAudit
+
+Cách nhanh nhất để cài đặt PgAudit là dùng package manager của operating system. Ví dụ, trên system GNU/Debian hoặc Ubuntu, bạn có thể nhập:
+
+[source,text]
+....
+   $ sudo apt install pgaudit-16-pgaudit
+....
+
+Nếu cần cài đặt PgAudit từ source, trước tiên bạn phải lấy một version tương thích với PostgreSQL cluster của mình, sau đó uncompress và cài đặt nó:
+
+[source,text]
+....
+   $ wget https://github.com/pgaudit/pgaudit/archive/refs/tags/1.7.0.tar.gz
+   ..
+   $ tar xzvf 1.7.0.tar.gz
+   ...
+   $ cd pgaudit-1.7.0
+   $ make USE_PGXS=1
+   ...
+
+   $ sudo make USE_PGXS=1 install
+....
+
+Sau khi extension được cài đặt, bạn phải cấu hình PostgreSQL để sử dụng PgAudit.
+
+== Cấu hình PostgreSQL để sử dụng PgAudit
+
+PgAudit là một extension cần được load khi server startup, vì vậy bạn phải thay đổi configuration file chính, `postgresql.conf`, để thêm library `pgaudit` như sau:
+
+[source,text]
+....
+   shared_preload_libraries = 'pgaudit'
+....
+
+Tiếp theo, hãy restart cluster để các thay đổi có hiệu lực:
+
+[source,text]
+....
+   $    pg_ctl -D /postgres/16/data restart
+....
+
+Vì PgAudit là một extension, bạn phải enable nó trong database mà mình muốn audit để activate nó. Để đơn giản, hãy enable nó trong database `forumdb` của chúng ta (bạn cần connect với tư cách database superuser):
+
+[source,text]
+....
+   forumdb=# CREATE EXTENSION pgaudit;
+   CREATE EXTENSION
+....
+
+Bây giờ là lúc quyết định khi nào và bằng cách nào áp dụng auditing.
+
+[quote]
+____
+Nếu đang sử dụng Docker image cho chapter này, PgAudit đã được cài đặt sẵn cho bạn!
+
+____
+== Cấu hình PgAudit
+
+PgAudit đi kèm một tập configuration parameter phong phú, cho phép bạn chỉ định chính xác cần log gì, khi nào log, loại trừ điều gì khỏi auditing, v.v. Tất cả configuration parameter đều nằm trong namespace `pgaudit` để không xung đột với các setting hiện có khác cùng tên.
+
+Setting quan trọng nhất là `pgaudit.log`, xác định những statement và action mà bạn muốn audit. Parameter này có thể nhận bất kỳ value nào sau đây:
+
+* `ALL` để audit mọi statement
+* `NONE` để không audit bất kỳ thứ gì
+* `READ` để chỉ audit các statement `SELECT` và `COPY`
+* `WRITE` để audit mọi statement sửa đổi data (`INSERT`, `UPDATE` và `COPY`)
+* `ROLE` để audit việc thay đổi hoặc tạo role
+* `DDL` để audit mọi data-definition statement, và do đó mọi thay đổi đối với database structure
+* `FUNCTION` để audit mọi lần thực thi code, bao gồm cả DO block
+* `MISC` để audit mọi value chưa được phân loại tường minh ở trên
+* `MISC_SET` để audit mọi command dạng SET
+
+Bạn có thể chỉ định nhiều setting cùng lúc bằng cách phân tách từng name bằng dấu phẩy, ví dụ:
+
+[source,text]
+....
+   pgaudit.log = 'WRITE,FUNCTION';
+....
+
+Function này có thể được dùng để audit mọi thay đổi data và lần thực thi code.
+
+Một configuration parameter quan trọng khác là `pgaudit.log_level`, chỉ định log level mà PgAudit dùng để đưa các audit message vào log. Theo mặc định, setting này nhận value `log`, nhưng bạn có thể đổi nó thành bất kỳ log threshold nào khác, ngoại trừ các threshold error (chẳng hạn `ERROR`, `FATAL` và `PANIC`).
+
+Để thêm nhiều detail hơn vào audit information, có lẽ bạn sẽ muốn enable parameter `pgaudit.log_parameter` để dump mọi query parameter (bạn sẽ thấy một ví dụ ở phần sau).
+
+Nếu định cấu hình PgAudit theo object, bạn cần set parameter `pgaudit.role` như sẽ thấy ở phần sau của chapter này.
+== Auditing theo session
+
+Cách đầu tiên để sử dụng PgAudit (và cũng là cách dễ hiểu, dễ thử nhất) là audit theo session.
+
+Cũng như các configuration setting khác, bạn có thể thiết lập configuration của PgAudit thông qua `SET` SQL statement. Cách này hữu ích để test configuration trước khi áp dụng cho toàn bộ cluster. Hãy thử thiết lập `pgaudit.log` trực tiếp trong interactive session và thực hiện một vài action để xem điều gì xảy ra. Ví dụ, giả sử chúng ta muốn audit mọi thay đổi đối với data:
+
+[source,text]
+....
+   forumdb=# SET pgaudit.log TO 'write, ddl';
+   SET
+   forumdb=# SELECT count(*) FROM forum.categories;
+      count
+   -------
+          3
+   (1 row)
+
+
+   forumdb=# INSERT INTO forum.categories( description, title ) VALUES(
+   'Fake', 'A Malicious Category' );
+   INSERT 0 1
+
+
+   forumdb=# SELECT count(*) FROM forum.categories;
+      count
+   -------
+          4
+   (1 row)
+
+
+   forumdb=# INSERT INTO forum.categories( description, title ) VALUES(
+   'Fake2', 'Another Malicious Category' );
+   INSERT 0 1
+....
+
+`pgaudit.log` chỉ có thể được set bởi superuser, vì vậy nếu muốn thử dynamic setting này trong một interactive session, bạn cần connect với tư cách database administrator. Tất nhiên, bạn có thể set nó cho tất cả user ở cluster-wide level bằng cách set parameter trong configuration file `postgresql.conf`.
+
+Trong log, PostgreSQL sẽ ghi nội dung tương tự như sau:
+
+[source,text]
+....
+   LOG: AUDIT: SESSION,1,1,WRITE,INSERT,,,"INSERT INTO forum.categories(
+   description, title ) VALUES( 'Fake', 'A Malicious Category' );",<not
+   logged>
+   LOG: AUDIT: SESSION,2,1,WRITE,INSERT,,,"INSERT INTO forum.categories(
+   description, title ) VALUES( 'Fake2', 'Another Malicious Category'
+   );",<not logged>
+....
+
+Một dòng log như vậy có nhiều chi tiết, nhưng trước khi xem xét các field, hãy lưu ý rằng không có gì được ghi về hai câu lệnh `SELECT`: vì chúng ta yêu cầu PgAudit không audit các query `READ`, các câu lệnh `SELECT` đã bị loại khỏi quá trình audit.
+
+Hãy lưu ý rằng mọi audit line đều có prefix rất dễ hiểu là `AUDIT`, nhờ đó có thể dễ dàng biết log line được tạo bởi PgAudit hay bởi một event nội bộ khác của PostgreSQL.
+
+Mỗi line cho biết audit type (trong ví dụ trước là `SESSION`) và một counter tăng dần để biểu thị thứ tự theo thời gian mà các statement được audit. Tiếp theo là category của statement mà PgAudit nhận diện (trong ví dụ trước, cả hai đều là `WRITE` event), rồi đến các statement hoàn chỉnh đã được thực thi. Vẫn còn chỗ cho những detail khác, sẽ được thảo luận trong các ví dụ tiếp theo.
+
+Hãy chuyển sang một ví dụ khác — xét việc thực thi một query được build dynamic như sau:
+
+[source,text]
+....
+   forumdb=# DO $$ BEGIN
+   EXECUTE 'TRUNCATE TABLE ' || 'forum.tags CASCADE';
+   END $$;
+   NOTICE:    truncate cascades to table "forum.j_posts_tags"
+   DO
+....
+
+Thay vì thực thi một statement `TRUNCATE TABLE tags`, statement đã được tạo bằng cách nối hai string. Trong log, PgAudit chèn một line như sau:
+
+[source,text]
+....
+   LOG: AUDIT: SESSION,3,1,WRITE,TRUNCATE TABLE,,,TRUNCATE TABLE forum.tags
+   CASCADE,<not logged>
+....
+
+Một lần nữa, line này báo cáo auditing mode (`SESSION`), auditing statement number (`3`), category (`WRITE`), và statement (`TRUNCATE TABLE`), cũng như statement đã thực thi đầy đủ. Chi tiết cuối cùng này rất quan trọng: nếu bạn thực thi cùng statement mà không audit, PostgreSQL log sẽ chứa một line như sau:
+
+[source,text]
+....
+   LOG:    duration: 12.616 ms        statement: DO $$ BEGIN
+             EXECUTE 'TRUNCATE TABLE ' || 'forum.tags CASCADE';
+             END $$;
+....
+
+Ở đây, bạn có thể thấy log đã sao chép nguyên xi source statement, bao gồm string concatenation và newline, khiến statement khó đọc và khó search hơn.
+
+== Audit theo role
+
+Cơ chế audit theo role của PgAudit cho phép bạn định nghĩa rất fine-grained những event nào mình quan tâm.
+
+Ý tưởng là bạn định nghĩa một database role và grant cho role đó các permission liên quan đến action muốn audit. Sau khi role và các permission của nó được thiết lập, bạn thông báo cho PgAudit biết phải audit theo role đó. Khi ấy, PgAudit sẽ báo cáo trong log mọi action khớp với action đã grant cho auditing role, bất kể role nào đã thực hiện action đó.
+
+Vì vậy, bước đầu tiên là tạo một role chỉ được dùng để chỉ định những action cần audit, và sẽ không được dùng như một role thông thường cho các interactive session:
+
+[source,text]
+....
+   forumdb=# CREATE ROLE auditor WITH NOLOGIN;
+   CREATE ROLE
+....
+
+Để chỉ định những action mà role phải audit, chúng ta chỉ cần `GRANT` các permission tương ứng cho role. Ví dụ, giả sử chúng ta muốn audit mọi action `DELETE` trên mọi table và chỉ audit action `INSERT` trên `posts` và `categories`, chúng ta phải grant cho role tập permission sau:
+
+[source,text]
+....
+   forumdb=# GRANT DELETE ON ALL TABLES IN SCHEMA forum TO auditor;
+   GRANT
+   forumdb=# GRANT INSERT ON forum.posts TO auditor;
+   GRANT
+   forumdb=# GRANT INSERT ON forum.categories TO auditor;
+   GRANT
+....
+
+Mọi thứ đã sẵn sàng để PgAudit thực hiện công việc, nhưng điều quan trọng là auditing system phải biết role `auditor` cần được sử dụng. Vì vậy, chúng ta cần configure `pgaudit.role` ở cluster configuration hoặc trong current session. Cách thứ nhất dĩ nhiên là cách phù hợp để dùng trong production environment, còn set configuration parameter trong một session riêng lẻ hữu ích cho mục đích test. Hãy set parameter trong session với tư cách database administrator để thử hoạt động của nó:
+
+[source,text]
+....
+   forumdb=# SET pgaudit.role TO auditor;
+   SET
+....
+
+Bây giờ là lúc thực thi một vài statement và xem PgAudit lưu gì trong cluster log:
+
+[source,text]
+....
+   forumdb=# INSERT INTO forum.categories( title, description ) VALUES(
+   'PgAudit', 'Topics related to auditing in PostgreSQL' );
+   INSERT 0 1
+
+
+   -- this will not be logged
+   forumdb=# INSERT INTO forum.tags( tag ) VALUES( 'pgaudit' );
+   INSERT 0 1
+
+
+   forumdb=# DELETE FROM forum.posts WHERE author NOT IN ( SELECT pk FROM
+   forum.users WHERE username NOT IN ( 'fluca1978', 'sscotty71' ) );
+   DELETE
+....
+
+Như bạn có thể hình dung, PgAudit sẽ log statement đầu tiên và cuối cùng trong session ví dụ trên: thực tế, chỉ những statement đó liên quan đến các table và action mà auditing role đã được grant permission.
+
+Trong PostgreSQL log, bạn sẽ tìm thấy các line tương tự như sau:
+
+[source,text]
+....
+   LOG: AUDIT: OBJECT,1,1,WRITE,INSERT,TABLE,forum.categories,"INSERT INTO
+   forum.categories( title, description ) VALUES( 'PgAudit', 'Topics related
+   to auditing in PostgreSQL' );",<not logged>
+   LOG: AUDIT: OBJECT,2,1,WRITE,DELETE,TABLE,forum.posts,"DELETE FROM forum.
+   posts WHERE author NOT IN ( SELECT pk FROM forum.users WHERE username NOT
+   IN ( 'fluca1978', 'sscotty71' ) );",<not logged>
+....
+
+Hãy lưu ý rằng tuple insertion vào table `tags` bị thiếu: nó không được audit và log vì auditing role không bao gồm một permission `GRANT` cụ thể cho table đó.
+
+Sau khi auditing role đã được configure đúng, chúng ta có thể lưu configuration sau khi sửa configuration file `postgresql.conf` và set `pgaudit.role` tunable như sau:
+
+[source,text]
+....
+      pgaudit.role = 'auditor'
+....
+
+Như bạn có thể thấy, audit theo role linh hoạt hơn nhiều so với chỉ audit theo session: trong khi cách sau chỉ cho phép bạn chỉ định category của action cần audit, cách trước cho phép định nghĩa fine-grained chính xác những statement nào cần audit.

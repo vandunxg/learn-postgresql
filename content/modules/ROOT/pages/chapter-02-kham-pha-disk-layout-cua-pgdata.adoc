@@ -1,0 +1,158 @@
+= Khám phá disk layout của `PGDATA`
+
+Trong các phần trước, bạn đã thấy cách install PostgreSQL và kết nối tới nó, nhưng chúng ta chưa xem xét phần storage của một cluster. Vì mục tiêu của PostgreSQL, cũng như của mọi relational database, là lưu trữ data lâu dài, cluster cần một dạng permanent storage. Cụ thể, PostgreSQL tận dụng underlying filesystem để lưu trữ data của chính nó. Tất cả thành phần liên quan đến PostgreSQL đều nằm trong một directory có tên `PGDATA`.
+
+Directory `PGDATA` hoạt động như disk container lưu trữ toàn bộ data của cluster, bao gồm user data và cluster configuration.
+
+Sau đây là ví dụ về nội dung của `PGDATA` đối với một PostgreSQL 16 cluster đang chạy:
+
+[source,text]
+....
+     $   ls -1 /postgres/16/data
+     base
+     global
+     pg_commit_ts
+     pg_dynshmem
+     pg_hba.conf
+     pg_ident.conf
+     pg_logical
+     pg_multixact
+     pg_notify
+     pg_replslot
+     pg_serial
+     pg_snapshots
+     pg_stat
+     pg_stat_tmp
+     pg_subtrans
+     pg_tblspc
+     pg_twophase
+     PG_VERSION
+     pg_wal
+     pg_xact
+     postgresql.auto.conf
+     postgresql.conf
+     postmaster.opts
+     postmaster.pid
+....
+
+Directory `PGDATA` được cấu trúc thành nhiều file và subdirectory. Các file chính gồm:
+
+* `postgresql.conf` là main configuration file, được sử dụng theo default khi service được start.
+* `postgresql.auto.conf` là configuration file được tự động include, dùng để lưu các setting được thay đổi động thông qua SQL instruction.
+* `pg_hba.conf` là HBA file cung cấp configuration liên quan đến các database connection khả dụng.
+* `PG_VERSION` là text file chứa major version number (hữu ích khi kiểm tra directory để biết version nào của cluster đã quản lý directory `PGDATA`).
+* `postmaster.pid` là PID của postmaster process, process đầu tiên được launch trong cluster.
+
+Các directory chính có trong `PGDATA` gồm:
+
+* `base` là directory chứa toàn bộ user data, bao gồm database, table và các object khác.
+* `global` là directory chứa các cluster-wide object.
+* `pg_wal` là directory chứa các WAL file.
+* `pg_stat` và `pg_stat_tmp` lần lượt là nơi lưu trữ statistical information permanent và temporary về status và health của cluster.
+
+Tất nhiên, mọi file và directory trong `PGDATA` đều quan trọng để cluster hoạt động đúng, nhưng cho tới lúc này, danh sách trên là danh sách “core” các object nền tảng của chính `PGDATA`. Các file và directory khác sẽ được thảo luận trong những chapter sau.
+
+== Các object trong directory `PGDATA`
+
+PostgreSQL không đặt tên cho các object trên disk, chẳng hạn table, theo cách mnemonic hoặc human-readable; thay vào đó, mọi file đều được đặt tên theo một numeric identifier. Bạn có thể thấy điều này bằng cách xem subdirectory `base`, chẳng hạn:
+
+[source,text]
+....
+   $   ls -1 /postgres/16/data/base
+   1
+   16386
+   4
+   5
+....
+
+Như bạn thấy từ code trên, directory `base` chứa bốn object có tên 1, 4, 5 và 16386. Xin lưu ý rằng các số này có thể khác trên machine của bạn. Cụ thể, mỗi object trên là một directory chứa các file khác, như sau:
+
+[source,text]
+....
+      $ ls -1 /postgres/16/data/base/16386 | head
+      112
+      113
+      1247
+      1247_fsm
+      1247_vm
+      1249
+      1249_fsm
+      1249_vm
+      1255
+      1255_fsm
+....
+
+Như bạn thấy, mỗi file được đặt tên bằng một numeric identifier. Bên trong, PostgreSQL lưu một catalog cụ thể cho phép database ánh xạ mnemonic name tới numeric identifier và ngược lại. Integer identifier được gọi là OID (hay Object Identifier); đây là một thuật ngữ lịch sử mà ngày nay tương ứng với filenode. Hai thuật ngữ này sẽ được sử dụng thay thế cho nhau trong phần này.
+
+Có một utility cụ thể cho phép bạn kiểm tra directory `PGDATA` và trích xuất mnemonic name: `oid2name`. Ví dụ, nếu thực thi utility `oid2name`, bạn sẽ nhận được danh sách tất cả database có sẵn tương tự như sau:
+
+[source,text]
+....
+      $ oid2name
+      All databases:
+         Oid     Database Name   Tablespace
+      ----------------------------------
+       16390           forumdb   pg_default
+             5        postgres   pg_default
+             4       template0   pg_default
+             1       template1   pg_default
+....
+
+Như bạn thấy, các Oid number trong output của `oid2name` phản ánh chính những directory name được liệt kê trong directory `base`; mỗi subdirectory có tên tương ứng với database.
+
+Bạn còn có thể đi xa hơn và kiểm tra một file đơn lẻ bằng cách đi vào database directory, chỉ định database nơi bạn sẽ tìm object name bằng flag `-d`:
+
+[source,text]
+....
+   $ cd /postgres/16/data/base/1
+   $ oid2name -d template1 -f 3395
+   From database "template1":
+      Filenode                       Table Name
+   -------------------------------------
+           3395   pg_init_privs_o_c_o_index
+....
+
+Như bạn thấy, file 3395 trong directory `/postgres/16/data/base/1` tương ứng với table có tên `pg_init_privs_o_c_o_index`. Vì vậy, khi PostgreSQL cần tương tác với một table như thế này, nó sẽ tìm tới file `/postgres/16/data/base/1/3395` trên disk.
+
+Từ ví dụ trên, có thể thấy rõ rằng mọi SQL table đều được lưu trữ dưới dạng một file có numeric name. Tuy nhiên, PostgreSQL không cho phép một file đơn lẻ lớn hơn 1 GB, vậy điều gì xảy ra nếu một table tăng quá giới hạn đó? PostgreSQL “gắn thêm” một file khác với numeric extension cho biết chunk 1 GB tiếp theo. Nói cách khác, nếu table của bạn được lưu trong file `123`, gigabyte thứ hai sẽ được lưu trong file `123.1`, và nếu cần thêm một gigabyte storage nữa, file `123.2` sẽ được tạo. Vì vậy, filenode tham chiếu tới file đầu tiên liên quan đến một table cụ thể, nhưng trên disk có thể lưu nhiều hơn một file.
+
+== Tablespaces
+
+PostgreSQL giả định rằng toàn bộ data của nó nằm trong directory `PGDATA`, nhưng điều đó không có nghĩa cluster của bạn bị “nhốt” trong directory này. Thực tế, PostgreSQL cho phép “thoát” khỏi directory `PGDATA` thông qua tablespace. Tablespace là một directory có thể nằm bên ngoài directory `PGDATA` và cũng có thể thuộc về một storage khác. Tablespace được ánh xạ vào directory `PGDATA` bằng các symbolic link được lưu trong subdirectory `pg_tblspc`. Theo cách này, PostgreSQL process không phải tìm ra bên ngoài `PGDATA`, nhưng vẫn có thể truy cập “external” storage. Tablespace có thể được dùng cho nhiều mục đích, chẳng hạn mở rộng data storage hoặc cung cấp storage performance khác nhau cho các object cụ thể. Ví dụ, bạn có thể tạo một tablespace trên disk chậm để chứa các object và table ít được truy cập, đồng thời giữ fast storage trong một tablespace khác cho các object được truy cập thường xuyên.
+
+Bạn không phải tự tạo link: PostgreSQL cung cấp tính năng `TABLESPACE` để quản lý việc này và cluster sẽ tạo cũng như quản lý các link phù hợp bên dưới subdirectory `pg_tblspc`.
+
+Ví dụ, sau đây là một directory `PGDATA` có ba tablespace khác nhau:
+
+[source,text]
+....
+     $ ls -l /postgres/16/data/pg_tblspc/
+     lrwxrwxrwx 1 postgres postgres 22 Jan 19 13:08 16384 -> /data/tablespaces/
+     ts_a
+     lrwxrwxrwx 1 postgres postgres 22 Jan 19 13:08 16385 -> /data/tablespaces/
+     ts_b
+     lrwxrwxrwx 1 postgres postgres 22 Jan 19 13:08 16386 -> /data/tablespaces/
+     ts_c
+....
+
+Như bạn thấy từ ví dụ trên, có ba tablespace được attach vào storage `/data`. Bạn có thể kiểm tra chúng bằng `oid2name` và flag `-s`:
+
+[source,text]
+....
+      $ oid2name -s
+      All tablespaces:
+            Oid   Tablespace Name
+      ------------------------
+           1663        pg_default
+           1664         pg_global
+          16384               ts_a
+          16385               ts_b
+          16386               ts_c
+....
+
+Như bạn thấy, các numeric identifier của symbolic link được ánh xạ tới mnemonic name của tablespace. Từ ví dụ trên, bạn có thể thấy cũng có hai tablespace đặc biệt:
+
+* `pg_default` là default tablespace tương ứng với “none”, tức storage default được dùng cho mọi object khi không có gì được chỉ định rõ ràng. Nói cách khác, mọi object được lưu trực tiếp bên dưới directory `PGDATA` đều được attach vào tablespace `pg_default`.
+* `pg_global` là tablespace được dùng cho các system-wide object.
+
+Theo default, cả hai tablespace trên đều tham chiếu trực tiếp tới directory `PGDATA`, nghĩa là mọi cluster không có custom tablespace đều được chứa hoàn toàn bên trong directory `PGDATA`.

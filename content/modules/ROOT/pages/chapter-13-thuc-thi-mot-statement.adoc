@@ -1,0 +1,276 @@
+= Thực thi một statement
+
+SQL là một ngôn ngữ khai báo: bạn yêu cầu database thực hiện một việc gì đó trên data mà nó chứa, nhưng không chỉ định cách database phải hoàn thành SQL statement. Chẳng hạn, khi yêu cầu lấy về một số data, bạn thực thi một statement `SELECT`, nhưng chỉ cung cấp các clause xác định subset data cần lấy, chứ không cung cấp cách database phải lấy data từ persistent storage. Bạn phải tin tưởng database – cụ thể là PostgreSQL – có thể thực hiện công việc và luôn tìm được path nhanh nhất tới data, trong mọi hoàn cảnh workload. Tin tốt là PostgreSQL thực sự rất giỏi ở việc này và có thể hiểu (và ở một mức độ nào đó, diễn giải) các SQL statement cũng như workload hiện tại của nó để cung cấp cho bạn access tới data theo cách nhanh nhất.
+
+Tuy nhiên, việc tìm path nhanh nhất tới data thường đòi hỏi sự cân bằng giữa việc tìm path tuyệt đối nhanh nhất và thời gian dành cho việc suy luận về path đó; nói cách khác, PostgreSQL đôi khi chọn một thỏa hiệp để lấy data cho bạn theo cách đủ nhanh, dù đó không phải là cách nhanh nhất tuyệt đối.
+
+Mặt khác, đôi khi PostgreSQL không thể hiểu thật tốt cách tìm path nhanh nhất tới data, và DBA có thể hỗ trợ cải thiện performance. Thông thường, thêm một index có thể giúp PostgreSQL retrieve data bên dưới nhanh hơn. Những lúc khác, một statement chậm che giấu một query viết sai (tức là một statement được viết với các clause không đúng hoặc mâu thuẫn). Ngoài ra, query chậm có thể xuất phát từ việc PostgreSQL suy luận sai về kích thước dataset mà nó phải xử lý. Trong mọi trường hợp này, DBA phải thực hiện một số tuning trong database hoặc các statement để giúp PostgreSQL đưa ra quyết định tốt nhất.
+
+Để có thể hỗ trợ cluster tối ưu các statement, trước tiên bạn cần hiểu PostgreSQL xử lý một SQL statement như thế nào. Trong phần tiếp theo, bạn sẽ học toàn bộ nền tảng về cách một SQL statement được chuyển thành một tập các action mà PostgreSQL thực thi để quản lý data.
+
+== Các giai đoạn thực thi
+
+Một SQL statement – gọi ngắn gọn là query – được xử lý qua bốn giai đoạn chính:
+
+. Giai đoạn đầu tiên là parsing; một component chuyên dụng, parser, xử lý dạng text của statement (SQL text) và xác minh nó có đúng hay không. Nếu statement có bất kỳ syntax error nào, việc thực thi dừng lại ở giai đoạn sớm này; nếu không, parser phân rã statement thành các phần chính, chẳng hạn danh sách table và column liên quan, các clause để filter data, việc sort, v.v.
+. Khi parser hoàn tất thành công, statement chuyển sang giai đoạn thứ hai: rewriting. Rewriter chịu trách nhiệm áp dụng mọi rule cú pháp để rewrite SQL statement ban đầu thành thứ thực sự sẽ được thực thi. Cụ thể, rewriter chịu trách nhiệm áp dụng các rule (tham khảo Chapter 8, Triggers and Rules). Khi rewriter hoàn thành nhiệm vụ, tạo ra statement hiệu lực mà database sẽ xử lý, statement này chuyển sang giai đoạn tiếp theo: optimization.
+. Trong giai đoạn optimization, query được optimizer xử lý; optimizer chịu trách nhiệm tìm path nhanh nhất tới data. Việc tìm path nhanh nhất này không đơn giản: optimizer phải quyết định cách đi tới data trong tất cả access method khả dụng, chẳng hạn index hoặc direct access. Như bạn có thể hình dung, việc suy luận và lặp qua tất cả access method khả dụng tiêu tốn thời gian và resource, vì vậy nhiệm vụ của optimizer không chỉ là tìm access method nhanh nhất mà còn phải tìm ra nó trong thời gian ngắn.
+. Cuối cùng, khi optimizer đã quyết định cách access data, query chuyển sang phase cuối: execution. Execution phase do component executor xử lý; component này chịu trách nhiệm thực sự đi tới storage và retrieve (hoặc insert) data bằng access method do executor quyết định.
+
+Tóm lại, một SQL statement duy nhất đi qua bốn giai đoạn, tất cả được thể hiện trong diagram sau: parsing phase kiểm tra syntax của statement, rewriting phase biến đổi query thành một thứ cụ thể hơn, optimization phase quyết định cách access data mà query yêu cầu, và cuối cùng là execution phase, thực hiện physical access tới data.
+
+image::chapter-13-figure-13-1-000.jpg[Hình 13.1: Các giai đoạn của query PostgreSQL]
+
+*Hình 13.1: Các giai đoạn của query PostgreSQL*
+
+DBA chỉ có thể tương tác với database trong optimization phase, cố gắng giúp PostgreSQL hiểu statement tốt hơn và optimize nó đúng cách bất cứ khi nào PostgreSQL không thực hiện công việc một cách tối ưu. Phần tiếp theo xem xét kỹ hơn optimizer, nhằm chuẩn bị cho bạn các cách tune query và database để xử lý query thông minh hơn và nhanh hơn.
+
+== Optimizer
+
+Optimizer là component chịu trách nhiệm quyết định dùng cách nào để access data nhanh nhất có thể. Nếu một table không cung cấp index nào, thì chỉ có một cách access data của nó, do đó không có gì phải suy luận về cách lấy data từ table.
+
+Mặt khác, nếu một table cung cấp một vài index, optimizer phải quyết định index nào phù hợp nhất với statement sẽ được thực thi. Tình huống trở nên phức tạp hơn nhiều nếu có nhiều table, mỗi table lại có nhiều index: optimizer phải suy luận về mọi cách khả dĩ để đi tới kết quả cuối cùng.
+
+Optimizer chọn giữa các cách access data khác nhau như thế nào? Optimizer sử dụng concept cost: mỗi cách access data được gán một cost, và cách có cost thấp nhất sẽ thắng, được chọn làm access method tốt nhất.
+
+Đó là lý do PostgreSQL optimizer được gọi là cost-based optimizer.
+
+PostgreSQL được cấu hình để gán một cost cụ thể cho mọi operation mà nó thực hiện: tìm data từ storage, thực hiện một operation dựa trên CPU (chẳng hạn sort trong memory), v.v. Optimizer lặp qua mọi cách khả dĩ để access data và xử lý data đó nhằm trả về kết quả mong muốn cho user, tính tổng cost cho từng cách – tức là tổng cost của mọi operation PostgreSQL sẽ thực hiện. Sau đó, plan có cost thấp nhất được truyền cho executor dưới dạng một chuỗi action cần thực hiện, và data được xử lý theo đó.
+
+Tuy nhiên, đây mới chỉ là một nửa câu chuyện. Có những trường hợp công việc của optimizer thực sự đơn giản: nếu chỉ có một access method, việc quyết định cách access data là hiển nhiên. Tuy nhiên, có những statement liên quan đến quá nhiều object và table khiến việc lặp qua mọi khả năng mất rất nhiều thời gian, đến mức kết quả sẽ bị thời gian tính toán cách access data tối ưu vượt qua. Vì lý do này, nếu statement liên quan đến hơn 12 table join, optimizer không lặp qua mọi khả năng mà thay vào đó thực thi một genetic algorithm để tìm một cách access data mang tính thỏa hiệp. Sự thỏa hiệp nằm giữa thời gian dành cho việc tính path tới data và việc tìm một access path không quá tệ.
+
+Executor cũng có thể thực hiện data access bằng các parallel job. Điều này có nghĩa là, chẳng hạn, việc retrieve một tập data rất lớn có thể được thực hiện bằng cách chia lượng công việc cho các parallel worker khác nhau (ví dụ, thread), mỗi worker được gán một subset data nhỏ hơn.
+
+Trong mọi trường hợp, optimizer chia tập action cần truyền cho executor thành các node; một node là một action cần thực thi để cung cấp kết quả cuối cùng hoặc kết quả trung gian. Ví dụ, giả sử bạn thực thi một query chung yêu cầu data theo một thứ tự cụ thể như sau:
+
+[source,text]
+....
+   SELECT * FROM categories ORDER BY description;
+....
+
+Optimizer sẽ truyền hai action cho executor, và do đó là hai node: một node để retrieve toàn bộ data và một node để sort data.
+
+Trong các subsection sau, chúng ta sẽ trình bày các node chính mà optimizer xem xét và truyền cho executor. Chúng ta sẽ bắt đầu với các sequential node – những node được thực thi bằng một job duy nhất – sau đó xem PostgreSQL xây dựng parallelism trên nền tảng của chúng như thế nào.
+
+== Các node optimizer sử dụng
+
+Trong phần này, chúng ta sẽ trình bày các node chính mà bạn có thể gặp trong optimizer plan. Có các node khác nhau cho từng operation có thể thực hiện, và cho từng access method khác nhau mà PostgreSQL chấp nhận.
+
+Điều quan trọng cần lưu ý là các node có thể stack: output của một node có thể được dùng làm input cho node khác. Điều này cho phép xây dựng các execution plan rất phức tạp từ nhiều node khác nhau, tạo ra một access method rất chi tiết tới data.
+
+== Các sequential node
+
+Sequential node là những node được thực thi tuần tự, lần lượt từng node một, để đạt được kết quả cuối cùng. Các node chính được liệt kê ở đây và sẽ được giải thích trong các subsection sau:
+
+* Sequential Scan
+* Index Scan, Index-Only Scan, và Bitmap Index Scan
+* Nested Loop, Hash Join, và Merge Join
+* Các parallel node Gather và Gather Merge
+
+== Sequential Scan
+
+*Sequential Scan (Seq Scan)* là node duy nhất luôn có sẵn cho optimizer và executor, đặc biệt khi không có alternative nào khác có giá trị. Trong một sequential scan, executor sẽ đi tới đầu dataset trên disk – ví dụ, đầu file tương ứng với một table – và đọc toàn bộ data, lần lượt từng block theo thứ tự tuần tự.
+
+Node này, chẳng hạn, luôn được sử dụng khi bạn yêu cầu nội dung của một table mà không có filtering clause cụ thể nào, như trong example sau:
+
+[source,text]
+....
+   SELECT * FROM categories;
+....
+
+Node *Sequential Scan* cũng được sử dụng khi filtering clause không giới hạn nhiều trong query, khiến kết quả cuối cùng là lấy gần như toàn bộ nội dung table. Trong trường hợp đó, database có thể thực hiện operation read-all tuần tự nhanh hơn, loại bỏ những tuple bị các query clause filter ra.
+
+== Các index node
+
+Một index scan access data có liên quan đến index để nhanh chóng tìm dataset được yêu cầu. Trong PostgreSQL, tất cả index đều là secondary, nghĩa là chúng tồn tại bên cạnh table; vì vậy, trong storage bạn sẽ có một data file cho table và một file cho mỗi index được build trên table. Điều này có nghĩa một index scan luôn yêu cầu hai access riêng biệt tới storage: một access để đọc disk và lấy thông tin về vị trí của các tuple được yêu cầu trong table, và một access khác tới disk để tìm các tuple mà index trỏ tới.
+
+Từ đó, có thể thấy rõ PostgreSQL tránh sử dụng index khi chúng không hữu ích, tức là khi việc access storage hai lần nói trên gây ra nhiều bất lợi hơn lợi ích.
+
+Tuy nhiên, khi PostgreSQL tin rằng access data qua một index có thể có giá trị, nó sẽ tạo ra một index node có thể chuyên biệt thành ba loại khác nhau.
+
+*Index Scan*, đúng như tên gọi, là access method index “cổ điển”: PostgreSQL đọc index đã chọn, rồi từ đó tìm các tuple, lại đọc chúng từ storage.
+
+*Index-Only Scan* là một loại *Index Scan* cụ thể: nếu data được yêu cầu chỉ liên quan đến các column thuộc index, PostgreSQL đủ thông minh để tránh chuyến đi thứ hai tới storage vì nó có thể lấy trực tiếp toàn bộ thông tin cần thiết từ index.
+
+Loại index-based node cuối cùng bạn có thể gặp là *Bitmap Index Scan*: PostgreSQL xây dựng một bitmap trong memory về vị trí của các tuple thỏa các clause của statement, sau đó bitmap này được dùng để định vị các tuple đó. *Bitmap Index Scan* thường được kết hợp với *Bitmap Heap Scan*, như bạn sẽ thấy trong các example ở những phần sau.
+
+== Các join node
+
+Khi PostgreSQL thực hiện join giữa hai (hoặc nhiều) table, nó sử dụng một trong ba node khả dĩ. Trong phần này, chúng ta sẽ mô tả các join node đó, xét một join giữa hai table: một outer table (ở bên trái của join) và một inner table (table ở phía bên phải của join).
+
+Node dễ hiểu nhất là *Nested Loop*: cả hai table đều được scan bằng method tuần tự hoặc dựa trên index, và mọi tuple được kiểm tra để xem có match hay không. Về cơ bản, algorithm có thể được mô tả bằng đoạn pseudo-Java code sau:
+
+[source,text]
+....
+   for ( Tuple o : outerTable )
+       for ( Tuple i : innerTable )
+             if ( o.matches( i ) )
+                appendTupleToResultDataSet( o, i );
+....
+
+Như bạn có thể thấy từ pseudo-code trước đó, *Nested Loop* được đặt tên theo việc lồng các loop mà nó thực hiện để đánh giá mọi tuple giữa inner table và outer table.
+
+Như vậy, một *Nested Loop* không bị buộc phải thực hiện sequential scan trên cả hai table; trên thực tế, tùy context, mỗi table có thể được duyệt bằng sequential access method hoặc indexed-based access method. Tuy nhiên, phần cốt lõi của *Nested Loop* không thay đổi: sẽ luôn có một double loop lồng nhau để tìm các match giữa các tuple.
+
+PostgreSQL chỉ chọn *Nested Loop* nếu inner table đủ nhỏ để việc lặp qua nó mỗi lần không tạo ra penalty đáng kể.
+
+Một cách khác để thực hiện join là dùng node *Hash Join*: inner table được ánh xạ vào một hash, là một tập bucket chứa các tuple của table; sau đó outer table được duyệt, và với mỗi tuple lấy ra từ outer table, hash được tìm kiếm để xem có match hay không. Đoạn pseudo-Java code sau minh họa cơ chế của *Hash Join*:
+
+[source,text]
+....
+   Hash innerHash = buildHash( innerTable );
+   for ( Tuple o : outerTable )
+        if ( innerHash.containsKey( buildHash( o ) ) )
+            appendTupleToResultDataSet( o, i );
+....
+
+Như bạn có thể thấy từ example trước, bước đầu tiên gồm việc hash inner table, sau đó duyệt qua outer table để xem có tuple nào của nó match với các value trong hash map của inner table hay không.
+
+Loại join cuối cùng bạn có thể gặp trong PostgreSQL là *Merge Join*. Đúng như tên gọi, *Merge Join* gồm một bước sort: trước tiên cả hai table được sort theo các join key, sau đó được duyệt tuần tự. Với mỗi tuple của outer table, tất cả tuple match trong inner table được lấy ra. Vì cả hai table đã được sort, một tuple không match cho biết đã đến lúc chuyển sang join key tiếp theo.
+
+Đoạn pseudo-Java code sau minh họa algorithm của *Merge Join*:
+
+[source,text]
+....
+   outerTable = sort( outerTable );
+   innerTable = sort( innerTable );
+   int innerIdx = 0;
+
+
+   for ( Tuple o : outerTable )
+       for ( ; innerIdx < innerTable.length(); innerIdx++ ){
+           Tuple i = innerTable[ innerIdx ];
+             if ( o.matches( i ) )
+                appendTupleToResultSet( o, i );
+             else
+                break;
+       }
+....
+
+Như bạn có thể thấy, sau khi các table được sort, một tuple được lấy ra từ outer table và so sánh với tất cả tuple trong inner table. Ngay khi các tuple không còn match, một tuple khác từ outer table được lấy ra và inner table khởi động lại loop từ vị trí trước đó. Nói cách khác, cả hai table được duyệt đúng một lần.
+
+Bây giờ chúng ta sẽ chuyển sang các parallel node.
+
+== Các parallel node
+
+Parallel node là những node mà PostgreSQL có thể thực thi để phân phối lượng công việc giữa các parallel process, nhờ đó đạt được kết quả cuối cùng nhanh hơn. Điều quan trọng cần lưu ý là parallel execution không phải lúc nào cũng là lựa chọn đúng: có thời gian setup để phân phối job giữa các parallel process, cũng như thời gian và resource cần thiết để trả về kết quả của từng process. Vì lý do này, PostgreSQL chỉ enable parallel execution của một số node nhất định nếu phiên bản parallel được ước tính sẽ đem lại lợi ích so với sequential execution.
+
+Ví dụ đơn giản, hãy xét trường hợp bạn có một table rất nhỏ chỉ gồm vài tuple, chẳng hạn bốn tuple. Nếu bạn yêu cầu toàn bộ nội dung table, resource và thời gian dành cho việc khởi chạy cũng như đồng bộ các parallel process sẽ lớn hơn nhiều so với việc đi thẳng tới table và lấy result dataset về theo cách tuần tự. Quy tắc kinh nghiệm là: nếu dataset được yêu cầu đủ nhỏ, PostgreSQL sẽ không bao giờ chọn parallel execution.
+
+Điều quan trọng là phải hiểu rằng chỉ vì planner tạo ra một parallel plan, tức là một execution plan gồm các parallel node, không có nghĩa executor sẽ tuân theo parallelism này. Có thể có các điều kiện, đặc biệt là tại runtime, ngăn PostgreSQL thực thi một parallel plan, ngay cả khi đó là lựa chọn tối ưu (chẳng hạn PostgreSQL không có đủ chỗ để spawn số parallel process cần thiết).
+
+Trong subsection sau, bạn sẽ tìm hiểu các parallel node chính hiện có.
+
+== Các Gather node
+
+Một parallel execution plan luôn bao gồm hai loại node *Gather*: một node *Gather* thông thường và một Gather Merge node.
+Các Gather node chịu trách nhiệm thu thập các kết quả trả về từ những node thực thi song song, ghép chúng lại để tạo ra kết quả cuối cùng. Điểm khác biệt là Gather Merge node yêu cầu các process song song cung cấp output đã được sort để việc ghép tập kết quả được thực hiện theo thứ tự của data.
+
+Plain Gather node không yêu cầu sort các batch result, nên nó chỉ đơn giản ghép tất cả các phần lại để cung cấp kết quả cuối cùng.
+
+== Parallel scans
+
+Tất cả main node mà bạn có thể tìm thấy trong một access method tuần tự đều có thể được chạy song song. Vì vậy, bạn có thể gặp Parallel Seq scan, hoặc các index scan như Parallel Index và Parallel Index-Only scan, và dĩ nhiên là cả Parallel Bitmap Heap scan.
+
+== Parallel joins
+
+Khi PostgreSQL quyết định dùng một parallel join method, nó cố giữ inner table được truy cập theo cách không song song (với giả định rằng table đó đủ nhỏ) và thực hiện việc truy cập song song tới outer table bằng một trong các node được trình bày ở phần trước.
+
+Tuy nhiên, trong trường hợp Hash Join, inner table được mỗi parallel process tính thành hash, do đó mỗi parallel process làm việc trên outer table đều phải tính cùng một result cho inner table. Vì lý do đó, còn có Parallel Hash Join, cho phép hash map của inner table được tính song song bởi mọi process đang làm việc trên outer table.
+
+== Parallel aggregations
+
+Khi final result set được tạo bởi việc aggregate các parallel subquery khác nhau, phải có một parallel aggregation, tức aggregation của từng phần song song.
+
+Aggregation này diễn ra qua nhiều bước: trước tiên, mỗi parallel process thực hiện một Partial Aggregate node để tạo ra partial result set. Sau đó, một Gather node (hoặc Gather Merge) thu thập tất cả partial result và chuyển toàn bộ tập đó cho Finalize Aggregate node, node này tuần tự ghép final result.
+
+== Khi nào optimizer chọn parallel plan?
+
+Như đã nói, PostgreSQL thậm chí không xem xét parallel plan như một lựa chọn nếu kích thước dự kiến của result set nhỏ. Cụ thể, nếu table cần tìm data có kích thước nhỏ hơn parameter `min_parallel_table_scan_size` (mặc định là 8 MB), hoặc index cần scan nhỏ hơn `min_parallel_index_scan_size` (mặc định là 512 kB), PostgreSQL hoàn toàn không tính đến parallel plan.
+
+Bạn có thể buộc PostgreSQL thực hiện parallel plan ngay cả khi các giá trị trước đó chưa đạt điều kiện, bằng một configuration parameter bổ sung là `debug_parallel_query`, mặc định được set là off:
+
+[source,text]
+....
+   forumdb=> SHOW min_parallel_table_scan_size;
+   min_parallel_table_scan_size
+   ------------------------------
+   8MB
+   (1 row)
+
+
+   forumdb=> SHOW min_parallel_index_scan_size;
+   min_parallel_index_scan_size
+   ------------------------------
+   512kB
+   (1 row)
+
+
+   forumdb=> SHOW debug_parallel_query ;
+   debug_parallel_query
+   ----------------------
+    off
+   (1 row)
+....
+
+Trong mọi trường hợp, khi PostgreSQL xem parallel plan là một option, nó không mặc định sử dụng plan đó; thay vào đó, nó cẩn thận đánh giá cost của sequential plan và cost của parallel plan để xem nỗ lực setup bổ sung có còn đáng hay không.
+
+Tuy nhiên, còn có những hạn chế khác đối với việc áp dụng parallel plan: PostgreSQL phải bảo đảm không spawn quá nhiều parallel process, vì vậy nếu hệ thống đã có quá nhiều parallel process đang hoạt động thì parallel execution sẽ không được xem là một option. Ngoài ra, bất kỳ statement nào tạo ra việc ghi data, tức mọi thứ khác với một `SELECT` statement, đều không phải candidate hợp lệ cho parallel plan; tương tự là mọi statement có thể bị suspend rồi resume, chẳng hạn như việc sử dụng cursor.
+
+Cuối cùng, bất kỳ query nào gọi một function được đánh dấu là `PARALLEL UNSAFE` sẽ không tạo ra parallel plan candidate.
+
+== Utility nodes
+
+Ngoài các node đã giới thiệu, được dùng để truy cập data trong một table (hoặc nhiều table trong trường hợp join), còn có một số utility node được dùng trong plan để đạt tới final result.
+
+Khi statement của bạn yêu cầu sắp xếp result bằng một clause như `ORDER BY`, planner sẽ chèn một Sort node. Nếu query có giới hạn output, chẳng hạn một `LIMIT` clause, một Limit node sẽ được chèn vào plan để giảm final result set.
+
+Trong trường hợp đó, node được dùng thay cho một `UNION ALL` statement là một Append node (hãy nhớ rằng `UNION ALL` cho phép các tuple bị duplicate, còn `UNION` thì không).
+
+Nếu statement của bạn aggregate các query khác nhau, như `UNION`, một Distinct node sẽ được chèn vào. Chính node này còn có một feature khác: nó có thể phục vụ việc chọn các tuple `DISTINCT`.
+
+Khi statement sử dụng một `GROUP BY` clause, planner chèn một GroupAggregate node chịu trách nhiệm gom các tuple. Tương tự, khi statement chứa một window function (xem Chapter 7, Server-Side Programming), planner giới thiệu một WindowAgg node để quản lý việc aggregate tuple cần thiết cho window function.
+
+Trong trường hợp có Common Table Expression (CTE), planner giới thiệu một CTEScan node chịu trách nhiệm join giữa CTE subquery và table thật. Nếu một join yêu cầu materialize một dataset, tức cần mô phỏng một table từ một tập query result, planner giới thiệu một Materialize node.
+
+== Node costs
+
+PostgreSQL planner phải đánh giá execution plan có cost thấp nhất, và để tính mọi alternative có thể có, nó tính cost của tất cả access plan được đánh giá.
+
+Mỗi node gắn với một cost, là ước tính mức độ tốn kém của việc thực thi node đó xét theo tài nguyên tính toán. Dĩ nhiên, mỗi node có một cost thay đổi tùy thuộc vào type và quantity của input, cũng như node type.
+
+PostgreSQL cung cấp một danh sách cost, được biểu diễn bằng các unit tùy ý, cho những operation chính mà một node có thể thực hiện. Vì vậy, việc tính cost của một node là tính cost của từng operation mà node thực hiện, nhân với số lần những operation đó được lặp lại; số lần lặp phụ thuộc vào kích thước data mà node phải đánh giá.
+
+Cost có thể được điều chỉnh trong cluster configuration, tức trong file chính `postgresql.conf` hoặc trong catalog `pg_settings`. Cụ thể, có thể query cluster về các cost chính liên quan đến việc thực thi một node:
+
+[source,text]
+....
+    forumdb=> SELECT name, setting
+                   FROM pg_settings
+                   WHERE name LIKE 'cpu%\_cost'
+                        OR name LIKE '%page\_cost'
+                  ORDER BY setting DESC;
+
+
+                name             | setting
+   ----------------------+---------
+     random_page_cost            | 4
+     seq_page_cost               | 1
+     cpu_tuple_cost              | 0.01
+     cpu_index_tuple_cost | 0.005
+     cpu_operator_cost           | 0.0025
+....
+
+Các cost trước đó là cost mặc định của một PostgreSQL installation mới, và bạn không nên thay đổi bất kỳ giá trị nào trong số đó trừ khi thực sự chắc chắn về việc mình đang làm. Hãy nhớ rằng cost là thứ khiến planner lựa chọn giữa các plan khác nhau, vì vậy việc set cost không đúng sẽ dẫn đến việc optimizer chọn các execution plan sai.
+
+Cost được biểu diễn như “expense”, nhưng các giá trị đó không liên quan đến thời gian thực thi: cost biểu thị nỗ lực PostgreSQL phải bỏ ra để lấy data; do đó, cost cao hơn phải đòi hỏi nỗ lực lớn hơn.
+
+Như bạn có thể thấy từ danh sách cost trước đó, cơ sở cho mọi phép tính của optimizer là cost của một data page được truy cập theo sequential mode: giá trị này được đặt làm unit cost. CPU cost, tức cost liên quan đến việc phân tích một tuple đã nằm trong memory, nhỏ hơn nhiều so với một unit, trong khi việc truy cập storage theo cách random đắt hơn nhiều so với sequential access.
+
+Cost có thể thay đổi tùy thuộc vào năng lực tính toán của system; cụ thể, việc có các disk storage SSD cấp enterprise có thể giảm `random_page_cost` xuống 1.5, gần bằng sequential page cost.
+
+Việc thay đổi optimizer cost, dù đơn giản như thay đổi một vài setting, đòi hỏi kiến thức rất sâu về PostgreSQL internals và hardware bên dưới, và chỉ hữu ích trong những case rất cụ thể; vì vậy, việc này không được khuyến khích trong gần như mọi scenario và nằm ngoài scope của cuốn sách này. Thay vào đó, bạn sẽ tìm hiểu cách planner estimate cost của việc truy cập data.
+
+Ở phần sau của chapter này, bạn sẽ thấy các cost trước đó được áp dụng như thế nào để tính overall cost của một query plan.
+
+Trong section sau, bạn sẽ tìm hiểu về index, feature giúp PostgreSQL truy cập data hiệu quả hơn.

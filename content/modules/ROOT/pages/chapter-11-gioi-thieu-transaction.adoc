@@ -1,0 +1,596 @@
+= Giới thiệu transaction
+
+*Transaction là một unit công việc atomic, hoặc thành công hoặc thất bại.* Transaction là một feature quan trọng của mọi database system và là thứ cho phép database triển khai các property Atomicity, Consistency, Isolation và Durability (ACID). Nhìn chung, các property ACID có nghĩa là database phải có khả năng xử lý trọn vẹn các unit công việc (atomicity), lưu data theo cách bền vững (durability), không có các thay đổi xen kẽ trên data (consistency), và theo cách để các action đồng thời được thực thi như thể chúng đang chạy một mình (isolation).
+
+Bạn có thể hình dung transaction là một nhóm các statement có liên quan, cuối cùng hoặc đều thành công hoặc đều thất bại. Transaction hiện diện ở khắp nơi trong database, và bạn đã sử dụng chúng từ trước dù có thể không nhận ra: các lời gọi function, các statement đơn lẻ, v.v. được thực thi trong một transaction block (nhỏ). Nói cách khác, mọi action bạn phát hành tới database đều được thực thi bên trong một transaction, ngay cả khi bạn không yêu cầu rõ ràng. Nhờ tự động bọc mọi statement độc lập vào một transaction, database engine có thể bảo đảm data của nó luôn nhất quán và được bảo vệ khỏi corruption; phần sau của chapter sẽ cho thấy PostgreSQL bảo đảm điều này như thế nào.
+
+Tuy nhiên, đôi khi bạn không muốn database kiểm soát các statement của mình; thay vào đó, bạn muốn tự xác định boundary của transaction, và database cho phép bạn làm việc đó. Vì lý do này, chúng ta dùng implicit transaction để chỉ những transaction do database tự khởi động mà bạn không cần yêu cầu, và explicit transaction cho những transaction mà bạn yêu cầu database khởi động.
+
+Trước khi kiểm tra hai loại transaction và so sánh chúng, chúng ta cần có thêm một chút background về các concept của transaction.
+
+Trước hết, mỗi transaction được gán một số duy nhất, gọi là transaction identifier, viết tắt là `xid`. System tự động gán một `xid` cho các transaction mới được tạo, dù là implicit hay explicit, và bảo đảm không có hai transaction có cùng `xid` tồn tại đồng thời trong database.
+
+Concept chính khác mà chúng ta cần sớm hiểu trong phần giải thích về transaction là PostgreSQL lưu `xid` tạo ra và/hoặc sửa đổi một tuple bên trong chính tuple đó. Lý do sẽ trở nên rõ ràng khi chúng ta xem PostgreSQL xử lý concurrency của transaction như thế nào, nên trong phạm vi phần này, hãy tạm giả định rằng mọi tuple trong mọi table đều tự động được gắn nhãn bằng giá trị `xid` của transaction đã tạo tuple đó.
+
+Bạn có thể inspect transaction hiện tại bằng special function `txid_current()`. Ví dụ, nếu yêu cầu system thực hiện một vài statement đơn giản như thời gian hiện tại, bạn sẽ thấy mỗi statement `SELECT` được thực thi như một transaction khác nhau:
+
+[source,text]
+....
+   forumdb=> SELECT current_time, txid_current();
+         current_time       | txid_current
+   --------------------+--------------
+     16:51:35.042584+01 |                4813
+   (1 row)
+
+
+   forumdb=> SELECT current_time, txid_current();
+         current_time       | txid_current
+   --------------------+--------------
+     16:52:23.028124+01 |                4814
+   (1 row)
+....
+
+Như bạn có thể thấy từ example trước, system đã gán hai transaction identifier khác nhau, lần lượt là 4813 và 4814, cho mỗi statement, xác nhận rằng các statement đó đã được thực thi trong những implicit transaction khác nhau. Trên system của bạn, các con số có thể sẽ khác.
+
+Nếu inspect hidden column đặc biệt `xmin` trong một table, bạn có thể lấy thông tin về transaction đã tạo các tuple; hãy xem example sau:
+
+[source,text]
+....
+   forumdb=> SELECT xmin, * FROM categories;
+     xmin | pk |              title             |              description
+   ------+----+-----------------------+---------------------------------
+      561 |   1 | DATABASE                     | Database related discussions
+      561 |   2 | UNIX                         | Unix and Linux discussions
+      561 |   3 | PROGRAMMING LANGUAGES | All about programming languages
+   (3 rows)
+....
+
+Như bạn có thể thấy, tất cả tuple trong table trước đó đều được tạo bởi cùng một transaction, số 561.
+
+[quote]
+____
+PostgreSQL quản lý một vài hidden column khác nhau mà bạn phải yêu cầu rõ ràng khi query table thì mới có thể thấy chúng. Cụ thể, mọi table đều có các hidden column `xmin`, `xmax`, `cmin` và `cmax`. Công dụng và mục đích của chúng sẽ được giải thích ở phần sau của chapter.
+
+____
+Bây giờ bạn đã biết mỗi transaction đều được đánh số và các số đó được dùng để gắn nhãn cho tuple trong mọi table, chúng ta có thể tiếp tục xem sự khác nhau giữa implicit và explicit transaction.
+
+== So sánh implicit và explicit transaction
+
+Implicit transaction là transaction bạn không yêu cầu nhưng system áp dụng cho các statement của bạn. Nói cách khác, PostgreSQL quyết định khi nào transaction bắt đầu và kết thúc (transaction boundary), và quy tắc rất đơn giản: mỗi statement được thực thi trong transaction riêng của nó.
+
+Để hiểu rõ hơn concept này, hãy insert một vài record vào một table:
+
+[source,text]
+....
+   forumdb=> INSERT INTO tags( tag ) VALUES( 'linux' );
+   INSERT 0 1
+   forumdb=> INSERT INTO tags( tag ) VALUES( 'BSD' );
+   INSERT 0 1
+   forumdb=> INSERT INTO tags( tag ) VALUES( 'Java' );
+   INSERT 0 1
+   forumdb=> INSERT INTO tags( tag ) VALUES( 'Perl' );
+   INSERT 0 1
+   forumdb=> INSERT INTO tags( tag ) VALUES( 'Raku' );
+   INSERT 0 1
+....
+
+Và hãy query data trong table:
+
+[source,text]
+....
+   forumdb=> SELECT xmin, * FROM tags;
+     xmin | pk |     tag    | parent
+   ------+----+-------+--------
+     4824 |    9 | linux |
+     4825 | 10 | BSD        |
+     4826 | 11 | Java       |
+     4827 | 12 | Perl       |
+     4828 | 13 | Raku       |
+   (5 rows)
+....
+
+Như bạn có thể thấy, field `xmin` có một giá trị khác nhau (tự tăng) cho mỗi tuple được insert, nghĩa là một transaction identifier (`xid`) mới đã được gán cho tuple, hay chính xác hơn là cho statement thực thi `INSERT`. Điều này có nghĩa mỗi statement được thực thi trong transaction bọc riêng cho một statement duy nhất.
+
+[quote]
+____
+Việc bạn thấy các instance của `xid` tăng một đơn vị là vì trên machine được dùng cho các example, không có concurrency, tức là không có activity database nào khác đang diễn ra. Tuy nhiên, bạn không thể dự đoán `xid` tiếp theo trong một live system có các connection đồng thời khác nhau và các statement đang chạy.
+
+____
+Điều gì sẽ xảy ra nếu chúng ta insert tất cả tag trước đó trong một lần, bảo đảm rằng nếu chỉ một tag không thể được lưu vì bất kỳ lý do nào thì tất cả chúng sẽ biến mất? Để đạt mục tiêu này, chúng ta có thể dùng explicit transaction. Explicit transaction là một nhóm statement có transaction boundary được xác lập rõ: bạn phát hành statement `BEGIN` để đánh dấu điểm bắt đầu transaction, rồi dùng `COMMIT` hoặc `ROLLBACK` để kết thúc transaction. Nếu phát hành `COMMIT`, transaction được đánh dấu là thành công; do đó, data đã sửa đổi được lưu vĩnh viễn. Ngược lại, nếu phát hành `ROLLBACK`, transaction được xem là thất bại và mọi thay đổi biến mất.
+
+Hãy xem điều này trong thực tế: thêm một nhóm tag khác, nhưng lần này nằm trong một explicit transaction duy nhất:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> INSERT INTO tags( tag ) VALUES( 'PHP' );
+   INSERT 0 1
+   forumdb=*> INSERT INTO tags( tag ) VALUES( 'C#' );
+   INSERT 0 1
+   forumdb=*> COMMIT;
+   COMMIT
+....
+
+Điểm khác biệt duy nhất so với nhóm statement `INSERT` trước đó là việc sử dụng rõ ràng `BEGIN` và `COMMIT`; vì transaction đã commit, data phải được lưu trong table:
+
+[source,text]
+....
+   forumdb=> SELECT xmin, * FROM tags;
+      xmin | pk |    tag   | parent
+   ------+----+-------+--------
+      4824 |   9 | linux |
+      4825 | 10 | BSD      |
+      4826 | 11 | Java     |
+      4827 | 12 | Perl     |
+      4828 | 13 | Raku     |
+      4829 | 14 | PHP      |
+      4829 | 15 | C#       |
+   (7 rows)
+....
+
+Như bạn có thể thấy, không chỉ data được lưu như mong đợi, mà hai row cuối còn có cùng transaction identifier, tức là 4829. Điều này có nghĩa PostgreSQL đã bằng cách nào đó gộp hai statement khác nhau thành một statement duy nhất.
+
+[quote]
+____
+Khi bạn phát hành explicit transaction, `psql` thay đổi prompt bằng cách thêm một dấu hoa thị để nhắc rằng bạn đang ở trong một transaction đang mở (tức là transaction chưa hoàn tất). Nếu transaction bị abort do một error, dấu hoa thị sẽ được đổi thành dấu chấm than.
+
+____
+Hãy xem điều gì xảy ra nếu transaction kết thúc bằng statement `ROLLBACK`: kết quả cuối cùng là các thay đổi không được lưu. Ví dụ, hãy đổi value tag của mọi tuple thành chữ hoa hoàn toàn:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> UPDATE tags SET tag = upper( tag );
+   UPDATE 7
+   forumdb=*> SELECT tag FROM tags;
+      tag
+   -------
+     LINUX
+     BSD
+     JAVA
+     PERL
+     RAKU
+     PHP
+     C#
+   (7 rows)
+
+   forumdb=*> ROLLBACK;
+   ROLLBACK
+   forumdb=> SELECT tag FROM tags;
+      tag
+   -------
+     linux
+     BSD
+     Java
+     Perl
+     Raku
+     PHP
+     C#
+   (7 rows)
+....
+
+Đầu tiên chúng ta đã đổi tất cả mô tả thành chữ hoa, và statement `SELECT` chứng minh database đã thực hiện công việc đó, nhưng cuối cùng chúng ta đổi ý và phát hành `ROLLBACK`. Tại thời điểm này, PostgreSQL loại bỏ các thay đổi của chúng ta và giữ lại state trước transaction.
+
+Vì vậy, chúng ta có thể tóm tắt rằng mỗi statement luôn được thực thi như một implicit transaction; còn nếu cần kiểm soát nhiều hơn đối với những gì cần thay đổi một cách atomic, bạn phải mở (`BEGIN`) và đóng (`COMMIT` hoặc `ROLLBACK`) một explicit transaction.
+
+Việc kiểm soát một explicit transaction không có nghĩa là bạn luôn có quyền lựa chọn cách kết thúc nó; đôi khi PostgreSQL sẽ không cho phép bạn dùng `COMMIT` để hoàn tất transaction vì transaction chứa các error không thể recovery.
+
+Ví dụ tầm thường nhất là khi bạn nhập một syntax error:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> UPDATE tags SET tag = uppr( tag );
+   ERROR:    function uppr(text) does not exist
+   LINE 1: UPDATE tags SET tag = uppr( tag );
+                                         ^
+   HINT: No function matches the given name and argument types. You might
+   need to add explicit type casts.
+   Forumdb=!> COMMIT;
+   ROLLBACK
+....
+
+Khi PostgreSQL gặp error, nó abort transaction hiện tại. Abort một transaction có nghĩa là trong khi transaction vẫn đang mở, PostgreSQL sẽ không chấp nhận bất kỳ command nào tiếp theo, kể cả `COMMIT`, và sẽ tự động phát hành command `ROLLBACK` ngay khi bạn đóng transaction. Vì vậy, ngay cả khi cố tiếp tục làm việc sau một mistake, PostgreSQL cũng sẽ từ chối các statement của bạn:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> INSERT INTO tags( tag ) VALUES( 'C#' );
+   INSERT 0 1
+   forumdb=*> INSERT INTO tags( tag ) VALUES( PHP );
+   ERROR:    column "php" does not exist
+   LINE 1: INSERT INTO tags( tag ) VALUES( PHP );
+   forumdb=!> INSERT INTO tags( tag ) VALUES( 'Ocaml' );
+   ERROR: current transaction is aborted, commands ignored until end of
+   transaction block
+   forumdb=!> COMMIT;
+   ROLLBACK
+....
+
+Dù vậy, xử lý syntax error hoặc tên object bị viết sai không phải là những vấn đề duy nhất bạn có thể gặp khi chạy transaction; hơn nữa, các vấn đề đó khá dễ sửa, nhưng bạn cũng có thể thấy transaction không thể tiếp tục vì có một data constraint ngăn statement hoàn tất thành công. Hãy tưởng tượng chúng ta không cho phép bất kỳ tag nào có description ngắn hơn hai ký tự:
+
+[source,text]
+....
+   forumdb=> ALTER TABLE tags
+                ADD CONSTRAINT constraint_tag_length
+                CHECK ( length( tag ) >= 2 );
+   ALTER TABLE
+....
+
+Hãy xem xét một unit công việc thực hiện hai statement `INSERT` khác nhau như sau:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> INSERT INTO tags( tag ) VALUES( 'C' );
+   ERROR: new row for relation "tags" violates check constraint "constraint_
+   tag_length"
+   DETAIL:    Failing row contains (17, C, null).
+   Forumdb=!> INSERT INTO tags( tag ) VALUES( 'C++' );
+   ERROR: current transaction is aborted, commands ignored until end of
+   transaction block
+   forumdb=!> COMMIT;
+   ROLLBACK
+....
+
+Như bạn đã thấy, ngay khi một DML statement thất bại, PostgreSQL abort transaction và từ chối xử lý bất kỳ statement nào khác. Cách duy nhất để bạn thoát khỏi tình huống này là kết thúc explicit transaction, và bất kể bạn kết thúc theo cách nào (dùng `COMMIT` hay `ROLLBACK`), PostgreSQL sẽ loại bỏ các thay đổi của bạn, rollback transaction hiện tại. Logic hoàn toàn tương tự áp dụng cho implicit transaction: khi một statement thất bại (vì bất kỳ lý do nào), PostgreSQL rollback implicit transaction bọc statement đó, và kết quả cuối cùng là data hoàn toàn không được persist.
+
+Trong các example trước, chúng ta luôn cho thấy việc kết thúc transaction bằng `COMMIT`, nhưng rõ ràng là khi bạn không chắc về data, các thay đổi đã thực hiện hoặc gặp một error không thể recovery, bạn nên phát hành `ROLLBACK`. Chúng ta cho thấy `COMMIT` để làm rõ rằng PostgreSQL sẽ ngăn công việc sai kết thúc thành công.
+
+Vậy khi nào bạn nên dùng explicit transaction? Mỗi khi có một workload phải hoặc thành công hoặc thất bại, bạn phải bọc nó trong một explicit transaction. Cụ thể, khi việc mất một phần công việc có thể gây ảnh hưởng đến data còn lại thì đó là thời điểm phù hợp để dùng transaction. Ví dụ, hãy hình dung một ứng dụng mua sắm online: chắc chắn bạn không muốn charge client trước khi đã cập nhật cart của họ và kiểm tra availability của sản phẩm trong kho. Mặt khác, với tư cách một client, tôi sẽ không muốn nhận message nói rằng order của mình đã được xác nhận, rồi chỉ sau đó phát hiện payment đã thất bại vì một lý do nào đó.
+
+Vì vậy, do tất cả step và action phải được thực hiện một cách atomic (kiểm tra availability của sản phẩm, cập nhật cart, nhận payment, xác nhận order), explicit transaction là thứ chúng ta cần để giữ data nhất quán.
+== Time trong transaction
+
+Transaction có tính *time-discrete*: time không thay đổi trong suốt một transaction. Bạn có thể dễ dàng thấy điều này bằng cách mở một transaction và query current time nhiều lần:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> SELECT CURRENT_TIME;
+         current_time
+   --------------------
+      14:51:50.730287+01
+   (1 row)
+
+
+   forumdb=*> SELECT pg_sleep_for( '5 seconds' );
+      pg_sleep_for
+   --------------
+
+
+   (1 row)
+
+
+   forumdb=*> SELECT CURRENT_TIME;
+         current_time
+   --------------------
+      14:51:50.730287+01
+   (1 row)
+
+
+   forumdb=*> ROLLBACK;
+   ROLLBACK
+....
+
+Nếu thực sự cần một nguồn thời gian liên tục trong khi đang chạy transaction, bạn có thể dùng `clock_timestamp()`:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=*> SELECT CURRENT_TIME, clock_timestamp()::time;
+         current_time      | clock_timestamp
+   --------------------+-----------------
+      14:53:17.479177+01 | 14:53:22.152435
+   (1 row)
+
+
+   forumdb=*> SELECT pg_sleep_for( '5 seconds' );
+     pg_sleep_for
+   --------------
+
+
+   (1 row)
+
+
+   forumdb=*> SELECT CURRENT_TIME, clock_timestamp()::time;
+         current_time       | clock_timestamp
+   --------------------+-----------------
+     14:53:17.479177+01 | 14:53:33.022884
+
+
+
+   forumdb=*> ROLLBACK;
+   ROLLBACK
+....
+
+Làm thế nào để phân biệt transaction này với transaction khác? Mỗi transaction nhận một identifier, như sẽ giải thích trong phần tiếp theo.
+
+== Thêm về transaction identifier – vấn đề xid wraparound
+
+Như đã giải thích, mỗi transaction được gắn với một numeric identifier gọi là `xid` (trong đó `x` là viết tắt của transaction còn `id` là viết tắt của identifier). Counter này sử dụng phép toán modulo `2^31`, nên với mọi giá trị `xid` hiện tại sẽ có `2^31` transaction trong tương lai, tức là có giá trị cao hơn. Mặt khác, có `2^31` transaction trong quá khứ, tức là có giá trị thấp hơn. Vì vậy, counter `xid` là một giá trị cyclic.
+
+PostgreSQL không cho phép hai transaction dùng chung một `xid` trong bất kỳ trường hợp nào. Tuy nhiên, vì là một counter tự động tăng, sớm hay muộn `xid` cũng sẽ wraparound, nghĩa là nó sẽ bắt đầu đếm lại. Đây được gọi là vấn đề xid wraparound, và PostgreSQL thực hiện rất nhiều công việc để ngăn điều này xảy ra, như bạn sẽ thấy sau. Nhưng nếu database ở gần wraparound, PostgreSQL sẽ bắt đầu cảnh báo trong log bằng những message như sau:
+
+[source,text]
+....
+   WARNING: database "forumdb" must be vacuumed within 177009986
+   transactions
+   HINT: To avoid a database shutdown, execute a database-wide VACUUM in
+   "forumdb".
+....
+
+Nếu đọc kỹ warning message, bạn sẽ thấy system đang nói với system administrator rằng nó sẽ shutdown ngay khi phát hiện nguy cơ xid wraparound. Lý do là trong những hoàn cảnh như vậy, data có thể bị mất; để ngăn điều đó, system sẽ tự động shutdown khi xid wraparound đến gần.
+
+Tuy nhiên, có một cách để tránh automatic shutdown này: buộc thực hiện cleanup bằng tool PostgreSQL có tên `VACUUM`. Như bạn sẽ thấy ở phần sau của chapter, một trong các capability của `VACUUM` là freeze các tuple cũ để ngăn side effect của xid wraparound, qua đó cho phép database service tiếp tục hoạt động. Nhưng xid wraparound gây ra những effect gì?
+
+Để hiểu những vấn đề này, chúng ta phải nhớ rằng mỗi transaction được gán một `xid` duy nhất, và `xid` tiếp theo có thể gán được lấy bằng cách tăng `xid` cuối cùng đã được gán lên một đơn vị.
+
+Điều này có nghĩa là một transaction có `xid` cao hơn đã bắt đầu muộn hơn một transaction có `xid` thấp hơn, ngay cả khi hai transaction có thể đang chạy song song. Vì mọi tuple trong mọi table đều lưu transaction identifier đã tạo ra tuple đó (trong hidden field `xmin`), một tuple có `xid` cao hơn chắc chắn được tạo sau một tuple có `xid` tạo ra thấp hơn.
+
+Nhưng khi `xid` overflow và do đó bắt đầu lại việc đánh số từ các số thấp, những transaction bắt đầu muộn hơn sẽ xuất hiện với `xid` thấp hơn các transaction đang chạy từ trước, và vì vậy đột nhiên có vẻ như chúng nằm trong quá khứ. Kết quả là các tuple có `xmin` transaction cao hơn sẽ có vẻ như được tạo trong tương lai, và do đó sẽ xuất hiện sự không khớp giữa diễn tiến theo thời gian và storage của tuple.
+
+Để tránh xid wraparound, PostgreSQL triển khai cơ chế gọi là *tuple freezing*: một khi tuple đã được freeze, `xmin` của nó phải luôn được xem là nằm trong quá khứ so với mọi transaction đang chạy, ngay cả khi giá trị `xmin` của nó cao hơn `xid` của mọi transaction đang chạy hiện tại. Thực tế, mọi tuple đều chứa một bit thông tin đặc biệt cho PostgreSQL biết tuple đã được freeze hay chưa.
+
+Vì vậy, khi `xid` overflow đến gần, `VACUUM` thực hiện một đợt freeze trên diện rộng, đánh dấu tất cả tuple trong quá khứ là frozen, để ngay cả khi `xid` bắt đầu đếm lại từ những số thấp hơn, các tuple đã có trong database vẫn luôn xuất hiện trong quá khứ.
+
+[quote]
+____
+Counter `xid` bắt đầu ở giá trị đặc biệt là 3 và giữ các giá trị thấp hơn chỉ cho mục đích nội bộ. Vì vậy, không thể có transaction đang chạy với `xid` thấp hơn 3. Trong các version PostgreSQL cũ hơn, `VACUUM` thực sự xóa giá trị `xmin` của các tuple cần freeze, thay giá trị đó bằng giá trị đặc biệt 2; vì thấp hơn giá trị nhỏ nhất có thể sử dụng là 3, giá trị này cho biết tuple nằm trong quá khứ. Tuy nhiên, khi cần forensic analysis, việc có `xmin` ban đầu là hữu ích, và vì vậy PostgreSQL hiện dùng một status bit để cho biết tuple đã được freeze hay chưa.
+
+____
+== Virtual và real transaction identifier
+
+Vì transaction identifier là một resource quan trọng, PostgreSQL đủ thông minh để tránh lãng phí các số transaction identifier. Cụ thể, khi một transaction được khởi tạo, cluster sử dụng một virtual xid, một thứ hoạt động giống `xid` nhưng không lấy từ transaction identifier counter. Nhờ vậy, mỗi transaction không tiêu thụ một số `xid` ngay từ đầu, làm giảm nhu cầu freeze. Khi transaction đã thực hiện một số công việc liên quan đến data manipulation và các thay đổi, virtual xid được chuyển thành real xid, tức là một `xid` lấy từ xid counter. Nói cách khác, workload “read-only” sẽ không tiêu thụ transaction identifier, còn mọi workload có ghi data thì sẽ tiêu thụ.
+
+Nhờ công việc bổ sung này, PostgreSQL không lãng phí transaction identifier cho những transaction không thực sự cần định danh mạnh. Ví dụ, không cần lãng phí một `xid` cho một transaction block như sau:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> ROLLBACK;
+   ROLLBACK
+....
+
+Vì transaction ngay trước đó hoàn toàn không làm gì, tại sao PostgreSQL phải đưa toàn bộ xid machinery vào? Không có lý do gì để dùng một `xid` sẽ không được gắn vào tuple nào trong database và do đó không can thiệp vào bất kỳ active snapshot nào.
+
+Tuy nhiên, có một điều quan trọng cần lưu ý: việc sử dụng function `txid_current()` luôn materialize một `xid`, ngay cả khi transaction chưa có `xid`. Vì lý do đó, PostgreSQL cung cấp một introspection function khác có tên `txid_current_if_assigned()`, trả về `NULL` nếu transaction vẫn đang ở virtual xid space và vì vậy chưa thực hiện writable work nào. Điều quan trọng cần lưu ý là PostgreSQL sẽ không gán một real `xid` trừ khi transaction đã thao tác trên một số data; điều này có thể dễ dàng được chứng minh bằng workflow sau:
+
+[source,text]
+....
+      forumdb=> BEGIN;
+      BEGIN
+      forumdb=> SELECT txid_current_if_assigned();
+       txid_current_if_assigned
+      --------------------------
+
+
+      (1 row)
+
+
+      forumdb=> SELECT count(*) FROM tags;
+       count
+      -------
+           7
+      (1 row)
+
+
+      forumdb=> SELECT txid_current_if_assigned();
+       txid_current_if_assigned
+      --------------------------
+
+
+      (1 row)
+
+
+      forumdb=> UPDATE tags SET tag = upper( tag );
+      UPDATE 7
+      forumdb=> SELECT txid_current_if_assigned();
+       txid_current_if_assigned
+      --------------------------
+                             4837
+
+   (1 row)
+
+
+   forumdb=> SELECT txid_current();
+     txid_current
+   --------------
+              4837
+   (1 row)
+
+
+   forumdb=> ROLLBACK;
+   ROLLBACK
+....
+
+Ở đầu transaction, chưa có `xid` nào được gán, và thực tế `txid_current_if_assigned()` trả về `NULL`. Ngay cả sau một lần đọc data (tức là `SELECT`), `xid` vẫn chưa được gán. Tuy nhiên, ngay khi transaction thực hiện một số hoạt động ghi (ví dụ một `UPDATE`), `xid` được gán, và kết quả của cả `txid_current_if_assigned()` lẫn `txid_current()` đều giống nhau.
+
+== Multi-version concurrency control
+
+Điều gì xảy ra nếu hai transaction, dù là implicit hay explicit, cố thực hiện các thay đổi xung đột trên cùng một data? PostgreSQL phải bảo đảm data luôn nhất quán, và do đó phải có cách lock (tức là block và bảo vệ) data đang chịu các thay đổi xung đột. Lock là một cơ chế tốn kém, làm giới hạn concurrency của system: bạn có càng nhiều lock, các transaction của bạn càng phải chờ để acquire lock. Để giảm nhẹ vấn đề này, PostgreSQL triển khai MVCC, một kỹ thuật nổi tiếng được dùng trong các database cấp enterprise.
+
+MVCC quy định rằng thay vì sửa đổi một tuple hiện có bên trong database, system phải replicate tuple đó, áp dụng các thay đổi rồi invalidate tuple ban đầu. Bạn có thể so sánh điều này với cơ chế copy-on-write được dùng trong các filesystem của hệ điều hành như ZFS.
+
+Để hiểu rõ hơn điều này có nghĩa là gì, hãy giả sử table `categories` có ba tuple và chúng ta update một tuple để thay đổi description của nó.
+
+Điều xảy ra là một tuple mới, được tạo ra từ tuple mà chúng ta sẽ áp dụng `UPDATE`, được insert vào table, còn tuple ban đầu bị invalidate:
+
+image::chapter-11-figure-11-1-000.jpg[Hình 11.1: Cập nhật một tuple tạo ra một tuple mới và invalidate tuple cũ]
+
+*Hình 11.1: Cập nhật một tuple tạo ra một tuple mới và invalidate tuple cũ*
+
+Tại sao PostgreSQL và MVCC lại thực hiện thêm công việc này thay vì in-place update tuple? Lý do là theo cách này, database có thể xử lý nhiều version của cùng một tuple, và mỗi version hợp lệ trong một time window cụ thể. Điều này có nghĩa là cần ít lock hơn để sửa đổi data, vì database có thể xử lý nhiều version của cùng data tại cùng một time, và các transaction khác nhau có thể nhìn thấy các value khác nhau.
+
+Để MVCC hoạt động đúng, PostgreSQL phải xử lý concept snapshot: snapshot cho biết time window mà trong đó một transaction nhất định được phép nhìn thấy data. Về cơ bản, snapshot là range các transaction `xid` xác định boundary của data mà transaction hiện tại có thể truy cập: mọi row trong database được gắn nhãn bằng một `xid` nằm trong range sẽ có thể được transaction hiện tại nhìn thấy và sử dụng. Nói cách khác, mỗi transaction nhìn thấy một subset riêng của toàn bộ data hiện có trong database. MVCC machinery và các phép kiểm tra để quyết định một tuple có visible hay không phức tạp hơn nhiều so với mô tả trên, nhưng ý tưởng cốt lõi là như đã giải thích.
+
+Special function `txid_current_snapshot()` trả về transaction identifier nhỏ nhất và lớn nhất xác định các time boundary của transaction hiện tại. Việc chứng minh concept này bằng hai parallel session trở nên khá dễ dàng.
+
+Trong session đầu tiên, hãy chạy một explicit transaction, lấy identifier và snapshot để tham chiếu về sau, rồi thực hiện một operation:
+
+[source,text]
+....
+      -- session 1
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> SELECT txid_current(), txid_current_snapshot();
+     txid_current | txid_current_snapshot
+   --------------+------------------------
+       4928 | 4928:4928:
+   (1 row)
+
+
+   forumdb=> UPDATE tags SET tag = lower( tag );
+   UPDATE 5
+....
+
+Như bạn có thể thấy trong example trước, transaction là số 4928, và snapshot của nó được giới hạn ở chính nó, nghĩa là transaction sẽ nhìn thấy mọi thứ đã được consolidate trong database.
+
+Bây giờ hãy tạm dừng session này một chút và mở một session khác kết nối tới cùng database – thực hiện một `INSERT` đơn lẻ được bọc trong một implicit transaction rồi lấy lại thông tin về `xid` của nó:
+
+[source,text]
+....
+   forumdb=> INSERT INTO tags( tag ) VALUES( 'KDE' ) RETURNING txid_current();
+     txid_current
+   --------------
+       4929
+   (1 row)
+....
+
+Single-shot transaction đã được gán `xid` 4929, dĩ nhiên là `xid` tiếp theo có thể dùng sau explicit transaction trước đó (system không chạy concurrent transaction nào khác để việc theo dõi cách đánh số được đơn giản hơn).
+
+Quay lại session đầu tiên và kiểm tra lại thông tin về transaction snapshot:
+
+[source,text]
+....
+   -- session 1
+   forumdb=> SELECT txid_current(), txid_current_snapshot();
+     txid_current | txid_current_snapshot
+   --------------+------------------------
+       4928         | 4928:4930:
+   (1 row)
+....
+
+Lần này, transaction đã mở rộng snapshot từ chính nó đến transaction 4930, transaction vẫn chưa được bắt đầu (`txid_current_snapshot()` báo upper bound của nó là non-inclusive). Nói cách khác, transaction hiện tại giờ nhìn thấy data đã được consolidate ngay cả từ một transaction bắt đầu sau nó, là 4929. Điều này còn rõ hơn nếu transaction query table:
+
+[source,text]
+....
+   -- session 1
+   forumdb=> SELECT xmin, tag FROM tags;
+         xmin      |   tag
+   ------------+-------
+      4928 | linux
+      4928 | bsd
+      4928 | java
+      4928 | perl
+      4928 | raku
+      4929 | KDE
+   (6 rows)
+....
+
+Như bạn có thể thấy, tất cả tuple trừ tuple cuối đã được tạo bởi transaction hiện tại, còn tuple cuối được tạo bởi `xid` 4929. Nhưng transaction trước đó chỉ là một phần của câu chuyện; trong khi transaction đầu tiên vẫn chưa hoàn tất, hãy inspect cùng table từ một parallel session khác:
+
+[source,text]
+....
+   forumdb=> SELECT xmin, tag FROM tags;
+         xmin      |   tag
+   ------------+-------
+      4922 | linux
+      4923 | BSD
+      4924 | Java
+      4925 | Perl
+      4926 | Raku
+      4929 | KDE
+   (6 rows)
+....
+
+Tất cả tuple trừ tuple cuối có description khác nhau và đáng chú ý nhất là có giá trị `xmin` khác với giá trị mà transaction 4928 đang nhìn thấy. Điều đó có nghĩa gì? Nghĩa là trong khi table đã trải qua việc rewrite gần như toàn bộ mọi tuple (một `UPDATE` trên tất cả tuple trừ tuple cuối), các transaction concurrent khác vẫn có thể truy cập data trong table mà không bị một lock block. Đây chính là bản chất của MVCC: mỗi transaction nhận thấy một view khác nhau của storage, và view đó hợp lệ tùy theo time window (snapshot) gắn với transaction.
+
+Sớm hay muộn, data trên storage cũng phải được consolidate, và vì vậy, khi transaction 4928 `COMMIT` công việc của mình, data trong table sẽ trở thành sự thật mà mọi transaction từ đó về sau nhìn thấy:
+
+[source,text]
+....
+   -- session 1
+   forumdb=> COMMIT;
+   COMMIT
+
+
+   -- out from the transaction now
+   -- we all see consolidated data
+   forumdb=> SELECT xmin, tag FROM tags;
+         xmin     |   tag
+   ------------+-------
+     4928 | linux
+     4928 | bsd
+     4928 | java
+     4928 | perl
+     4928 | raku
+     4929 | KDE
+   (6 rows)
+....
+
+MVCC không phải lúc nào cũng ngăn việc sử dụng lock: nếu hai hoặc nhiều transaction concurrent bắt đầu thao tác trên cùng một tập data, system phải áp dụng các thay đổi theo thứ tự và do đó phải force một lock trên mọi transaction concurrent để chỉ một transaction có thể tiếp tục. Điều này khá dễ chứng minh bằng hai parallel session tương tự example trước:
+
+[source,text]
+....
+   -- session 1
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> SELECT txid_current(), txid_current_snapshot();
+     txid_current | txid_current_snapshot
+   --------------+------------------------
+       4930 | 4930:4930:
+   (1 row)
+
+
+   forumdb=> UPDATE tags SET tag = upper( tag );
+   UPDATE 6
+....
+Trong lúc đó, hãy thực thi các statement sau trong một session khác:
+
+[source,text]
+....
+-- session 2
+forumdb=> BEGIN;
+BEGIN
+forumdb=> SELECT txid_current(), txid_current_snapshot();
+   txid_current | txid_current_snapshot
+--------------+------------------------
+       4931 | 4930:4930:
+(1 row)
+
+
+forumdb=> UPDATE tags SET tag = lower( tag );
+-- LOCKED!!!!
+....
+
+Transaction 4931 bị lock vì PostgreSQL không thể quyết định nên áp dụng data manipulation nào. Một mặt, transaction 4930 áp dụng việc đổi tất cả tag thành chữ hoa, nhưng đồng thời, transaction 4931 lại áp dụng việc đổi chính data đó thành chữ thường.
+
+Vì hai thay đổi xung đột, và kết quả cuối cùng (tức là kết quả sẽ được consolidate trong database) phụ thuộc vào thứ tự chính xác mà các thay đổi được áp dụng (đặc biệt là thay đổi nào được áp dụng sau cùng), PostgreSQL không thể cho phép cả hai transaction tiếp tục. Vì 4930 đã áp dụng các thay đổi trước 4931, transaction sau bị suspend và chờ transaction 4930 hoàn tất, dù thành công hay thất bại. Ngay khi bạn kết thúc transaction đầu tiên, transaction thứ hai sẽ được unblock (hiển thị status message cho statement `UPDATE`):
+
+[source,text]
+....
+-- session 1
+forumdb=> COMMIT;
+COMMIT
+
+
+-- session 2
+UPDATE 6
+-- unblocked, can proceed further ...
+forumdb=>
+....
+
+Vì vậy, MVCC không phải là silver bullet chống lại việc sử dụng lock, nhưng cho phép concurrency tốt hơn trong hoạt động tổng thể của database.
+
+Tuy nhiên, MVCC có một cost: vì system phải duy trì các version khác nhau của tuple tùy theo các transaction đang active và snapshot của chúng, storage sẽ thực sự tăng lên vượt quá kích thước hiệu dụng của data đã được consolidate.
+
+Để ngăn vấn đề này, một tool chuyên biệt có tên `VACUUM`, cùng với "người anh em" chạy nền là `autovacuum`, chịu trách nhiệm scan các table (và index) để tìm những version của tuple có thể bị loại bỏ, từ đó reclaim storage space. Nhưng khi nào một tuple version đủ điều kiện bị `VACUUM` hủy? Đó là khi không còn transaction nào tham chiếu đến tuple xid (tức là `xmin`), nghĩa là khi tuple không còn được consolidate nữa.

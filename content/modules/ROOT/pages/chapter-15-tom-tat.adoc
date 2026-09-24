@@ -1,0 +1,9 @@
+= Tóm tắt
+
+Trong chapter này, chúng ta đã học rằng PostgreSQL cung cấp các tool advanced để thực hiện backup và restoration. Backup rất quan trọng vì ngay cả trong một product battle-tested, chất lượng cao như PostgreSQL, mọi thứ vẫn có thể xảy ra sai: thường thì user có thể vô tình làm hỏng data, nhưng đôi khi hardware hoặc software có thể fail nghiêm trọng. Vì vậy, khả năng restore data, một phần hoặc toàn bộ, là rất quan trọng, và mọi database administrator đều nên lập kế hoạch backup strategy một cách cẩn thận.
+
+Chúng ta cũng đã học rằng PostgreSQL đi kèm các tool cho cả logical backup và physical backup. Logical backup được thực hiện bằng cách đọc data từ chính database, sử dụng các SQL interaction thông thường; physical backup được thực hiện bằng cách clone directory `PGDATA`, bằng operating system tool hoặc PostgreSQL ad hoc solution. Restoration được thực hiện bằng các tool cụ thể trong trường hợp logical backup, và bằng database self-healing mechanism trong trường hợp physical backup.
+
+Cuối cùng, cần nhấn mạnh rằng một backup riêng lẻ chưa có giá trị cho đến khi được restore thành công; do đó, để bảo đảm bạn có thể recover cluster, bạn cũng cần test các backup của mình.
+
+Sau khi đã có thể backup và restore cluster, trong chapter tiếp theo, chúng ta sẽ xem xét configuration và monitoring.

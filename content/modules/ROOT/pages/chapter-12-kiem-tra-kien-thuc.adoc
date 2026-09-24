@@ -1,0 +1,21 @@
+= Kiểm tra kiến thức
+
+* *Extension là gì?*
+
+  Extension là một collection gồm các database object liên quan, có thể được cài đặt, upgrade hoặc remove như một unit duy nhất. Xem section *Introducing extensions* để biết thêm chi tiết.
+
+* *Command pgxnclient là gì?*
+
+  pgxnclient là một command giúp sử dụng PGXN dễ dàng hơn bằng cách download, cài đặt và remove extension. Xem section *Exploring the PGXN client* để biết thêm chi tiết.
+
+* *Extension control file là gì?*
+
+  Control file là một text file định nghĩa các property chính của extension, chẳng hạn name, version và các dependency khác. Xem section *Extension components* để biết thêm chi tiết.
+
+* *Làm thế nào để inspect những extension nào đã được tạo trong một database?*
+
+  Catalog đặc biệt `pg_extension` cung cấp thông tin về các extension đã cài đặt; trong `psql`, command đặc biệt `\dx` hiển thị phần tóm tắt các extension đã cài đặt. Xem section *Viewing installed extensions* để biết thêm chi tiết.
+
+* *Làm thế nào để thay đổi version của một extension (update)?*
+
+  Statement `ALTER EXTENSION UPDATE TO` có thể được dùng để chỉ định extension phải được upgrade lên version nào. Xem section *Altering an existing extension* để biết thêm chi tiết.

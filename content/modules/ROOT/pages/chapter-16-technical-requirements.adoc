@@ -1,0 +1,9 @@
+= Technical requirements
+
+Bạn cần biết những nội dung sau để hoàn thành chapter này:
+
+* Cách tương tác với configuration file bên trong directory `PGDATA`
+* Cách connect tới cluster với tư cách database administrator
+* Cách execute SQL statement trên system catalog
+
+Các example trong chapter có thể chạy trên Docker image `chapter_16`, có thể tìm thấy trong GitHub repository của cuốn sách: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition.

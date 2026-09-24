@@ -1,0 +1,160 @@
+= Sử dụng UPSERT
+
+Trong section này, chúng ta sẽ xem cách PostgreSQL thực hiện một UPSERT statement. Không có UPSERT statement trong SQL, nhưng có thể đạt được cùng effect bằng cách dùng một `INSERT` SQL statement.
+
+== UPSERT – cách của PostgreSQL
+
+Trong PostgreSQL, UPSERT statement không tồn tại như trong các DBMS khác. UPSERT statement được dùng khi chúng ta muốn insert một record mới lên trên record hiện có hoặc update một record hiện có. Để làm điều này trong PostgreSQL, chúng ta có thể dùng keyword `ON CONFLICT`:
+
+[source,text]
+....
+INSERT INTO table_name(column_list) VALUES(value_list)
+ON CONFLICT target action;
+....
+
+Ở đây, `ON CONFLICT` có nghĩa là target action được thực thi khi record đã tồn tại (nghĩa là khi một record có cùng primary key đã tồn tại). Target action có thể là:
+
+[source,text]
+....
+DO NOTHING
+....
+
+Hoặc có thể là:
+
+[source,text]
+....
+DO UPDATE SET { column_name = { expression | DEFAULT } |
+         ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...]
+ ) |
+         ( column_name [, ...] ) = ( sub-SELECT )
+         } [, ...]
+[ WHERE condition ]
+....
+
+Bây giờ, hãy xem một ví dụ để hiểu rõ hơn UPSERT hoạt động thế nào:
+
+. Ví dụ, bắt đầu với table `j_posts_tags`:
+
+[source,text]
+....
+   forumdb=> \d j_posts_tags
+                   Table "forum.j_posts_tags"
+    Column    |   Type   | Collation | Nullable | Default
+   ---------+---------+-----------+----------+---------
+    tag_pk    | integer |             | not null |
+    post_pk | integer |               | not null |
+   Foreign-key constraints:
+       "j_posts_tags_post_pk_fkey" FOREIGN KEY (post_pk) REFERENCES
+   posts(pk)
+....
+[source,text]
+....
+"j_posts_tags_tag_pk_fkey" FOREIGN KEY (tag_pk) REFERENCES
+tags(pk)
+....
+
+. Trước tiên, hãy thêm một primary key vào table `j_posts_add`:
+
+[source,text]
+....
+forumdb=> alter table j_posts_tags add constraint j_posts_tags_pkey
+primary key (tag_pk,post_pk);
+ALTER TABLE
+....
+
+[source,text]
+....
+ALTER TABLE
+
+forumdb=> \d j_posts_tags
+                Table "forum.j_posts_tags"
+ Column    |   Type    | Collation | Nullable | Default
+ ---------+---------+-----------+----------+---------
+ tag_pk    | integer |                | not null |
+ post_pk | integer |                  | not null |
+Indexes:
+    "j_posts_tags_pkey" PRIMARY KEY, btree (tag_pk, post_pk)
+Foreign-key constraints:
+    "j_posts_tags_post_pk_fkey" FOREIGN KEY (post_pk) REFERENCES
+posts(pk)
+    "j_posts_tags_tag_pk_fkey" FOREIGN KEY (tag_pk) REFERENCES
+tags(pk)
+....
+
+. Tiếp theo, hãy insert một số record vào table `j_posts_tags`:
+
+[source,text]
+....
+forumdb=> insert into j_posts_tags (post_pk ,tag_pk) values
+(3,2),(1,1),(2,1);
+INSERT 0 3
+
+forumdb=> select * from j_posts_tags ;
+ tag_pk | post_pk
+--------+---------
+       2 |         3
+       1 |         1
+       1 |         2
+(3 rows)
+....
+
+. Bây giờ hãy thử insert một record khác với cùng primary key. Nếu thực hiện một `insert statement` tiêu chuẩn như sau, chúng ta có thể thấy PostgreSQL trả về error vì đang cố insert một record đã tồn tại:
+
+[source,text]
+....
+forumdb=>insert into j_posts_tags (post_pk ,tag_pk) values (2,1);
+ERROR: duplicate key value violates unique constraint "j_posts_
+tags_pkey"
+DETAIL:    Key (tag_pk, post_pk)=(1, 2) already exists.
+....
+
+. Bây giờ hãy thử sử dụng option `ON CONFLICT DO NOTHING`:
+
+[source,text]
+....
+forumdb=> insert into j_posts_tags (post_pk ,tag_pk) values (2,1) ON
+CONFLICT DO NOTHING;
+INSERT 0 0
+
+forumdb=> select * from j_posts_tags ;
+ tag_pk | post_pk
+--------+---------
+       2 |         3
+       1 |         1
+       1 |         2
+(3 rows)
+....
+
+Trong trường hợp này, PostgreSQL không trả về error; thay vào đó, nó đơn giản là không làm gì.
+
+[%start=6]
+. Bây giờ hãy thử option `DO UPDATE set`. Option này hiện thực statement UPSERT, như trong ví dụ sau:
+
+[source,text]
+....
+forumdb=> insert into j_posts_tags (post_pk ,tag_pk) values (2,1) ON
+CONFLICT (tag_pk,post_pk) DO UPDATE set tag_pk=excluded.tag_pk+1;
+INSERT 0 1
+
+forumdb=>    select * from j_posts_tags ;
+ tag_pk | post_pk
+--------+---------
+       2 |         3
+       1 |         1
+       2 |         2
+(3 rows)
+....
+
+Các field bên trong condition `ON CONFLICT` phải có một unique constraint hoặc exclusion constraint. Statement trước đó đơn giản thay thế statement sau:
+
+[source,text]
+....
+INSERT INTO   j_posts_tags (post_pk ,tag_pk) values (2,1)
+....
+
+Nó được thay thế bằng statement này:
+
+[source,text]
+....
+UPDATE set tag_pk=tag_pk+1 where tag_pk=1 and post_pk=2
+....

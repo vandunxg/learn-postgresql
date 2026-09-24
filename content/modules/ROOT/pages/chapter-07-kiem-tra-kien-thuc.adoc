@@ -1,0 +1,31 @@
+= Kiểm tra kiến thức
+
+* Có thể mở rộng feature và data type trong PostgreSQL không?
+
+  Có, có thể mở rộng PostgreSQL về data type và function.
+
+  Xem section The concept of extensibility để biết thêm chi tiết.
+
+* PostgreSQL có chỉ support relational database không?
+
+  Không, PostgreSQL cũng support NoSQL database.
+
+  Xem section The NoSql data type để biết thêm chi tiết.
+
+* PostgreSQL có support SQL function không?
+
+  Có, chúng ta có thể viết mọi loại SQL function.
+
+  Xem section SQL functions để biết thêm chi tiết.
+
+* PostgreSQL có một procedural language built-in mặc định không?
+
+  Có, PostgreSQL có một procedural language built-in mặc định tên là PL/pgSQL.
+
+  Xem section PL/pgSQL functions để biết thêm chi tiết.
+
+* Với tư cách user không có administrative privilege, chúng ta có thể đọc một table cần administrative permission để đọc không?
+
+  Có; với tư cách administrator user, hãy tạo một function đọc table, định nghĩa function bằng clause security definer, và cấp execution permission của function cho non-administrator user.
+
+  Xem section Security definer để biết thêm chi tiết.

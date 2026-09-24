@@ -1,0 +1,18 @@
+= Tài liệu tham khảo
+
+* Tài liệu chính thức về tool `pg_dump` của PostgreSQL: https://www.postgresql.org/docs/current/app-pgdump.html
+* Tài liệu chính thức về tool `pg_dumpall` của PostgreSQL: https://www.postgresql.org/docs/current/app-pg-dumpall.html
+* Tài liệu chính thức về tool `pg_restore` của PostgreSQL: https://www.postgresql.org/docs/current/app-pgrestore.html
+* FreeBSD `502.pgsql` backup script: https://www.freshports.org/databases/postgresql83-server/files/502.pgsql
+* Tài liệu chính thức về tool `pg_basebackup` của PostgreSQL: https://www.postgresql.org/docs/current/app-pgbasebackup.html
+* Tài liệu chính thức về tool `pg_verifybackup` của PostgreSQL: https://www.postgresql.org/docs/current/app-pgverifybackup.html
+* Tài liệu chính thức về command `COPY` của PostgreSQL: https://www.postgresql.org/docs/current/sql-copy.html
+* External tool `pgBackRest` cho physical backup: https://pgbackrest.org/
+
+== Tìm hiểu thêm trên Discord
+
+Để tham gia Discord community của cuốn sách này, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy theo QR code bên dưới:
+
+https://discord.gg/jYWCjF6Tku
+
+image::chapter-15-qr-discord.png[Mã QR Discord]

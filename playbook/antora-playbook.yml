@@ -1,0 +1,19 @@
+site:
+  title: Learn PostgreSQL
+  start_page: learn-postgresql::front-matter.adoc
+
+content:
+  sources:
+    - url: ..
+      start_path: content
+
+output:
+  dir: ../build/site
+
+ui:
+  bundle:
+    url: ../ui/build/ui-bundle.zip
+    snapshot: true
+
+runtime:
+  fetch: true

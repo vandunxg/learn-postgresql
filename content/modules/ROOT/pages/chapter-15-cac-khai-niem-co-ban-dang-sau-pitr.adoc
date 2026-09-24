@@ -1,0 +1,13 @@
+= Các khái niệm cơ bản đằng sau PITR
+
+Point in Time Recovery, thường được viết là PITR, là một kỹ thuật cho phép bạn restore database về một thời điểm cụ thể trong quá khứ. Việc trình bày cách sử dụng PITR nằm ngoài scope của chapter này; section này chỉ giải thích các khái niệm cơ bản đằng sau kỹ thuật đó.
+
+PITR chỉ có thể đạt được bằng physical backup, và thường được thực hiện thông qua các backup tool cụ thể như `pgBackRest` đã đề cập, mặc dù PostgreSQL cung cấp toàn bộ infrastructure cần thiết để thực hiện PITR.
+
+Ý tưởng chính phía sau PITR là bắt đầu bằng một physical backup rồi liên tục lưu các WAL segment của database, một process được gọi là *WAL archiving*. Các WAL có thể được lưu local hoặc gửi tới một remote machine, thường là một backup machine chuyên dụng. Việc phải archive toàn bộ WAL là vì, như đã giải thích trong Chapter 11, PostgreSQL recycle WAL sau khi data đã sửa được lưu an toàn trên disk; do đó, để có một stream WAL liên tục, administrator cần giữ lại tất cả chúng. PostgreSQL cung cấp một configuration setting cụ thể tên là `archive_command`, có thể được điều chỉnh để execute một external command (ví dụ các command copy như `cp`, `scp`, `sftp`, v.v.); `archive_command` được execute trên từng WAL segment ngay khi PostgreSQL hoàn tất WAL file đó và chuyển sang segment mới.
+
+Khi có physical backup và stream WAL, database cluster có thể được chỉ thị replay tất cả transaction (được chứa trong WAL) lần lượt cho đến khi đạt đến restore time mong muốn. Tại thời điểm đó, cluster có thể bỏ qua các WAL vượt quá thời điểm này và bắt đầu từ đó như một instance riêng, mới.
+
+Vì vậy, ý tưởng của PITR là bắt đầu từ một physical backup và để cluster tiến về phía trước theo thời gian cho đến khi đạt đến instance mong muốn. Point of restoration có thể được chỉ định dưới dạng timestamp, qua đó chỉ ra một time instance cụ thể, hoặc một transaction identifier; thậm chí có thể là một label mà database administrator đã đặt vào WAL, để họ không phải bận tâm đến thời gian hay các transaction đang diễn ra.
+
+Một nhược điểm của PITR là cần thời gian và effort để restore cluster về một thời điểm nhất định. Hơn nữa, nếu thiếu dù chỉ một WAL segment trong stream, cluster sẽ hoàn toàn không thể recover. Vì lý do đó, sử dụng các dedicated backup tool thường là lựa chọn tốt nhất để quản lý PITR.

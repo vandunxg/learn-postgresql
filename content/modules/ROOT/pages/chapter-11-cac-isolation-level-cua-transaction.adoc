@@ -1,0 +1,158 @@
+= Các isolation level của transaction
+
+Trong một database system concurrent, bạn có thể gặp ba vấn đề khác nhau:
+
+* *Dirty reads:* Dirty read xảy ra khi database cho phép một transaction thấy data đang được xử lý từ các transaction khác chưa hoàn tất. Nói cách khác, data chưa được consolidate đã hiển thị với các transaction khác. Không database nào sẵn sàng cho production cho phép điều đó, và PostgreSQL cũng không ngoại lệ: bạn có thể yên tâm rằng transaction của mình chỉ thấy data đã được consolidate; và để được consolidate, các transaction đã tạo ra data đó phải hoàn tất.
+* *Unrepeatable reads:* Unrepeatable read xảy ra khi cùng một query, bên trong cùng một transaction, được thực thi nhiều lần nhưng thấy một tập data khác nhau. Về bản chất, điều này có nghĩa data đã thay đổi giữa hai lần thực thi liên tiếp của cùng một query trong cùng transaction. PostgreSQL không cho phép loại vấn đề này nhờ snapshot: mỗi transaction có thể thấy snapshot của data hiện có, tùy thuộc vào các transaction boundary cụ thể.
+* *Phantom reads:* Phantom read khá giống unrepeatable read, nhưng thứ thay đổi giữa các lần thực thi liên tiếp của cùng một query là kích thước của result set. Điều này có nghĩa data không thay đổi, nhưng data mới đã được "append" vào result set của lần thực thi trước.
+
+SQL standard cung cấp bốn isolation level mà một transaction có thể chọn để ngăn các vấn đề trước đó:
+
+* *Read uncommitted:* Level thấp nhất có thể.
+* *Read committed:* Isolation level mặc định trong PostgreSQL.
+* *Repeatable read:* Hữu ích cho các job dài, vì system không thấy effects của các transaction concurrent; điều này cho phép chúng ta làm việc trên một snapshot nhất quán trong toàn bộ thời gian thực thi transaction.
+* *Serializable:* Isolation level mạnh nhất hiện có.
+
+Mỗi level cung cấp isolation tăng dần trên level trước đó; ví dụ, `READ COMMITTED` bao hàm behavior của `READ UNCOMMITTED`, `REPEATABLE READ` bao hàm `READ COMMITTED` (và `READ UNCOMMITTED`), còn `SERIALIZABLE` bao hàm tất cả level trước đó.
+
+PostgreSQL không hỗ trợ tất cả level trước đó, như bạn sẽ thấy chi tiết trong các subsection sau. Bạn luôn có thể chỉ định isolation level mong muốn cho một explicit transaction ngay khi transaction bắt đầu; mọi isolation level đều có cùng tên như trong danh sách trước đó. Ví dụ, lệnh sau bắt đầu một transaction ở mode `READ` committed:
+
+[source,text]
+....
+forumdb=> BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;
+BEGIN
+....
+
+Bạn có thể bỏ keyword tùy chọn `TRANSACTION`, dù theo chúng tôi việc giữ nó giúp dễ đọc hơn. Cũng có thể set isolation level của transaction một cách rõ ràng bằng statement `SET TRANSACTION`. Ví dụ, snippet sau tạo ra cùng effect như ví dụ trước:
+
+[source,text]
+....
+forumdb=> BEGIN;
+BEGIN
+forumdb=> SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SET
+....
+
+Cần lưu ý rằng không thể thay đổi isolation level của transaction một khi transaction đã bắt đầu. Để có effect, statement `SET TRANSACTION` phải là statement đầu tiên được thực thi trong một transaction block. Mọi statement `SET TRANSACTION` tiếp theo nếu thay đổi isolation level đã được set sẽ tạo ra failure và đưa transaction vào state đang abort; nếu `SET TRANSACTION` tiếp theo không thay đổi isolation level, nó sẽ không có effect và cũng không tạo error.
+
+Để hiểu rõ hơn trường hợp này, sau đây là một workflow không đúng, trong đó isolation level được thay đổi sau khi transaction đã thực thi một statement, dù statement đó không thay đổi data:
+
+[source,text]
+....
+forumdb=> BEGIN;
+BEGIN
+forumdb=> SELECT count(*) FROM tags;
+   count
+-------
+     7
+(1 row)
+-- a query has been executed, the SET TRANSACTION
+-- is not anymore the very first command
+forumdb=> SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+ERROR:        SET TRANSACTION ISOLATION LEVEL must be called before any query
+....
+
+Trong các section sau, chúng ta sẽ thảo luận chi tiết từng isolation level.
+
+== READ UNCOMMITTED
+
+Isolation level `READ UNCOMITTED` cho phép transaction gặp vấn đề dirty reads, nghĩa là nó có thể thấy data chưa được consolidate từ các transaction chưa hoàn tất khác.
+
+PostgreSQL không hỗ trợ isolation level này vì suy cho cùng, đây không phải là một isolation level thực sự. Thực tế, `READ UNCOMMITTED` có nghĩa là không có isolation giữa các transaction, và đây chắc chắn là tình huống xảy ra data corruption do data bị interleave.
+
+Bạn có thể set isolation level một cách rõ ràng, nhưng PostgreSQL sẽ bỏ qua yêu cầu của bạn và âm thầm set nó thành `READ COMMITTED` mạnh mẽ hơn.
+
+== READ COMMITTED
+
+Isolation level `READ COMMITTED` là level mặc định được PostgreSQL sử dụng; nếu bạn không set level, mọi transaction (implicit hoặc explicit) đều sẽ có isolation level này.
+
+Level này ngăn dirty reads và cho phép transaction hiện tại thấy toàn bộ data đã được consolidate mỗi khi một statement đơn lẻ trong transaction được thực thi. Chúng ta đã thấy behavior này trong thực tế ở ví dụ về concurrent session.
+
+== REPEATABLE READ
+
+Isolation level `REPEATABLE READ` quy định rằng mọi statement trong một transaction chỉ thấy data đã được consolidate tại thời điểm transaction bắt đầu hoặc, chính xác hơn, tại thời điểm statement đầu tiên của transaction bắt đầu.
+
+== SERIALIZABLE
+
+Isolation level `SERIALIZABLE` áp dụng level `REPEATABLE READ` và bảo đảm rằng hai transaction concurrent có thể hoàn tất thành công, nhưng chỉ khi kết quả cuối cùng sẽ giống với trường hợp hai transaction chạy theo thứ tự tuần tự.
+
+Nói cách khác, nếu hai (hoặc nhiều) transaction có isolation level `SERIALIZABLE` và cố sửa cùng một subset data theo cách xung đột, PostgreSQL sẽ bảo đảm chỉ một transaction có thể hoàn tất và khiến transaction còn lại thất bại.
+
+Hãy xem điều này trong thực tế bằng cách tạo một transaction ban đầu và sửa một subset data:
+
+[source,text]
+....
+-- session 1
+forumdb=> BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+forumdb=> UPDATE tags SET tag = lower( tag );
+UPDATE 7
+....
+
+Để mô phỏng concurrency, hãy tạm dừng transaction này và mở một transaction mới trong session khác, áp dụng các thay đổi khác lên cùng set data:
+
+[source,text]
+....
+-- session 2
+forumdb=> BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+forumdb=> UPDATE tags SET tag = '[' || tag || ']';
+-- blocked
+....
+
+Vì set data bị thao tác là như nhau, transaction thứ hai bị lock, như chúng ta đã thấy ở một ví dụ khác. Bây giờ, giả sử transaction đầu tiên hoàn tất thành công:
+
+[source,text]
+....
+-- session 1
+forumdb=> COMMIT;
+COMMIT
+....
+
+PostgreSQL nhận ra rằng nếu cũng cho transaction kia tiếp tục thì sẽ phá vỡ promise của `SERIALIZABLE`, vì việc áp dụng các transaction theo thứ tự tuần tự sẽ tạo ra những kết quả khác nhau, tùy theo thứ tự của chúng.
+
+Vì vậy, ngay khi transaction đầu tiên commit, transaction thứ hai tự động bị abort với một serializable error:
+
+[source,text]
+....
+-- session 2
+forumdb=> UPDATE tags SET tag = '[' || tag || ']';
+ERROR:     could not serialize access due to concurrent update
+....
+
+Điều gì xảy ra nếu transaction thao tác trên data có vẻ không liên quan? Một transaction vẫn có thể thất bại; thực tế, hãy sửa một tuple duy nhất từ một transaction:
+
+[source,text]
+....
+-- session 1
+forumdb=> BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+forumdb=> UPDATE tags SET tag = '{' || tag || '}' WHERE tag = 'java';
+UPDATE 1
+....
+
+Trong lúc đó, hãy sửa chính xác một tuple khác từ một session khác:
+
+[source,text]
+....
+-- session 2
+forumdb=> BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+forumdb=> UPDATE tags SET tag = '[' || tag || ']' WHERE tag = 'perl';
+UPDATE 1
+....
+
+Lần này, transaction thứ hai không bị lock vì các tuple bị chạm tới hoàn toàn khác nhau. Tuy nhiên, ngay khi transaction đầu tiên thực thi `COMMIT`, transaction thứ hai không còn có thể tự `COMMIT` được nữa:
+
+[source,text]
+....
+-- session 2 (assume session 1 has issued COMMIT)
+forumdb=> COMMIT;
+ERROR:     could not serialize access due to read/write dependencies among
+transactions
+DETAIL: Reason code: Canceled on identification as a pivot, during commit
+attempt.
+HINT:     The transaction might succeed if retried.
+....
+
+Đây là một scenario khá phổ biến khi sử dụng serializable transaction: application hoặc user phải sẵn sàng thực thi transaction của mình lặp đi lặp lại vì PostgreSQL có thể khiến nó thất bại do tính serializable của các workflow.

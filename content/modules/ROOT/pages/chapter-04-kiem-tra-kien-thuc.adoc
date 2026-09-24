@@ -1,0 +1,54 @@
+= Kiểm tra kiến thức
+
+* Trên PostgreSQL 15 và PostgreSQL, có thể thực hiện DDL với tư cách một user thông thường không?
+
+  Không, không thể. Xem phần PostgreSQL và public schema để biết thêm chi tiết.
+
+* Command `psql` nào dùng để liệt kê tất cả database cùng với kích thước của chúng?
+
+[source,text]
+....
+  postgres=# \l+
+....
+
+  Xem phần Xác nhận kích thước database để biết thêm chi tiết.
+
+* Nếu table được định nghĩa như sau:
+
+[source,sql]
+....
+  create table mytable (id integer,city_name varchar(60));
+....
+
+  Câu hỏi là, query sau có hiển thị tất cả record mà field `city_name` là null không?
+
+[source,sql]
+....
+  select * from mytable where city_name = '';
+....
+
+  Không. Query đúng là:
+
+[source,sql]
+....
+  select * from mytable where city_name is null;
+....
+
+  Xem phần Giá trị `NULL` để biết thêm chi tiết.
+
+* Có thể tạo một database mới, lấy một database hiện có làm điểm bắt đầu không?
+
+  Có. Chúng ta có thể sử dụng option `TEMPLATE`.
+
+  Xem phần Tạo database mới từ một template đã sửa đổi để biết thêm chi tiết.
+
+* Query sau có phải là cách tốt nhất để xóa tất cả record trong table có tên `mytable` không?
+
+[source,sql]
+....
+  delete from mytable;
+....
+
+  Không. Cách tốt nhất để xóa toàn bộ record trong một table là sử dụng statement `TRUNCATE`.
+
+  Xem phần Xóa dữ liệu để biết thêm chi tiết.

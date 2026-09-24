@@ -1,0 +1,15 @@
+= 6. Window Functions
+
+Trong chapter trước, chúng ta đã nói về aggregate. Trong chapter này, chúng ta sẽ thảo luận sâu hơn về một cách khác để tạo aggregate: window function. Tài liệu chính thức (https://www.postgresql.org/docs/current/tutorial-window.html) mô tả window function như sau:
+
+[quote]
+____
+Window function thực hiện một phép tính trên một tập các row của table có liên quan với row hiện tại theo một cách nào đó. Điều này tương tự loại phép tính có thể thực hiện bằng aggregate function. Tuy nhiên, window function không khiến các row được nhóm lại thành một output row duy nhất như các lời gọi aggregate không phải window function. Thay vào đó, các row vẫn giữ identity riêng của chúng. Ở hậu trường, window function có thể truy cập không chỉ row hiện tại của query result.
+
+____
+Trong chapter này, chúng ta sẽ nói về window function, chúng là gì và có thể sử dụng chúng như thế nào để cải thiện performance của query.
+
+Các chủ đề sau sẽ được đề cập trong chapter này:
+
+* Sử dụng các statement window function cơ bản
+* Sử dụng các statement window function nâng cao

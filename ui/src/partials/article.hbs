@@ -1,0 +1,21 @@
+<article class="article" data-article>
+  {{#if page.breadcrumbs}}
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      {{#each page.breadcrumbs}}
+        {{#unless @last}}
+          <a href="{{{relativize ./url}}}">{{{./content}}}</a>
+          <span aria-hidden="true">/</span>
+        {{/unless}}
+      {{/each}}
+      <span aria-current="page">{{page.title}}</span>
+    </nav>
+  {{/if}}
+  <header class="article-header">
+    {{#if page.component.title}}<p class="article-eyebrow">{{page.component.title}}</p>{{/if}}
+    <h1>{{page.title}}</h1>
+  </header>
+  <div class="article-content" data-readable-content>
+    {{{page.contents}}}
+  </div>
+  {{> pagination}}
+</article>

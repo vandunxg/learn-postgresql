@@ -1,0 +1,68 @@
+= Sử dụng `limit` và `offset`
+
+Clause `limit` là cách PostgreSQL giới hạn số row được trả về bởi một query, trong khi clause `offset` được dùng để bỏ qua một số row cụ thể do query trả về.
+
+`limit` và `offset` được dùng để trả về một phần dữ liệu từ result set do một query tạo ra; clause `limit` dùng để giới hạn số record trong output, còn clause `offset` cung cấp cho PostgreSQL vị trí trong result set mà từ đó bắt đầu trả về dữ liệu.
+
+Chúng có thể được sử dụng độc lập hoặc cùng nhau.
+
+Bây giờ hãy kiểm tra `limit` và `offset` bằng các query sau:
+
+[source,text]
+....
+forumdb=> select * from categories order by pk limit 1;
+ pk |    title    |            description
+ ----+----------+------------------------------
+  1 | Database    | Database related discussions
+(1 row)
+....
+
+Query trên chỉ trả về record đầu tiên mà chúng ta đã insert; đó là vì field `pk` có kiểu integer với giá trị mặc định luôn được tạo dưới dạng identity.
+
+Nếu muốn xem hai record đầu tiên đã được insert, chúng ta phải thực hiện query sau:
+
+[source,text]
+....
+forumdb=> select * from categories order by pk limit 2;
+ pk |    title    |            description
+ ----+----------+------------------------------
+  1 | Database    | Database related discussions
+  2 | Unix        | Unix and Linux discussions
+(2 rows)
+....
+
+Nếu chỉ muốn record thứ hai đã được insert, chúng ta phải thực hiện query sau:
+
+[source,text]
+....
+forumdb=> select * from categories order by pk offset 1 limit 1;
+ pk | title |            description
+----+-------+----------------------------
+  2 | Unix  | Unix and Linux discussions
+(1 row)
+....
+
+`offset` và `limit` rất hữu ích khi muốn trả về dữ liệu theo cách phân trang.
+
+Một chức năng hữu ích khác của `limit` là có thể tạo một table mới từ một table hiện có. Ví dụ, nếu muốn tạo một table có tên `new_categories` bắt đầu từ table `categories`, chúng ta phải thực thi statement sau:
+
+[source,text]
+....
+forumdb=> create table new_categories as select * from categories limit 0;
+SELECT 0
+....
+
+Statement này sẽ chỉ copy data structure của table `categories` vào table `new_categories`.
+
+Clause `SELECT 0` có nghĩa là không có dữ liệu nào được copy vào table `new_categories`; chỉ data structure được replicate, như chúng ta có thể thấy ở đây:
+
+[source,text]
+....
+forumdb=> \d new_categories
+               Table "forum.new_categories"
+  Column     |   Type     | Collation | Nullable | Default
+-------------+---------+-----------+----------+---------
+ pk           | integer |               |            |
+ title        | text       |            |            |
+ description | text       |            |            |
+....

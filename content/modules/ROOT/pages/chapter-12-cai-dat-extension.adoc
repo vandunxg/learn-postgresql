@@ -1,0 +1,244 @@
+= Cài đặt extension
+
+Thông thường, workflow để đưa một extension vào trạng thái hoạt động gồm một vài bước. Trước hết, bạn cần tìm hiểu nên dùng extension nào, version nào và mức độ tương thích với cluster của bạn. Sau khi tìm được extension cần dùng, bạn phải cài đặt nó vào cluster.
+
+Cài đặt nó vào cluster thực sự có nghĩa là deploy nó vào các directory của PostgreSQL, tức là di chuyển mọi file và library liên quan đến extension vào shared directory của cluster để PostgreSQL có thể tìm thấy code cần thiết để chạy extension.
+
+Cuối cùng, bạn cần tạo extension trong từng database cần nó. Việc tạo một extension giống như enable việc sử dụng extension đó trong một database cụ thể.
+
+Để minh họa việc sử dụng một extension, chúng ta sẽ cài đặt `orafce`, extension cung cấp các function tương thích với Oracle. Mô tả toàn bộ extension không phải mục tiêu của section này, nên chỉ cần nói rằng extension này cung cấp một tập function, data type và những thứ khác khiến PostgreSQL trông giống một Oracle database, qua đó giúp việc migrate một application dựa trên Oracle dễ dàng hơn.
+
+Các subsection sau đây mô tả từng bước cần thiết để đưa extension vào trạng thái hoạt động.
+
+== Cài đặt extension thông qua pgxnclient
+
+Thông thường, bước đầu tiên khi cài đặt một extension là tìm hiểu thông tin về nó, nghĩa là search một extension. Trong trường hợp cụ thể này, chúng ta đã biết extension mình đang tìm là gì, nhưng hãy search nó thông qua `pgxn`:
+
+[quote]
+____
+Lưu ý, version của `oraface` thường xuyên thay đổi. 4.5.0 là version mới nhất tại thời điểm viết sách, nhưng bạn có thể thấy một version number mới hơn.
+
+____
+[source,text]
+....
+$ pgxn search --ext orafce
+orafce 4.5.0
+    Oracle's compatibility functions and packages
+....
+
+Command `search` khám phá ecosystem để tìm mọi extension liên quan đến tiêu chí search của chúng ta, trong trường hợp này là tên extension (`--ext`). Nhờ `pgxn`, giờ chúng ta biết cần cài đặt version 4.2.1 của `orafce`, là stable version mới nhất có sẵn tại thời điểm viết sách.
+
+Sau khi quyết định extension cần dùng, bạn có thể chạy command `install` của `pgxn` để tiến hành cài đặt. Workflow cài đặt bao gồm download, compile (nếu cần) source tree, package nó và đặt nó vào shared directory của PostgreSQL cluster.
+
+Bạn có thể inspect process đang diễn ra với mức độ chi tiết rất cao nhờ option `--verbose`; và nếu bạn đang dùng `pgxn` với user khác user chạy cluster, bạn có thể dùng option `--sudo` để yêu cầu `pgxn` chuyển sang một user có privilege khi cần:
+
+[source,text]
+....
+$ pgxn install orafce --verbose --sudo
+....
+
+[quote]
+____
+Docker image được dùng cho chapter này có operating system user được phép sử dụng `sudo` mà không cần nhập password. Đây không phải là lựa chọn tốt trong production environment, nhưng đã được dùng để đơn giản hóa việc thử nghiệm các example trong chapter.
+
+____
+== Cài đặt extension thủ công
+
+`pgxnclient` là một tool tốt để tự động hóa việc cài đặt extension, nhưng điều đó không có nghĩa là bạn không còn lựa chọn nào khác để cải thiện các tính năng PostgreSQL. Một cách khác để cài đặt extension là download chúng thủ công và thực hiện mọi bước cần thiết để cluster nhận biết các facility mới.
+
+Điểm bắt đầu là website PGXN, có tại https://pgxn.org. Website cho phép bạn search một extension cụ thể theo tên hoặc keyword. Sau khi mở website PGXN, bạn có một textbox để nhập keyword cần search; và vì chúng ta đã biết tên extension, chúng ta có thể chọn Extensions từ pull-down menu.
+
+Giao diện web được hiển thị trong screenshot sau:
+
+image::chapter-12-figure-12-1-000.jpg[Hình 12.1: Trang chính của website PGXN]
+
+*Hình 12.1: Trang chính của website PGXN*
+
+Kết quả search sẽ được hiển thị như trong screenshot sau, vì vậy chúng ta có thể đi vào trang extension với toàn bộ thông tin và documentation cho process cài đặt:
+
+image::chapter-12-figure-12-2-000.jpg[Hình 12.2: Trang kết quả search của PGXN]
+
+*Hình 12.2: Trang kết quả search của PGXN*
+
+Sau khi tìm thấy extension cần dùng, chúng ta có thể download nó bằng cách click vào icon download trên trang, giống icon được hiển thị ở góc trên bên phải trong screenshot sau. Kết quả là chúng ta sẽ download một file zip nén chứa tất cả những thứ liên quan đến extension:
+
+image::chapter-12-figure-12-3-000.jpg[Hình 12.3: Trang download extension]
+
+*Hình 12.3: Trang download extension*
+
+Để tiếp tục, trước hết bạn phải decompress archive đã download:
+
+[source,text]
+....
+$ unzip orafce-4.5.0.zip
+....
+
+Bây giờ bạn có thể đi vào directory được tạo cho extension này và compile nó (system cần có compiler và toàn bộ source build tool được cài đặt):
+
+[source,text]
+....
+$ cd orafce-4.5.0
+$ make
+....
+
+[quote]
+____
+Bạn sẽ cần các PGXS Makefile để compile một extension từ đầu. Thông thường, các Makefile này được cài đặt cùng development tool của PostgreSQL. Ví dụ, trên các Linux distribution dựa trên Red Hat, bạn phải cài đặt package `postgresql16-dev`. Trong Docker image của chapter này, tất cả tool cần thiết để compile và install extension đã được chuẩn bị sẵn.
+
+____
+Nếu compilation thành công, extension sẽ được tạo và sẵn sàng để thêm vào shared library directory của PostgreSQL. Để di chuyển các file extension vào cluster, bạn cần quyền truy cập vào các database directory, chẳng hạn thông qua `sudo`:
+
+[source,text]
+....
+$ sudo make install
+....
+
+Từ đây, bạn có thể tiếp tục với statement `CREATE EXTENSION` trong mọi database yêu cầu extension.
+
+== Sử dụng extension đã cài đặt
+
+Sau khi extension đã được cài đặt, nghĩa là đã được deploy vào PostgreSQL cluster thủ công hoặc thông qua `pgxn`, bạn có thể tạo extension trong từng database cần nó.
+
+Extension `orafce` phải được tạo bởi superuser, vì vậy bạn cần connect tới database với tư cách administrator để thực thi statement `CREATE EXTENSION`:
+
+[source,text]
+....
+$ psql -U postgres forumdb
+psql (16.0)
+Type "help" for help.
+
+
+forumdb=# CREATE EXTENSION orafce;
+CREATE EXTENSION
+....
+
+Nếu bây giờ inspect các extension được cài đặt trong database, bạn sẽ thấy `orafce` vừa được tạo ở version 4.5.0, giống version chúng ta tìm thấy khi search extension bằng `pgxn` hoặc trên website:
+
+[source,text]
+....
+forumdb=# \x \dx
+Expanded display is on.
+List of installed extensions
+-[ RECORD 1 ]-------------------------------------------------------------
+--------------------------
+-------
+Name        | orafce
+Version     | 4.5
+Schema      | public
+Description | Functions and operators that emulate a subset of functions
+and packages from the Oracl
+e RDBMS
+-[ RECORD 2 ]-------------------------------------------------------------
+--------------------------
+-------
+Name        | pg_stat_statements
+Version     | 1.10
+Schema      | public
+-------
+Description | track planning and execution statistics of all SQL
+statements executed
+-[ RECORD 3 ]-------------------------------------------------------------
+--------------------------
+-------
+Name        | plpgsql
+Version     | 1.0
+Schema      | pg_catalog
+Description | PL/pgSQL procedural language
+....
+
+Sau khi extension đã được cài đặt trong database, mọi user đều có thể sử dụng nó. Là một test đơn giản, bạn có thể query table `DUAL` mà Oracle có và `orafce` đã tạo để các legacy query của bạn tiếp tục chạy:
+
+[source,text]
+....
+$ psql -U luca forumdb
+psql (16.0)
+Type "help" for help.
+
+
+forumdb=> SELECT * FROM oracle.dual;
+dummy
+-------
+X
+(1 row)
+....
+
+Lưu ý rằng các table được extension tạo ra nằm trong namespace `oracle`. Bạn có thể dễ dàng tránh phải gõ `oracle` trước mọi object name bằng cách dùng `search_path` thay thế:
+
+[source,text]
+....
+forumdb=> SET search_path TO "$user", public, oracle;
+SET
+forumdb=> SELECT * FROM dual;
+dummy
+-------
+X
+(1 row)
+....
+
+== Xóa extension đã cài đặt
+
+Có thể xảy ra trường hợp bạn không còn cần một extension và do đó muốn xóa nó khỏi cluster. Xóa các extension không dùng là một thói quen tốt vì nó giữ cho cluster sạch và không phụ thuộc vào những object mà bạn thực sự không cần.
+Nếu một database không còn cần extension và các thành phần liên quan của nó nữa, bạn có thể phát hành statement `DROP EXTENSION` và extension sẽ biến mất khỏi database. Tất nhiên, nếu extension được cài đặt bởi một database superuser, bạn cũng cần phát hành statement này với tư cách superuser. Với ví dụ `orafce`, superuser có thể thực hiện như sau:
+
+[source,text]
+....
+   $ psql -U postgres forumdb
+   psql (16.0)
+   Type "help" for help.
+
+
+   forumdb=# DROP EXTENSION orafce;
+   DROP EXTENSION
+....
+
+Như bạn có thể hình dung, việc inspect danh sách extension không còn hiển thị entry `orafce` nữa, và tất cả feature, bao gồm table `DUAL`, đã biến mất:
+
+[source,text]
+....
+   forumdb=# \dx
+   ù                     List of installed extensions
+       Name    | Version |     Schema     |           Description
+    ---------+---------+------------+------------------------------
+   pg_stat_statements | 1.10          | public        | track planning and execution
+   statistics of all SQL stat
+   ements executed
+   plpgsql                | 1.0       | pg_catalog | PL/pgSQL procedural language
+   (2 rows)
+
+
+   forumdb=# SELECT * FROM oracle.dual;
+   ERROR:     relation "oracle.dual" does not exist
+   LINE 1: SELECT * FROM oracle.dual;
+....
+
+Việc remove một extension khỏi một database duy nhất không remove nó khỏi các database khác, nơi bạn đã thực thi một statement `CREATE EXTENSION` tường minh. Nó cũng không remove các file và library của extension khỏi thư mục share của cluster.
+
+Cách remove (un-deploy) extension khỏi cluster phụ thuộc vào cách bạn đã cài đặt nó vào cluster ngay từ đầu.
+
+== Remove extension qua pgxnclient
+
+Command `uninstall` của pgxn thực hiện hành động ngược lại chính xác với command `install`: nó remove tất cả file liên quan đến một extension. Các command-line option cũng giống nhau, vì vậy chúng ta có thể thực thi một command đơn giản như sau:
+
+[source,text]
+....
+   $ pgxn uninstall orafce --sudo --verbose
+....
+
+Tất cả file liên quan đến extension sẽ được remove khỏi các thư mục shared library của cluster. Vì vậy extension đã biến mất vĩnh viễn, và nếu cần cài đặt lại, bạn sẽ phải bắt đầu lại từ bước đầu tiên.
+
+== Remove extension được compile thủ công
+
+Để remove một extension mà bạn đã compile thủ công từ source, bạn lại cần dùng `make`, lần này với command `uninstall`, trong thư mục nơi bạn đã giải nén archive đã download:
+
+[source,text]
+....
+   $ cd orafce-4.2.1
+   $ sudo make uninstall
+....
+
+[quote]
+____
+Tránh trộn lẫn việc quản lý extension bằng các tool khác nhau. Nếu bạn cài đặt extension qua pgxnclient, tốt hơn hết là remove nó bằng chính client đó; ngược lại, nếu bạn cài đặt nó từ source, hãy dùng cùng cách tiếp cận để remove nó.
+
+____
+Tóm lại, bạn đã thấy cách xử lý một extension bằng PGXN client hoặc thủ công thông qua PGXN infrastructure. Trong section tiếp theo, bạn sẽ học cách build extension của riêng mình.

@@ -1,0 +1,31 @@
+= File pgbackrest.conf
+
+Bây giờ, sau khi sửa `postgresql.conf`, hãy sửa file `pgbackrest.conf` của PostgreSQL server. Hãy nhớ rằng PostgreSQL server có `ip= 192.168.122.170`, còn IP của disaster recovery server là `192.168.122.170`. Bây giờ hãy edit file `/etc/pgbackrest.conf`; xóa nội dung hiện có và thêm các dòng sau:
+
+[source,text]
+....
+[global]
+backup-host=192.168.122.120
+backup-user=postgres
+backup-ssh-port=22
+log-level-console=info
+log-level-file=info
+
+[pg1]
+pg1-path = /var/lib/postgresql/16/main
+pg1-port = 5432
+....
+
+Giống repository configuration, file này gồm các section: một global section và một section cho mỗi stanza.
+
+Đối với global section, chúng ta có các option sau:
+
+* `backup-host`: Repository host.
+* `backup-user`: User được sử dụng cho backup.
+* `backup-ssh-port`: SSH port.
+* `log-level-console=info` và `log-level-file=info`: Như đã thấy trong section trước.
+
+Đối với stanza section, chúng ta có các option sau:
+
+* `pg1-path = /var/lib/postgresql/16/main`: Path trên PostgreSQL cluster nơi data được lưu. Có thể tìm thấy path này trong parameter `data_directory` bên trong file `postgresql.conf`.
+* `pg1-port = 5432`: Listen port của remote PostgreSQL server.

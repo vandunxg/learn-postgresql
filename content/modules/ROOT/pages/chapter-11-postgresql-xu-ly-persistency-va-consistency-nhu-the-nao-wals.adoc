@@ -1,0 +1,191 @@
+= PostgreSQL xử lý persistency và consistency như thế nào: WALs
+
+Trong các phần trước, bạn đã thấy cách tương tác với transaction và, đáng chú ý nhất, cách PostgreSQL thực thi mọi statement bên trong một transaction, dù là explicit hay implicit.
+
+Về bên trong, PostgreSQL thực hiện những công việc rất phức tạp để bảo đảm consolidated data trong storage phản ánh trạng thái của các transaction đã commit. Nói cách khác, data chỉ có thể được xem là consolidated nếu transaction tạo ra (hoặc sửa đổi) nó đã commit thành công. Nhưng điều này cũng có nghĩa là, một khi transaction đã commit thành công, data của nó là “safe” trên storage, bất kể điều gì xảy ra trong tương lai: nếu một transaction được báo là thành công, data của nó phải được làm persistent, ngay cả khi database hoặc toàn bộ system bị crash.
+
+PostgreSQL quản lý transaction và data consolidation bằng WALs. Phần này giới thiệu cho bạn concept WALs và cách sử dụng chúng bên trong PostgreSQL.
+
+== WALs
+
+Trước khi đi vào chi tiết, cần giải thích ngắn gọn cách PostgreSQL xử lý data ở bên trong. Tuple được lưu trong mass storage, thường là disk, bên dưới thư mục `$PGDATA/base`, trong các file chỉ được đặt tên bằng số. Khi một transaction yêu cầu truy cập một tập tuple cụ thể, PostgreSQL load data được yêu cầu từ thư mục `$PGDATA/base` và đặt nó vào một hoặc nhiều shared buffer. Shared buffers là bản copy trong memory của data trên disk, và tất cả transaction đều truy cập data dùng chung này, vì chúng cung cấp performance cao hơn nhiều và không yêu cầu từng transaction phải seek data từ storage.
+
+Figure tiếp theo cho thấy một vài data page được load vào memory location của shared buffers:
+
+image::chapter-11-figure-11-2-000.jpg[Hình 11.2: Nạp các data page vào memory location của shared buffers]
+
+*Hình 11.2: Nạp các data page vào memory location của shared buffers*
+
+Khi một transaction sửa đổi data, nó thực hiện việc đó bằng cách sửa đổi bản copy trong memory, nghĩa là sửa đổi vùng “shared buffers”.
+
+Tại thời điểm này, bản copy của data trong memory không tương ứng với version được lưu trữ, và đây là nơi PostgreSQL phải bảo đảm consistency và persistency mà không làm mất performance.
+
+Điều xảy ra là data được giữ trong memory nhưng được đánh dấu là dirty, nghĩa là đó là một bản copy chưa được đồng bộ với source gốc trên disk. Sau khi các thay đổi đối với dirty buffer đã được commit, PostgreSQL consolidate các thay đổi vào WALs và giữ dirty buffer trong memory, để phục vụ nó như bản copy mới nhất có sẵn cho các transaction và connection khác.
+
+Sớm hay muộn, PostgreSQL sẽ đẩy dirty buffer vào storage, thay thế bản copy gốc bằng version đã sửa đổi, nhưng một transaction thường không biết và cũng không quan tâm việc này sẽ xảy ra khi nào.
+
+Diagram sau giải thích workflow trước đó: buffer màu đỏ đã được một transaction sửa đổi và do đó không còn khớp với những gì trên disk. Tuy nhiên, khi transaction phát hành một `COMMIT`, các thay đổi được buộc ghi và flush vào WALs:
+
+image::chapter-11-figure-11-3-000.jpg[Hình 11.3: Sau một `COMMIT`, các thay đổi được buộc ghi vào WALs]
+
+*Hình 11.3: Sau một `COMMIT`, các thay đổi được buộc ghi vào WALs*
+
+Tại sao WAL space được xem là hiệu quả hơn việc ghi đè data block gốc trong thư mục `$PGDATA/base`? Mẹo nằm ở chỗ để tìm vị trí chính xác trên disk storage nơi block cần được ghi đè, PostgreSQL phải thực hiện thao tác được gọi là random-seek, một operation I/O tốn kém. Mặt khác, WAL được ghi tuần tự như một journal, và do đó không cần thực hiện random-seek. Việc ghi WAL ngăn chặn suy giảm performance I/O và cho phép PostgreSQL ghi đè data block trong tương lai, chẳng hạn khi cluster không bị quá tải và có I/O bandwidth khả dụng.
+
+Mỗi khi một transaction thực hiện `COMMIT`, các action và data đã sửa đổi của nó được lưu vĩnh viễn trong một phần của WAL, cụ thể là một phần nhất định của WAL segment hiện tại (sẽ nói thêm về việc này sau). Vì vậy, PostgreSQL có thể tái tạo transaction và các effect của nó để thực hiện chính xác những thay đổi data tương tự.
+
+Tuy nhiên, điều này vẫn chưa đủ để làm cho PostgreSQL đáng tin cậy: PostgreSQL nỗ lực rất nhiều để bảo đảm data thực sự chạm tới disk storage. Cụ thể, trong khi ghi WAL, PostgreSQL tự cô lập khỏi thế giới bên ngoài bằng cách disable các operating system signal, để nó không thể bị interrupt. Hơn nữa, PostgreSQL phát hành `fsync(2)`, một operating system call cụ thể buộc filesystem cache flush data xuống disk.
+
+PostgreSQL làm tất cả những việc này để bảo đảm data thực sự chạm tới disk layer, nhưng phải hiểu rõ rằng nếu filesystem hoặc disk controller (tức hardware) nói dối, data có thể không thực sự nằm trên disk. Điều này quan trọng, nhưng PostgreSQL không thể làm gì về việc đó và phải tin vào feedback mà operating system (và do đó là hardware) báo lại.
+
+Trong mọi trường hợp, `COMMIT` sẽ trả về success cho transaction gọi nó khi và chỉ khi PostgreSQL đã có thể ghi các thay đổi lên disk. Vì vậy, ở transaction level, nếu một `COMMIT` thành công (tức là không có error), data đã được ghi vào WAL và do đó có thể được xem là an toàn trên storage layer.
+
+WAL được chia thành các chunk gọi là segment. Một segment là một file chứa chính xác 16 MB thay đổi về data. Dù có thể sửa đổi kích thước segment trong `initdb`, chúng tôi mạnh mẽ không khuyến khích việc này và sẽ giả định mọi segment có kích thước 16 MB.
+
+Điều này có nghĩa là PostgreSQL ghi tuần tự, mỗi lần một file duy nhất (tức một WAL segment), và khi file này đạt kích thước 16 MB, nó được đóng lại và một file 16 MB mới được tạo. WAL segment được lưu trong thư mục `pg_wal` bên dưới `$PGDATA`. Mỗi segment có tên được tạo thành từ các chữ số hexadecimal, dài 24 ký tự.
+
+Tám ký tự đầu tiên biểu thị cái gọi là timeline của cluster (một thứ liên quan đến physical backup và replication), tám chữ số tiếp theo biểu thị một sequence number tăng dần có tên là Log Sequence Number (LSN), và tám chữ số cuối cung cấp offset bên trong LSN. Đây là một ví dụ:
+
+[source,text]
+....
+   $ ls -1 $PGDATA/pg_wal
+   0000000700000247000000A8
+   0000000700000247000000A9
+   0000000700000247000000AA
+   0000000700000247000000AB
+   0000000700000247000000AC
+   0000000700000247000000AD
+   ...
+....
+
+Trong danh sách `pg_wal` ở trên, bạn có thể thấy mọi WAL segment đều có cùng timeline, số 7, và LSN là 247. Vì vậy, mỗi file có một offset khác nhau, file đầu tiên là A8, file thứ hai là A9, v.v. Như bạn có thể hình dung, tên WAL segment không được tạo ra cho con người, nhưng PostgreSQL biết chính xác phải tìm kiếm thông tin ở đâu và trong file nào.
+
+Sớm hay muộn, tùy thuộc vào resource memory và usage của cluster, data trong memory sẽ được ghi trở lại các vị trí gốc trên disk, nghĩa là WAL chỉ đóng vai trò storage an toàn tạm thời trên disk. Lý do không chỉ liên quan đến việc tăng performance như đã giải thích, mà còn để cho phép khôi phục data trong trường hợp crash.
+
+== WALs như phương pháp cứu hộ trong trường hợp crash
+
+Khi bạn dừng một cluster đang chạy một cách clean, chẳng hạn bằng `pg_ctl`, PostgreSQL bảo đảm mọi dirty data trong memory được flush vào storage theo đúng thứ tự, rồi tự halt.
+
+Nhưng điều gì xảy ra nếu cluster bị dừng không clean, chẳng hạn do mất điện?
+
+Event này được gọi là crash, và khi PostgreSQL khởi động lại, nó thực hiện cái gọi là crash recovery. Cụ thể, PostgreSQL hiểu rằng nó đã dừng theo cách không clean, và do đó data trên storage có thể không phải là version cuối cùng từng tồn tại trong memory khi cluster kết thúc hoạt động. Nhưng PostgreSQL biết rằng tất cả data đã commit ít nhất đều có mặt trong WAL, và do đó bắt đầu đọc WAL trong quá trình gọi là WAL replay, điều chỉnh data trong storage theo những gì có trong WAL. Cho đến khi crash recovery hoàn tất, cluster không thể được sử dụng và không chấp nhận connection; một khi crash recovery kết thúc, cluster biết rằng data trên storage đã trở nên coherent, và do đó hoạt động bình thường có thể bắt đầu lại.
+Quy trình này cho phép cluster phần nào tự phục hồi sau một sự kiện bên ngoài khiến vòng đời bình thường của nó bị dừng lại. Điều này cho thấy rõ mục tiêu chính của WALs không phải là tránh suy giảm hiệu năng mà là bảo đảm cluster có thể recovery sau một crash. Để làm được điều đó, data phải được ghi bền vững vào storage; tuy nhiên, nhờ cách WALs được ghi tuần tự, data được persist với ít chi phí I/O hơn.
+
+== Checkpoints
+
+Sớm hay muộn, cluster cũng phải làm cho mọi thay đổi đã được ghi vào WALs trở nên khả dụng trong các data file; tức là nó phải ghi các tuple theo cách phân tán I/O. Những lần ghi này xảy ra tại các thời điểm rất cụ thể, gọi là checkpoint. Checkpoint là một thời điểm mà tại đó database nỗ lực thêm để bảo đảm mọi thứ đã có trong WALs cũng được ghi vào đúng vị trí trong storage data.
+
+Diagram sau giúp hiểu điều gì xảy ra trong một `CHECKPOINT`:
+
+image::chapter-11-figure-11-4-000.jpg[Hình 11.4: Một ví dụ về `CHECKPOINT`]
+
+*Hình 11.4: Một ví dụ về `CHECKPOINT`*
+
+Nhưng tại sao database phải thực hiện nỗ lực đồng bộ hóa này?
+
+Nếu việc đồng bộ hóa không xảy ra, WALs sẽ là nguồn duy nhất chứa các thay đổi giữa trạng thái trong memory và trạng thái trên disk, do đó chúng sẽ tiếp tục tăng lên và tiêu tốn storage space. Hơn nữa, nếu database crash vì bất kỳ lý do nào, WAL replay sẽ phải kiểm tra một tập WAL rất dài.
+
+Ngược lại, nhờ checkpoint, cluster biết rằng trong trường hợp crash, nó chỉ phải đồng bộ data giữa storage và WAL sau khi checkpoint cuối cùng đã được thực hiện thành công. Nói cách khác, cả storage space lẫn thời gian cần để replay WAL đều được giảm từ thời điểm crash về checkpoint cuối cùng.
+
+Tuy nhiên, còn một lợi ích khác: vì sau một checkpoint, PostgreSQL biết rằng data trong WAL đã được đồng bộ với data trong storage, nó có thể loại bỏ các WAL đã được đồng bộ. Thực tế, ngay cả trong trường hợp crash, PostgreSQL hoàn toàn không cần bất kỳ phần WAL nào đứng trước checkpoint cuối cùng. Vì vậy, PostgreSQL thực hiện *WAL recycling*: sau một checkpoint, một WAL segment được tái sử dụng như một segment rỗng cho các thay đổi tiếp theo.
+
+Nhờ cơ chế này, space cần để lưu WAL segment về cơ bản sẽ giữ nguyên trong suốt vòng đời của cluster, vì tại mỗi checkpoint, các segment sẽ được tái sử dụng. Đáng chú ý nhất là trong trường hợp crash, số WAL segment cần replay sẽ là tổng số segment được tạo ra kể từ checkpoint cuối cùng.
+
+[quote]
+____
+PostgreSQL có thể cung cấp cho bạn một số thông tin về việc một query cụ thể sẽ tiêu thụ bao nhiêu WAL segment, tức là bao nhiêu data được đưa vào WALs do việc thực thi một query. Command đặc biệt `EXPLAIN` (được trình bày chi tiết trong Chapter 13, *Indexes and Performance Optimization*) có thể cung cấp thông tin WAL. Ngoài ra, bạn có thể query các catalog đặc biệt và cả log để lấy thông tin về checkpoint cũng như lượng WAL được tạo ra và recycle.
+
+____
+== Các parameter configuration của checkpoint
+
+Database administrator có thể fine-tune checkpoint, nghĩa là họ có thể quyết định khi nào và với tần suất bao nhiêu một checkpoint có thể xảy ra. Vì checkpoint là các điểm hợp nhất, checkpoint xảy ra càng thường xuyên thì thời gian recovery khi có crash càng ngắn. Mặt khác, việc thực thi checkpoint liên tục sẽ cần tài nguyên I/O và có thể làm database system chậm lại.
+
+Thực tế, khi đạt đến một checkpoint, database phải force mọi dirty buffer từ memory xuống disk, và điều này thường tạo ra một I/O spike; trong lúc spike đó, các hoạt động database đồng thời khác, chẳng hạn lấy data mới từ storage, sẽ bị ảnh hưởng vì bandwidth I/O tạm thời bị hoạt động checkpoint sử dụng hết.
+
+Vì những lý do trên, việc tune checkpoint một cách cẩn thận là rất quan trọng; đặc biệt, việc tuning phải phản ánh workload của cluster.
+
+Checkpoint có thể được tune bằng ba configuration parameter chính tương tác với nhau, được giải thích trong các subsection sau.
+
+== `checkpoint_timeout` và `max_wal_size`
+
+Tần suất checkpoint có thể được điều chỉnh bằng hai parameter trực giao: `max_wal_size` và `checkpoint_timeout`.
+
+Parameter `max_wal_size` quy định directory `pg_wal` có thể chiếm bao nhiêu space. Vì tại mỗi checkpoint, WAL segment được recycle, directory `pg_wal` cuối cùng có xu hướng chiếm cùng một lượng space. Việc tuning parameter `max_wal_size` chỉ định sau bao nhiêu thay đổi data thì checkpoint phải hoàn tất, do đó parameter này là một *đặc tả về lượng*.
+
+`checkpoint_timeout` biểu thị sau bao nhiêu thời gian thì checkpoint phải được force.
+
+Hai parameter này trực giao, nghĩa là điều nào xảy ra trước sẽ kích hoạt việc thực thi checkpoint: database của bạn tạo ra lượng thay đổi data vượt quá parameter `max_wal_size`, hoặc thời gian `checkpoint_timeout` đã trôi qua.
+
+Ví dụ, hãy xét một system với các setting mặc định:
+
+[source,text]
+....
+   forumdb=> SHOW checkpoint_timeout;
+   checkpoint_timeout
+   --------------------
+   5min
+   (1 row)
+
+
+   forumdb=> SHOW max_wal_size ;
+   max_wal_size
+   --------------
+   1GB
+   (1 row)
+....
+
+[source,text]
+....
+   -- or you can query the pg_settings
+   forumdb=> SELECT name, setting, unit
+               FROM pg_settings
+               WHERE name IN ( 'checkpoint_timeout', 'max_wal_size' );
+             name          | setting | unit
+   --------------------+---------+------
+     checkpoint_timeout | 300          | s
+     max_wal_size          | 1024      | MB
+   (2 rows)
+....
+
+Sau 300 giây (5 phút), một checkpoint sẽ được trigger, trừ khi trong khoảng thời gian đó đã tạo ra 1.024 MB WAL data. Mục tiêu của hai parameter này là bảo đảm không có quá nhiều thời gian hoặc quá nhiều data thay đổi giữa hai checkpoint liên tiếp, qua đó giảm khác biệt giữa trạng thái data trong memory và trạng thái được lưu an toàn trên disk.
+
+Vì WAL segment được tạo ra bằng cách ghi transaction, setting `max_wal_size` tỷ lệ với lượng user data đã thay đổi trong database. Lượng data được tạo ra trong WALs không chính xác bằng lượng user data được tạo ra, vì WAL segment cũng lưu checksum và các thông tin khác hữu ích cho database trong trường hợp recovery hoặc replica, nhưng bạn có thể ước lượng rằng lượng WAL được tạo ra phản ánh lượng data đã thay đổi trong database.
+
+Do đó, ý nghĩa của `max_wal_size` là: một khi database đã tạo ra lượng thay đổi data tương ứng, checkpoint sẽ xảy ra, và trạng thái trong memory được phản ánh rồi đồng bộ xuống disk. Mặt khác, nếu database của bạn không bận và vì thế không tạo đủ data để đạt `max_wal_size`, `checkpoint_timeout` sẽ được trigger; điều này bảo đảm rằng ngay cả workload thấp cũng sẽ được đồng bộ sau một khoảng thời gian cụ thể.
+
+Trong configuration mặc định ở trên, checkpoint sẽ được phát hành mỗi 5 phút hoặc sau khi đã tạo ra 1 GB data mới (WAL).
+
+Lưu ý rằng checkpoint chỉ xảy ra nếu trạng thái đã thay đổi kể từ checkpoint trước; trong trường hợp hiếm khi database chưa tạo ra data mới nào (tức là hoàn toàn không có load), checkpoint sẽ không được trigger ngay cả khi thời gian `checkpoint_timeout` đã trôi qua. Thực tế, nếu không có data nào thay đổi kể từ checkpoint trước thì không có gì cần đồng bộ, và vì vậy không có công việc nào để thực hiện bằng checkpoint.
+
+== Throttling checkpoint
+
+Không có yêu cầu phải hoàn tất checkpoint ngay lập tức: nếu system không đồng bộ toàn bộ data trong memory xuống disk và xảy ra failure, system sẽ replay tất cả WAL segment cho đến checkpoint đã hoàn tất trước đó. Dựa trên điều này, PostgreSQL cung cấp một configuration parameter hướng dẫn system checkpoint phải hoàn tất nhanh đến mức nào.
+
+Để tránh I/O spike khi thực thi checkpoint, PostgreSQL sử dụng `checkpoint_completion_target`, parameter này chấp nhận các value từ 0 đến 1. Parameter này chỉ ra khoảng thời gian checkpoint có thể trì hoãn việc ghi dirty buffer. Cụ thể, thời gian được cung cấp để hoàn tất checkpoint được tính bằng `checkpoint_timeout x checkpoint_completion_target`.
+
+Ví dụ, nếu `checkpoint_completion_target` được đặt thành 0.2 và `checkpoint_timemout` là 300 giây, system sẽ có 60 giây để ghi toàn bộ data. System sẽ hiệu chỉnh bandwidth I/O của storage cần thiết để hoàn tất việc ghi dirty buffer.
+
+Bạn đặt `checkpoint_completion_target` càng gần 0 thì càng thấy các I/O spike vào thời điểm thực thi checkpoint, kéo theo mức sử dụng bandwidth I/O cao; ngược lại, đặt parameter gần 1 sẽ tránh I/O spike và thay vào đó tạo ra hoạt động I/O liên tục với mức tiêu thụ bandwidth thấp. Hình sau minh họa concept trên:
+
+image::chapter-11-figure-11-5-000.jpg[Hình 11.5: Mức tiêu thụ bandwidth I/O]
+
+*Hình 11.5: Mức tiêu thụ bandwidth I/O*
+
+Theo mặc định, `checkpoint_completion_target` được đặt thành 0.9, nghĩa là checkpoint sẽ cố gắng hoàn tất chậm nhất có thể để tránh I/O spike và tiêu thụ resource:
+
+[source,text]
+....
+   forumdb=> show checkpoint_completion_target;
+   checkpoint_completion_target
+   ------------------------------
+   0.9
+   (1 row)
+....
+
+== Phát hành checkpoint thủ công
+
+Cluster administrator luôn có thể khởi động thủ công một tiến trình checkpoint: statement PostgreSQL `CHECKPOINT` khởi động tất cả hoạt động vốn thường được trigger tại `checkpoint_timeout` hoặc `max_wal_size`.
+
+Vì checkpoint là một operation có tác động lớn như vậy, tại sao lại muốn thực hiện nó thủ công? Một lý do có thể là để bảo đảm toàn bộ data trên disk đã được đồng bộ, chẳng hạn trước khi bắt đầu streaming replication hoặc file-level backup.
+
+Trong section sau, bạn sẽ tìm hiểu process `VACUUM`, kỹ thuật cho phép PostgreSQL reclaim space chưa sử dụng bằng cách loại bỏ các tuple không còn visible.

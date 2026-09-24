@@ -1,0 +1,515 @@
+= Tìm hiểu các statement thao tác table cơ bản
+
+Bây giờ bạn đã học cách tạo table, bạn cần hiểu cách insert, xem, sửa đổi và delete data trong table. Điều này sẽ giúp bạn cập nhật những entry không chính xác hoặc cập nhật các entry hiện có khi cần. Có nhiều command có thể dùng cho việc này, và bây giờ chúng ta sẽ xem xét chúng.
+
+== Insert và select data
+
+Trong section này, chúng ta sẽ học cách insert data vào table. Để insert data vào table, bạn cần sử dụng command `INSERT`. Command `INSERT` sẽ insert các row mới vào table.
+
+Có thể insert một hoặc nhiều row được chỉ định bằng value expression, hoặc không row nào hay nhiều row được tạo ra từ một query. Bây giờ chúng ta sẽ lần lượt xem một số use case như sau:
+
+. Để insert một user mới vào table `users`, hãy thực thi command sau:
+
+[source,text]
+....
+forumdb=> insert into users (username,gecos,email) values
+('myusername','mygecos','myemail');
+INSERT 0 1
+....
+
+Kết quả này cho thấy PostgreSQL đã insert một record vào table `users`. Số đầu tiên là OID của row đã được insert; trong các phiên bản PostgreSQL mới hơn, theo mặc định table được tạo mà không có OID trên các row, vì vậy bạn chỉ nhận được giá trị 0 trả về.
+
+[%start=2]
+. Bây giờ, nếu muốn xem record vừa nhập vào table `users`, chúng ta phải thực thi command select:
+
+[source,text]
+....
+forumdb=> select * from users;
+ pk | username       | gecos     | email
+----+------------+---------+---------
+  1 | myusername | mygecos | myemail
+(1 row)
+....
+
+Command select được thực thi để lấy các row từ một table. Với SQL statement này, PostgreSQL trả về toàn bộ data có trong tất cả field của table. Giá trị `*` chỉ định tất cả field hiện có. Điều này cũng có thể được viết như sau:
+
+[source,text]
+....
+forumdb=> select pk,username,gecos,email from users;
+ pk | username       | gecos     | email
+----+------------+---------+---------
+ 1   | myusername | mygecos | myemail
+(1 row)
+....
+
+[%start=3]
+. Bây giờ hãy insert một user khác vào table `users`; chẳng hạn, insert user `'scotty'` với tất cả field của user đó:
+
+[source,text]
+....
+forumdb=> insert into users (username,gecos,email) values
+('scotty','scotty_gecos','scotty_email');
+INSERT 0 1
+....
+
+. Nếu muốn thực hiện cùng search như trước, sắp xếp data theo field `username`, chúng ta phải thực thi như sau:
+
+[source,text]
+....
+forumdb=> select pk,username,gecos,email from users order by
+username;
+ pk | username       | gecos            | email
+----+------------+--------------+--------------
+ 1 | myusername | mygecos             | myemail
+ 2 | scotty        | scotty_gecos | scotty_email
+(2 rows)
+....
+
+[quote]
+____
+Ngôn ngữ SQL, nếu không có option `ORDER BY`, không trả về data theo thứ tự.
+
+____
+Trong PostgreSQL, điều này cũng có thể được viết như sau:
+
+[source,text]
+....
+forumdb=> select pk,username,gecos,email from users order by 2;
+ pk | username      | gecos             | email
+----+------------+--------------+--------------
+  1 | myusername | mygecos              | myemail
+  2 | scotty        | scotty_gecos | scotty_email
+(2 rows)
+....
+
+[quote]
+____
+PostgreSQL cũng chấp nhận vị trí field trong query làm option sắp xếp.
+
+____
+[%start=5]
+. Bây giờ hãy xem cách insert nhiều record bằng một single-row statement. Ví dụ, statement sau sẽ insert ba record vào table `categories`:
+
+[source,text]
+....
+forumdb=> insert into categories (title,description) values ('C
+Language', 'Languages'), ('Python Language','Languages');
+INSERT 0 2
+....
+
+Đây là một biến thể nhỏ của command `INSERT`. Table `categories` của chúng ta bây giờ sẽ chứa các giá trị sau:
+
+[source,text]
+....
+forumdb=> select * from categories;
+ pk |            title            |               description
+----+-----------------------+---------------------------------
+  1 | Database                    | Database related discussions
+  2 | Unix                        | Unix and Linux discussions
+  3 | Programming Languages | All about programming languages
+  4 | C Language                  | Languages
+  5 | Python Language             | Languages
+(5 rows)
+....
+
+[%start=6]
+. Bây giờ, nếu muốn chỉ select những tuple có description bằng `Database related discussions`, hãy sử dụng where condition:
+
+[source,text]
+....
+forumdb=> select * from categories where description ='Database
+related discussions';
+ pk |   title     |          description
+----+----------+------------------------------
+  1 | Database | Database related discussions
+(1 row)
+....
+
+. Where condition filter trên một hoặc nhiều field của table. Ví dụ, nếu muốn search tất cả topic có title là orange và description là fruits, chúng ta sẽ phải viết như sau:
+
+[source,text]
+....
+forumdb=> select * from categories where description = 'Languages'
+and title='C Language';
+ pk |     title       | description
+----+------------+-------------
+  4 | C Language | Languages
+(1 row)
+....
+
+. Bây giờ, ví dụ nếu muốn select tất cả tuple vừa có field description bằng `Languages` vừa được sort theo title theo thứ tự ngược, hãy thực thi như sau:
+
+[source,text]
+....
+forumdb=> select * from categories where description ='Languages'
+order by title desc;
+ pk |        title         | description
+----+-----------------+-------------
+  5 | Python Language | Languages
+  4 | C Language           | Languages
+(2 rows)
+....
+
+Hoặc chúng ta cũng có thể viết như sau:
+
+[source,text]
+....
+forumdb=> select * from categories where description ='Languages'
+order by 2 desc;
+ pk |        title         | description
+----+-----------------+-------------
+  5 | Python Language | Languages
+  4 | C Language           | Languages
+(2 rows)
+....
+
+Option `ASC` và `DESC` sort query theo thứ tự tăng dần hoặc giảm dần; nếu không chỉ định gì, `ASC` là mặc định.
+
+== Giá trị NULL
+
+Trong section này, chúng ta sẽ nói về các giá trị `NULL`. Trong ngôn ngữ SQL, giá trị `NULL` được định nghĩa như sau:
+
+[quote]
+____
+Null (hoặc NULL) là một marker đặc biệt được sử dụng trong Structured Query Language để chỉ ra rằng một data value không tồn tại trong database. Được giới thiệu bởi người tạo ra relational database model, E. F. Codd, SQL NULL đáp ứng yêu cầu rằng mọi Relational Database Management System (RDBMS) thực sự đều hỗ trợ biểu diễn thông tin bị thiếu.
+
+____
+Bây giờ hãy xem `NULL` được sử dụng trong PostgreSQL như thế nào:
+
+. Hãy bắt đầu bằng cách insert một tuple như sau:
+
+[source,text]
+....
+forumdb=> insert into categories (title) values ('A new
+discussion');
+INSERT 0 1
+....
+
+. Bây giờ hãy xem những tuple nào đang có trong table `categories`:
+
+[source,text]
+....
+forumdb=> select * from categories;
+ pk |             title             |               description
+----+-----------------------+---------------------------------
+  1 | Database                      | Database related discussions
+  2 | Unix                          | Unix and Linux discussions
+  3 | Programming Languages | All about programming languages
+  4 | C Language                    | Languages
+  5 | Python Language               | Languages
+  6 | A new discussion              |
+(6 rows)
+....
+
+. Vậy bây giờ, nếu muốn select tất cả tuple mà description không hiện diện, hãy sử dụng như sau:
+
+[source,text]
+....
+forumdb=> select * from categories where description ='';
+ pk | title | description
+----+-------+-------------
+(0 rows)
+....
+
+Như bạn có thể thấy, PostgreSQL không trả về tuple nào. Đó là vì lần insert cuối đã đưa một giá trị `NULL` vào field description.
+
+[%start=4]
+. Để xem các giá trị `NULL` hiện có trong table, hãy thực thi command sau:
+
+[source,text]
+....
+forumdb=> \pset null NULL
+Null display is "NULL".
+....
+
+. Điều này bảo `psql` hiển thị các giá trị `NULL` đang có trong table dưới dạng `NULL`, như sau:
+
+[source,text]
+....
+forumdb=> select * from categories;
+ pk |           title             |              description
+----+-----------------------+----------------------------
+  1 | Database                    | Database related discussions
+  2 | Unix                        | Unix and Linux discussions
+  3 | Programming Languages | All about programming languages
+  4 | C Language                  | Languages
+  5 | Python Language             | Languages
+  6 | A new discussion            | NULL
+(6 rows)
+....
+
+Như bạn có thể thấy, giá trị description gắn với title `A new discussion` không phải là empty string; đó là giá trị `NULL`.
+
+[%start=6]
+. Bây giờ, nếu muốn xem tất cả record có giá trị `NULL` trong field description, chúng ta phải sử dụng operator `IS NULL`:
+
+[source,text]
+....
+forumdb=> select title,description from categories where description
+is null;
+       title        | description
+------------------+-------------
+ A new discussion | NULL
+(1 row)
+....
+
+Query trước đó tìm tất cả tuple không có giá trị trong field description.
+
+[%start=7]
+. Bây giờ chúng ta sẽ search tất cả tuple có giá trị trong field description bằng query sau:
+
+[source,text]
+....
+forumdb=> select title,description from categories where description
+is not null;
+           title             |               description
+-----------------------+---------------------------------
+ Database                    | Database related discussions
+ Unix                          | Unix and Linux discussions
+ Programming Languages | All about programming languages
+ C Language                  | Languages
+ Python Language             | Languages
+(5 rows)
+....
+
+Để thực hiện search trên các field `NULL`, chúng ta phải sử dụng các operator `IS NULL` / `IS NOT NULL`. Empty string khác với giá trị `NULL`.
+
+== Sort với giá trị NULL
+
+Bây giờ hãy xem điều gì xảy ra khi order một table có các giá trị `NULL`:
+
+. Hãy lặp lại query sort mà chúng ta đã thực hiện trước đó:
+
+[source,text]
+....
+forumdb=> select * from categories order by description ;
+ pk |             title             |              description
+----+-----------------------+----------------------------
+  3 | Programming Languages | All about programming languages
+  1 | Database                      | Database related discussions
+  4 | C Language                   | Languages
+  5 | Python Language               | Languages
+  2 | Unix                          | Unix and Linux discussions
+  6 | A new discussion              | NULL
+(6 rows)
+....
+
+Như bạn có thể thấy, tất cả giá trị description được sort và giá trị `NULL` được đặt ở cuối result set. Có thể đạt được điều tương tự bằng cách chạy như sau:
+
+[source,text]
+....
+forumdb=> select * from categories order by description NULLS last;
+ pk |           title              |              description
+----+----------------------------+----------------------------
+  3 | Programming Languages | All about programming languages
+  1 | Database                     | Database related discussions
+  4 | C Language                   | Languages
+  5 | Python Language              | Languages
+  2 | Unix                         | Unix and Linux discussions
+  6 | A new discussion             | NULL
+(6 rows)
+....
+
+[%start=2]
+. Nếu muốn đặt giá trị `NULL` ở đầu, chúng ta phải thực hiện như sau:
+
+[source,text]
+....
+forumdb=> select * from categories order by description NULLS first;
+ pk |           title         |              description
+----+-----------------+---------------------------------
+  6 | A new discussion             | NULL
+  3 | Programming Languages | All about programming languages
+  1 | Database                     | Database related discussions
+  4 | C Language                   | Languages
+  5 | Python Language              | Languages
+  2 | Unix                         | Unix and Linux discussions
+(6 rows)
+....
+
+Nếu không chỉ định, các hành vi sau là mặc định cho các query kiểu `ORDER BY`:
+
+`ORDER BY NULLS LAST` là mặc định cho `ASC` (cũng là mặc định), còn `NULLS FIRST` là mặc định cho `DESC`.
+
+== Tạo table bắt đầu từ một table khác
+
+Bây giờ chúng ta sẽ xem xét cách tạo một table mới bằng data từ một table khác. Để làm việc này, bạn cần tạo một temporary table với data hiện có trong table `categories` như sau:
+
+[source,text]
+....
+forumdb=> create temp table temp_categories as select * from categories;
+SELECT 6
+....
+Lệnh này tạo một table có tên `temp_data` với cùng data structure và data như table `categories`:
+
+[source,text]
+....
+forumdb=> select * from temp_categories ;
+ pk |              title            |              description
+----+-----------------------+----------------------------
+     1 | Database                   | Database related discussions
+     2 | Unix                       | Unix and Linux discussions
+     3 | Programming Languages | All about programming languages
+     4 | C Language                 | Languages
+     5 | Python Language            | Languages
+     6 | A new discussion           | NULL
+(6 rows)
+....
+
+== Cập nhật dữ liệu
+
+Bây giờ hãy thử update một số data:
+
+. Nếu muốn thay đổi giá trị Unix thành Linux, bạn cần chạy statement sau:
+
+[source,text]
+....
+   forumdb=> update temp_categories set title='Linux' where pk = 2;
+   UPDATE 1
+....
+
+   Statement này sẽ sửa giá trị Unix thành Linux trong field `title` cho mọi row của table `temp_categories` có `pk=2`, như sau:
+
+[source,text]
+....
+   forumdb=> select * from temp_categories where pk=2;
+    pk | title |             description
+   ----+-------+----------------------------
+     2 | Linux | Unix and Linux discussions
+   (1 row)
+....
+
+[%start=2]
+. Nếu muốn thay đổi giá trị `title` của tất cả các dòng có giá trị `description` là Languages, bạn cần chạy statement sau:
+
+[source,text]
+....
+   forumdb=> update temp_categories set title = 'no title' where
+   description = 'Languages';
+   UPDATE 2
+....
+
+`UPDATE 2` có nghĩa là chỉ hai row đã được sửa đổi, như minh họa sau:
+
+[source,text]
+....
+forumdb=> select * from temp_categories order by description;
+ pk |           title            |             description
+----+----------------------------+----------------------------
+  3 | Programming Languages | All about programming languages
+  1 | Database                   | Database related discussions
+  4 | no title                   | Languages
+  5 | no title                   | Languages
+  2 | Linux                      | Unix and Linux discussions
+  6 | A new discussion           | NULL
+(6 rows)
+....
+
+Bạn phải cẩn thận khi sử dụng command `UPDATE`. Nếu làm việc ở chế độ auto-commit, bạn không còn cơ hội quay lại sau khi update hoàn tất. Auto-commit là mặc định trong `psql`.
+
+== Xóa dữ liệu
+
+Trong phần này, chúng ta sẽ xem cách xóa data khỏi một table. Command cần dùng để xóa data là `delete`. Hãy bắt đầu:
+
+. Nếu muốn xóa tất cả record trong table `temp_categories` có `pk=5`, chúng ta phải thực hiện command sau:
+
+[source,text]
+....
+   forumdb=> delete from temp_categories where pk=5;
+   DELETE 1
+....
+
+   Statement trên xóa tất cả record có `pk=5`. `DELETE 1` có nghĩa là một record đã bị xóa. Như bạn có thể thấy ở đây, row có giá trị `pk=5` không còn hiện diện trong `temp_categories`:
+
+[source,text]
+....
+   forumdb=>   select * from temp_categories where pk=5;
+    pk | title | description
+   ----+-------+-------------
+   (0 rows)
+....
+
+[%start=2]
+. Bây giờ, nếu muốn xóa tất cả row có giá trị `description` bằng `NULL`, chúng ta phải thực thi statement này:
+
+[source,text]
+....
+   forumdb=> delete from temp_categories where description is null;
+   DELETE 1
+....
+
+Statement trên sử dụng command `DELETE` kết hợp với operator `IS NULL`.
+
+[%start=3]
+. Nếu muốn xóa tất cả record khỏi một table, bạn phải thực thi lệnh sau:
+
+[source,text]
+....
+   forumdb=> delete from temp_categories ;
+   DELETE 4
+....
+
+[quote]
+____
+Hãy hết sức cẩn thận khi sử dụng command này - tất cả record hiện có trong table sẽ bị xóa!
+
+____
+Bây giờ table `temp_categories` trống, như minh họa sau:
+
+[source,text]
+....
+forumdb=> select * from temp_categories;
+ pk | title | description
+----+-------+-------------
+(0 rows)
+....
+
+[%start=4]
+. Nếu muốn nạp lại toàn bộ data từ table `categories` vào table `temp_categories`, chúng ta phải thực thi statement này:
+
+[source,text]
+....
+   forumdb=> insert into temp_categories select * from categories;
+   INSERT 0 6
+....
+
+   Statement trên lấy tất cả value từ table `categories` và đưa chúng vào table `temp_categories`, như bạn có thể thấy ở đây:
+
+[source,text]
+....
+   forumdb=> select * from temp_categories order by description;
+    pk |            title            |              description
+   ----+----------------------------+----------------------------
+     3 | Programming Languages | All about programming languages
+     1 | Database                    | Database related discussions
+     4 | C Language                  | Languages
+     5 | Python Language             | Languages
+     2 | Unix                        | Unix and Linux discussions
+     6 | A new discussion            | NULL
+   (6 rows)
+....
+
+[%start=5]
+. Một cách khác để xóa data là sử dụng command `TRUNCATE`. Khi muốn xóa toàn bộ data khỏi một table mà không cung cấp điều kiện `where`, chúng ta có thể sử dụng command `TRUNCATE`:
+
+[source,text]
+....
+   forumdb=> truncate table temp_categories ;
+   TRUNCATE TABLE
+....
+
+Command `TRUNCATE` xóa toàn bộ data trong một table. Như bạn có thể thấy, table `temp_categories` hiện đã trống:
+
+[source,text]
+....
+forumdb=> select * from temp_categories;
+ pk | title | description
+ ----+-------+-------------
+(0 rows)
+....
+
+Dưới đây là một số thông tin quan trọng về command `TRUNCATE`:
+
+* `TRUNCATE` xóa tất cả record trong một table, tương tự command `DELETE`.
+* Trong command `TRUNCATE`, không thể sử dụng các điều kiện where.
+* Command `TRUNCATE` xóa record nhanh hơn nhiều so với command `DELETE`.

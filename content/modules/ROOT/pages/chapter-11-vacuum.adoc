@@ -1,0 +1,251 @@
+= VACUUM
+
+Trong các section trước, bạn đã tìm hiểu cách PostgreSQL tận dụng MVCC để lưu các version khác nhau của cùng một data (tuple), mà các transaction khác nhau có thể perceive tùy thuộc vào snapshot đang active của chúng. Tuy nhiên, việc giữ nhiều version khác nhau của cùng các tuple cần thêm space so với version active cuối cùng, và space này sớm hay muộn cũng có thể làm đầy storage. Để ngăn điều đó và reclaim space trong storage, PostgreSQL cung cấp một tool nội bộ tên là `VACUUM`, với mục tiêu phân tích các version tuple đã lưu và loại bỏ những version không còn perceivable.
+
+[quote]
+____
+*Ghi nhớ:* Một tuple không perceivable (visible) khi không còn transaction active nào có thể tham chiếu đến version đó, nghĩa là version tuple không còn nằm trong snapshot của chúng. Một tuple không perceivable thường được gọi là dead tuple, thể hiện rằng nó không còn cần thiết trong vòng đời của database.
+
+____
+`VACUUM` có thể là một operation sử dụng nhiều I/O, vì nó phải reclaim và giải phóng space trên disk, do đó có thể là một operation có tác động lớn. Vì lý do này, bạn không nên chạy `VACUUM` thủ công quá thường xuyên; PostgreSQL cũng cung cấp một background job tên là autovacuum, có thể chạy `VACUUM` thay bạn tùy theo activity hiện tại của database.
+
+Các subsection sau sẽ trình bày cả `VACUUM` thủ công và tự động.
+
+== VACUUM thủ công
+
+`VACUUM` thủ công có thể được chạy trên một table, một subset column của table hoặc toàn bộ database; synopsis như sau:
+
+[source,text]
+....
+VACUUM [ FULL ] [ FREEZE ] [ VERBOSE ] [ ANALYZE ] [ table_and_columns [,
+...] ]
+....
+
+Có ba phiên bản chính của `VACUUM`, thực hiện việc refactor data ngày càng mạnh hơn:
+
+* Plain `VACUUM` (mặc định) thực hiện micro-space-reclaim, nghĩa là loại bỏ các version của dead tuple nhưng không de-fragment table; vì vậy, kết quả cuối cùng là không có space nào được reclaim.
+* `VACUUM FULL` thực hiện rewrite toàn bộ table, loại bỏ dead tuple và xóa fragmentation, nhờ đó cũng reclaim disk space một cách mạnh mẽ.
+* `VACUUM FREEZE` đánh dấu các tuple đã được consolidate là frozen, ngăn vấn đề xid wraparound.
+
+`VACUUM` không thể được thực thi bên trong transaction, cũng không thể được thực thi trong function hoặc procedure. Các option bổ sung `VERBOSE` và `ANALYZE` lần lượt cung cấp verbose output và thực hiện cập nhật statistics của nội dung table (điều này hữu ích để tăng performance).
+
+Để xem các effect của `VACUUM`, hãy xây dựng một example đơn giản. Trước hết, bảo đảm autovacuum được đặt thành off. Nếu chưa, hãy edit configuration file `$PGDATA/postgresql.conf`, đặt parameter thành off rồi restart cluster. Sau đó, inspect size của table tags:
+
+[source,text]
+....
+   forumdb=> SHOW autovacuum;
+       autovacuum
+   ------------
+       off
+   (1 row)
+....
+
+[source,text]
+....
+   forumdb=> SELECT relname, reltuples, relpages, pg_size_pretty( pg_
+   relation_size( 'tags' ) )
+   FROM pg_class WHERE relname = 'tags' AND relkind = 'r';
+     relname | reltuples | relpages | pg_size_pretty
+   ---------+-----------+----------+----------------
+     tags     |           6 |           1 | 8192 bytes
+   (1 row)
+....
+
+Như bạn thấy, table chỉ có sáu tuple và chiếm một data page duy nhất trên disk, có size 8 KB. Bây giờ, hãy populate table bằng khoảng 1 triệu tuple ngẫu nhiên:
+
+[source,text]
+....
+   forumdb=> INSERT INTO tags( tag )
+   SELECT 'FAKE-TAG-#' || x
+   FROM generate_series( 1, 1000000 ) x;
+   INSERT 0 1000000
+....
+
+Vì chúng ta đã dừng autovacuum, PostgreSQL không biết size thực của table; do đó, cần thực hiện `ANALYZE` thủ công để thông báo cho cluster về data mới trong table:
+
+[source,text]
+....
+   forumdb=> ANALYZE tags;
+   ANALYZE
+   forumdb=> SELECT relname, reltuples, relpages, pg_size_pretty( pg_
+   relation_size( 'tags' ) )
+   FROM pg_class WHERE relname = 'tags' AND relkind = 'r';
+     relname |    reltuples     | relpages | pg_size_pretty
+   ---------+-------------+----------+----------------
+     tags     | 1.00001e+06 |          6370 | 50 MB
+....
+
+Bây giờ là lúc invalidate toàn bộ tuple chúng ta đã insert, chẳng hạn bằng cách overwrite chúng với một `UPDATE` (do MVCC, thao tác này sẽ duplicate các tuple):
+
+[source,text]
+....
+   forumdb=> UPDATE tags SET tag = lower( tag ) WHERE tag LIKE 'FAKE%';
+   UPDATE 1000000
+....
+
+Table hiện vẫn có khoảng 1 triệu tuple hợp lệ, nhưng size gần như tăng gấp đôi vì mỗi tuple hiện tồn tại ở hai version, trong đó một version là dead:
+
+[source,text]
+....
+   forumdb=> ANALYZE tags;
+   ANALYZE
+   forumdb=> SELECT relname, reltuples, relpages, pg_size_pretty( pg_
+   relation_size( 'tags' ) )
+   FROM pg_class WHERE relname = 'tags' AND relkind = 'r';
+     relname |    reltuples     | relpages | pg_size_pretty
+   ---------+-------------+----------+----------------
+      tags    | 1.00001e+06 |         12739 | 100 MB
+   (1 row)
+....
+
+Đến đây chúng ta đã xây dựng được một thứ có thể dùng làm test lab cho `VACUUM`. Nếu thực thi plain `VACUUM`, mọi data page sẽ được giải phóng dead tuple nhưng các page sẽ không được tái cấu trúc, vì vậy số lượng data page vẫn giữ nguyên và size cuối cùng của table trên storage cũng giữ nguyên:
+
+[source,text]
+....
+   forumdb=> VACUUM VERBOSE tags;
+   ...
+   INFO: "tags": found 1000000 removable, 1000006 nonremovable row versions
+   in 12739 out of 12739 pages
+
+
+   VACUUM
+   forumdb=> ANALYZE tags;
+   ANALYZE
+
+
+   forumdb=> SELECT relname, reltuples, relpages, pg_size_pretty( pg_
+   relation_size( 'tags' ) )
+   FROM pg_class WHERE relname = 'tags' AND relkind = 'r';
+     relname |    reltuples     | relpages | pg_size_pretty
+   ---------+-------------+----------+----------------
+      tags    | 1.00001e+06 |         12739 | 100 MB
+   (1 row)
+....
+
+`VACUUM` cho chúng ta biết rằng có thể remove an toàn 1 triệu tuple, trong khi 1 triệu tuple (cộng với 6 tuple ban đầu) không thể bị remove vì chúng đại diện cho version active cuối cùng. Tuy nhiên, sau lần thực thi này, size của table không thay đổi: mọi data page đã được de-fragment bên trong, nhưng không có storage space nào được giải phóng vì tổng số page không thay đổi.
+
+Vậy mục tiêu của plain `VACUUM` là gì? Loại `VACUUM` này tạo ra free space mới trên từng page, nhờ đó table về cơ bản có thể chứa 1 triệu tuple mới mà không thay đổi size của chính nó. Chúng ta có thể chứng minh điều này bằng cách thực hiện lại việc invalidate tuple như đã làm:
+
+[source,text]
+....
+   forumdb=> UPDATE tags SET tag = upper( tag ) WHERE tag LIKE 'fake%';
+   UPDATE 1000000
+   forumdb=> ANALYZE tags;
+....
+
+[source,text]
+....
+   ANALYZE
+   forumdb=> SELECT relname, reltuples, relpages, pg_size_pretty( pg_
+   relation_size( 'tags' ) )
+   FROM pg_class WHERE relname = 'tags' AND relkind = 'r';
+     relname | reltuples | relpages | pg_size_pretty
+   ---------+-----------+----------+----------------
+     tags      | 1.00001e+06 |         12739 | 100 MB
+   (1 row)
+....
+
+Như bạn thấy, số lượng tuple, page và size của table không thay đổi. Về cơ bản, quá trình diễn ra như sau: ban đầu chúng ta tạo 1 triệu tuple mới, sau đó update tất cả chúng, khiến 1 triệu trở thành 2 triệu; tiếp theo, chúng ta dùng `VACUUM` trên table, giảm số lượng trở lại 1 triệu nhưng giữ lại free space đã được allocate, khiến table chiếm space cho 2 triệu tuple nhưng chỉ một nửa storage đó được lấp đầy. Sau đó, chúng ta tạo 1 triệu version tuple mới nhưng system không cần allocate thêm space vì đã có đủ free space, dù space đó nằm rải rác trên toàn bộ table.
+
+Mặt khác, `VACUUM FULL` không chỉ giải phóng space bên trong table mà còn reclaim toàn bộ space đó, compact table về size nhỏ nhất. Nếu thực thi `VACUUM FULL` ngay lúc này, ít nhất 50 MB data space sẽ được reclaim vì 1 triệu tuple sẽ bị loại bỏ:
+
+[source,text]
+....
+   forumdb=> VACUUM FULL VERBOSE tags;
+   INFO:     vacuuming "public.tags"
+   INFO: "tags": found 1000000 removable, 1000006 nonremovable row versions
+   in 12739 pages
+   DETAIL:     0 dead row versions cannot be removed yet.
+   CPU: user: 0.18 s, system: 0.61 s, elapsed: 1.03 s.
+   VACUUM
+   forumdb=> ANALYZE tags;
+   ANALYZE
+   forumdb=> SELECT relname, reltuples, relpages, pg_size_pretty( pg_
+   relation_size( 'tags' ) )
+   FROM pg_class WHERE relname = 'tags' AND relkind = 'r';
+     relname | reltuples | relpages | pg_size_pretty
+   ---------+-------------+----------+----------------
+     tags      | 1.00001e+06 |          6370 | 50 MB
+   (1 row)
+....
+Output của VACUUM FULL gần như giống plain VACUUM: nó cho thấy 1 triệu tuple có thể bị loại bỏ. Tuy nhiên, kết quả cuối cùng là toàn bộ table đã thu được phần space do các tuple nói trên chiếm giữ. Dù vậy, điều quan trọng cần nhớ là, mặc dù rất hấp dẫn, VACUUM FULL buộc phải rewrite toàn bộ table và do đó đẩy rất nhiều công việc xuống I/O system, dẫn tới các performance penalty tiềm ẩn.
+
+Có thể tóm tắt các effect chính của VACUUM bằng hình ảnh. Hãy hình dung một tình huống như trong figure sau, trong đó một table chiếm hai data page, lần lượt có bốn và ba tuple hợp lệ (các tuple màu xanh lá):
+
+image::chapter-11-figure-11-6-000.jpg[Hình 11.6: Các tuple hợp lệ và không hợp lệ trên hai data page]
+
+*Hình 11.6: Các tuple hợp lệ và không hợp lệ trên hai data page*
+
+Dead tuple (các tuple màu đỏ) tạo ra fragmentation bên trong page, vì chúng xen kẽ với các tuple visible. Effect cuối cùng là table chiếm storage space cho hai page, trong khi toàn bộ visible tuple có thể được “đóng gói” vào một page duy nhất.
+
+Nếu plain VACUUM được thực thi, tổng số page sẽ giữ nguyên, nhưng mọi page sẽ giải phóng space do dead tuple chiếm giữ và compact các tuple hợp lệ lại với nhau, như trong figure sau:
+
+image::chapter-11-figure-11-7-000.jpg[Hình 11.7: Kết quả của plain VACUUM]
+
+*Hình 11.7: Kết quả của plain VACUUM*
+
+Nếu VACUUM FULL được thực thi, các data page của table sẽ được rewrite hoàn toàn để compact tất cả tuple hợp lệ lại với nhau. Trong tình huống này, data page thứ hai của table trở nên rỗng và do đó có thể bị loại bỏ, giải phóng storage space. Tình huống trở thành như trong diagram sau:
+
+image::chapter-11-figure-11-8-000.jpg[Hình 11.8: Kết quả của FULL VACUUM]
+
+*Hình 11.8: Kết quả của FULL VACUUM*
+
+Bây giờ hẳn đã rõ sự khác biệt chính giữa plain VACUUM và FULL VACUUM: theo rule of thumb, plain VACUUM không giải phóng storage space và ít aggressive hơn nhiều so với VACUUM FULL; ngược lại, VACUUM FULL giải phóng disk space. Chỉ có một tình huống đặc biệt trong đó plain VACUUM có thể trả lại một phần rất nhỏ storage space: nếu tất cả tuple trên page cuối cùng đều dead, chính page đó sẽ được deallocate.
+
+Thông thường, bạn không chạy VACUUM bằng tay, vì PostgreSQL cung cấp một approach tốt hơn nhiều để kiểm soát fragmentation bằng automatic vacuuming, được giải thích trong section tiếp theo.
+
+== Automatic VACUUM
+
+Kể từ PostgreSQL 8.4, đã có một background job tên là autovacuum, chịu trách nhiệm chạy VACUUM thay cho system administrator.
+
+Ý tưởng là vì VACUUM là một operation I/O-intensive, background job có thể thực hiện các micro-vacuum nhỏ mà không can thiệp vào database activity bình thường.
+
+Thông thường, bạn không cần lo lắng về autovacuum, vì nó được enable mặc định và có các setting tổng quát có thể hữu ích trong nhiều scenario; tuy nhiên, cũng như hầu hết mọi thứ trong PostgreSQL, bạn có thể dùng các setting cụ thể để fine-tune behavior của automatic vacuuming. Một system có autovacuum configuration tốt thường không cần VACUUM thủ công, và traits của manual VACUUM thường có nghĩa là autovacuum phải được configure để chạy thường xuyên hơn.
+
+Automatic vacuum hoạt động với một nhóm background process, được gọi là autovacuum worker. Mỗi worker được assign cho một database để làm việc; khi process hoàn tất activity của mình, nó sẽ terminate. PostgreSQL thường xuyên start các autovacuum worker process mới, để mọi database (và table) trong cluster có cơ hội được vacuum tự động. Tuy nhiên, PostgreSQL cho phép database administrator thiết lập cẩn thận behavior của activity spawn process này: configuration setting `autovacuum_max_workers` quy định số process active tối đa có thể đang chạy tại một thời điểm.
+
+Autovacuum worker thực hiện ba activity chính:
+
+* Thực thi plain VACUUM trên các data table, nhằm giảm fragmentation và liên tục allocate space mới để xử lý các tuple version mới.
+* Update system statistics về quantity và quality của data được lưu trong user table, tương tự như manual ANALYZE. Việc này rất hữu ích để query executor quyết định plan tốt nhất nhằm truy cập data, chẳng hạn thực hiện tuple freeze bất cứ khi nào cần thiết, từ đó ngăn chặn vấn đề xid wraparound.
+* Thực hiện tuple freeze bất cứ khi nào cần thiết, từ đó ngăn chặn vấn đề xid wraparound.
+
+autovacuum được bật mặc định, nhưng bạn luôn có thể chọn disable nó, dù việc này chẳng có ý nghĩa gì; thông thường, bạn cần autovacuum chạy nhiều hơn chứ không phải ít hơn. Tuy nhiên, điều quan trọng cần nhớ là ngay cả khi đã bị tắt, một emergency autovacuum process vẫn có thể start để ngăn chặn vấn đề xid wraparound.
+
+
+[quote]
+____
+Nói cách khác, PostgreSQL cố gắng hết sức để vẫn vận hành được ngay cả khi bạn configure sai nó!
+
+____
+Các setting chính của autovacuum có thể được inspect từ configuration file `$PGDATA/postgresql.conf` hoặc, như thường lệ, từ catalog `pg_settings`. Các configuration parameter quan trọng nhất là:
+
+* `autovacuum` enable hoặc disable autovacuum background machinery. Ngoài việc thực hiện experiment, như chúng ta đã làm trong section trước, không có lý do gì để giữ autovacuum disabled.
+* `autovacuum_vacuum_threshold` cho biết sẽ cho phép bao nhiêu tuple version mới trước khi autovacuum có thể được activate trên một table. Ý tưởng là chúng ta không muốn autovacuum trigger nếu chỉ có một số ít tuple thay đổi trong table, vì điều đó tạo ra I/O penalty mà không đem lại gain hiệu quả. Mặc định, parameter này được đặt là 50 tuple, nghĩa là bất kỳ thay đổi nào trong table không tạo ra ít nhất 50 tuple version mới sẽ không được xem là đủ để trigger autovacuum.
+* `autovacuum_vacuum_scale_factor` cho biết lượng tuple, tính theo phần trăm, phải được thay đổi trước khi autovacuum thực hiện một VACUUM thực sự trên table. Ý tưởng là table càng lớn thì autovacuum càng chờ nhiều dead tuple hơn trước khi thực hiện activity của nó. Trong một installation mặc định, setting này là `0.2`, nghĩa là autovacuum sẽ trigger khi ít nhất 20% tuple đã được đánh dấu là dead.
+* `autovacuum_cost_limit` là một value đo threshold tối đa mà vượt qua đó background process phải tự suspend để tiếp tục sau.
+* `autovacuum_cost_delay` cho biết autovacuum sẽ bị suspend trong bao nhiêu millisecond (theo bội số của mười) để không can thiệp vào database activity khác. Việc suspend chỉ được thực hiện khi cost delay đạt tới ngưỡng.
+
+Về cơ bản, activity của autovacuum diễn ra như sau: nó scan mọi table trong một database, và nếu số tuple đã thay đổi lớn hơn `autovacuum_vacuum_threshold + ( table-tuples * autovacuum_vacuum_scale_factor )`, autovacuum process sẽ activate. Sau đó, nó thực hiện vacuum trên table và đo lượng work. Nếu lượng work đạt tới giá trị được đặt cho `autovacuum_cost_limit`, process sẽ tự suspend trong `autovacuum_cost_delay` millisecond, rồi resume và tiếp tục. Mỗi khi autovacuum đạt threshold, nó sẽ tự suspend, tạo ra effect của một VACUUM incremental. Behavior stop-and-go này của autovacuum nhằm giảm overall impact lên cluster đang chạy: autovacuum sẽ tự suspend để dành resource cho interactive connection và user.
+
+Nhưng autovacuum tính cost của activity mà nó đang thực hiện như thế nào? Có một tập tunable value biểu thị cost của việc fetch một data page mới, scan một dirty page, v.v.
+
+Các value đó được dùng chung với manual VACUUM:
+
+[source,text]
+....
+   forumdb=> SELECT name, setting       FROM pg_settings
+      WHERE name like 'vacuum_cost%';
+             name          | setting
+   ------------------------+---------
+   vacuum_cost_delay        | 0
+   vacuum_cost_limit        | 200
+   vacuum_cost_page_dirty | 20
+   vacuum_cost_page_hit     | 1
+   vacuum_cost_page_miss    | 2
+   (5 rows)
+....
+
+Các value đó được dùng cho cả manual VACUUM và autovacuum, ngoại trừ việc autovacuum có `autovacuum_vacuum_cost_limit` riêng, thường được đặt là 200. Mặt khác, manual VACUUM có `vacuum_cost_delay` đặt là 0, về cơ bản có nghĩa là một manual VACUUM process sẽ không bao giờ tự suspend. Sau cùng, database administrator muốn manual VACUUM hoàn tất nhanh nhất có thể.
+
+Các parameter tương tự cũng tồn tại cho phần ANALYZE, vì autovacuum background process thực hiện VACUUM ANALYZE, và do đó bạn có `autovacuum_analyze_threshold` và `autovacuum_analyze_scale_factor`, chịu trách nhiệm xác định activity window cho phần ANALYZE (phần này liên quan đến việc update statistics về nội dung của table).

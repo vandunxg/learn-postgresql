@@ -1,0 +1,21 @@
+= Kiểm tra kiến thức
+
+* *Sự khác nhau giữa logical backup và physical backup là gì?*
+
+  Logical backup, còn được gọi là “dump”, là một backup tương tác trực tiếp với database và các transaction đang chạy của nó. Physical backup, còn được gọi là “hot backup”, là một bản copy của underlying filesystem và WAL để có thể restore clear state cuối cùng đã biết của database. Xem section *Giới thiệu các loại backup và restore* để biết thêm chi tiết.
+
+* *Sự khác nhau giữa `pg_dump` và `pg_dumpall` là gì?*
+
+  Command `pg_dump` được dùng để dump một database đơn lẻ, trong khi `pg_dumpall` dump tất cả intra-database object (ví dụ user), sau đó thực hiện một `pg_dump` trên từng database trong cluster. Xem section *Dumping a whole cluster* để biết thêm chi tiết.
+
+* *Command `COPY` là gì?*
+
+  Command `COPY` là một statement đặc thù của PostgreSQL, nhằm bulk-load hoặc extract data. Nó thường được dùng như một cách để dump/restore data từ một table. Xem section *The COPY command* để biết thêm chi tiết.
+
+* *Command `pg_basebackup` là gì?*
+
+  Command `pg_basebackup` thực hiện physical backup của một cluster đang chạy và cũng có thể archive WAL. Xem section *Performing a manual physical backup* để biết thêm chi tiết.
+
+* *Point in Time Recovery (PITR) là gì?*
+
+  PITR là một kỹ thuật theo đó một physical backup được restore về một point in time cụ thể sau khi backup bắt đầu. Đây là một cách đưa cluster *back in time*. Xem section *Basic concepts behind PITR* để biết thêm chi tiết.

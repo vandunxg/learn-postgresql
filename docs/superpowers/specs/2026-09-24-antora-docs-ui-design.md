@@ -59,7 +59,7 @@ remote `antora-ui-default` artifact.
 `default.hbs` is a small composition root. It includes these focused partials:
 
 - `header.hbs`: dynamic site/component identity, search integration point,
-  highlight toggle, theme toggle, and mobile menu button.
+  theme toggle, and mobile menu button.
 - `sidebar.hbs`: recursive Antora navigation with active page and active
   section state.
 - `article.hbs`: semantic page heading, breadcrumbs when available,
@@ -91,7 +91,6 @@ All client-side state is page-scoped and namespaced:
 
 ```text
 learn-postgresql:theme
-learn-postgresql:highlights:<page-key>
 learn-postgresql:reading-position:<page-key>
 ```
 
@@ -105,30 +104,6 @@ Theme initialization runs before the visible UI where practical. It reads the
 stored preference, then falls back to `prefers-color-scheme`, and sets
 `html[data-theme]`. The toggle updates its accessible name and persists the
 choice.
-
-#### Highlights
-
-Highlight mode is off by default. In mode, a user selection inside the article
-is converted to `mark.user-highlight`. Controls, form fields, scripts, styles,
-and non-readable UI are excluded. Clicking an existing mark removes it.
-
-Storage contains structured records rather than generated HTML:
-
-```json
-{
-  "id": "unique-record-id",
-  "quote": "selected text",
-  "prefix": "nearby preceding text",
-  "suffix": "nearby following text",
-  "start": 120,
-  "end": 134
-}
-```
-
-Records are resolved against the article's readable text stream using the quote
-and surrounding context, with offsets used as a fast-path. Restoration applies
-marks to DOM ranges only after Antora has rendered the page. Removing a mark
-updates the records. Generated HTML is never persisted.
 
 #### Reading position
 
@@ -170,7 +145,6 @@ background, surface, secondary, text, muted, border
 accent, accent-strong, accent-soft, link
 code-background, code-text, inline-code-background
 note, tip, warning, important, caution
-highlight-background, highlight-text
 ```
 
 The body uses a system fallback equivalent to Source Sans 3. Code uses a system
@@ -223,10 +197,9 @@ Validation is layered:
 3. Inspect generated pages for dynamic site title, navigation, article content,
    TOC, breadcrumbs where available, and previous/next links.
 4. Search the UI source and generated HTML for forbidden sample chapter names,
-   sample anchors, and prototype highlight storage behavior.
+   sample anchors, and removed user-highlight behavior.
 5. Run browser smoke checks at desktop and mobile widths for theme persistence,
-   sidebar drawer, TOC activation, copy behavior, progress/back-to-top, and
-   highlight creation/removal/reload/page isolation.
+   sidebar drawer, TOC activation, copy behavior, and progress/back-to-top.
 6. Confirm a JavaScript failure does not prevent reading or normal navigation.
 7. Check browser console output for uncaught errors during the smoke flow.
 
@@ -245,9 +218,6 @@ analytics, or an actual search engine.
 
 - **Antora model differences:** verify the exact navigation, TOC, and
   previous/next shapes against generated output before finalizing helpers.
-- **Highlight restoration across generated markup:** use quote/context matching
-  and stable page-scoped records rather than DOM serialization; provide a
-  graceful no-restore path when a record cannot be resolved.
 - **Incomplete content navigation:** do not hide build errors in the UI. Report
   broken xrefs or missing pages separately from template work.
 - **Local bundle packaging:** verify the bundle with a real Antora build rather

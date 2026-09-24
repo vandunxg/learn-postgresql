@@ -1,0 +1,100 @@
+= Savepoint
+
+Một transaction là một block công việc phải thành công hoặc thất bại toàn bộ. Savepoint là cách chia một transaction thành các block nhỏ hơn có thể được rollback độc lập với nhau. Nhờ savepoint, bạn có thể chia một transaction lớn (một transaction có nhiều statement) thành các chunk nhỏ hơn, cho phép một subset của transaction lớn thất bại mà không làm toàn bộ transaction thất bại. PostgreSQL không xử lý transaction nesting, nên bạn không thể phát hành một tập statement `BEGIN` hoặc `COMMIT`/`ROLLBACK` lồng nhau. Tuy nhiên, savepoint cho phép PostgreSQL mô phỏng việc nesting của các transaction block.
+
+Savepoint được đánh dấu bằng một mnemonic name, có thể dùng name đó để commit hoặc rollback. Name phải unique trong transaction; nếu bạn sử dụng lặp đi lặp lại cùng một name, các savepoint trước đó có cùng name sẽ bị loại bỏ. Hãy xem một ví dụ:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Eclipse IDE' );
+   INSERT 0 1
+   forumdb=> SAVEPOINT other_tags;
+   SAVEPOINT
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Netbeans IDE' );
+   INSERT 0 1
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Comma IDE' );
+   INSERT 0 1
+   forumdb=> ROLLBACK TO SAVEPOINT other_tags;
+....
+[source,text]
+....
+ROLLBACK
+forumdb=> INSERT INTO tags( tag ) VALUES ( 'IntelliJIdea IDE' );
+INSERT 0 1
+forumdb=> COMMIT;
+COMMIT
+
+
+forumdb=> SELECT tag FROM tags WHERE tag like '%IDE';
+         tag
+------------------
+   Eclipse IDE
+   IntelliJIdea IDE
+(2 rows)
+....
+
+Trong transaction trước đó, statement đầu tiên không thuộc về bất kỳ savepoint nào và do đó tuân theo vòng đời của chính explicit transaction. Sau khi savepoint `other_tags` được tạo, tất cả statement tiếp theo tuân theo vòng đời của chính savepoint; vì vậy, khi `ROLLBACK TO SAVEPOINT` được phát hành, các statement bên trong savepoint sẽ bị loại bỏ. Sau đó, các statement khác thuộc về explicit transaction và do đó tuân theo vòng đời của chính transaction. Kết quả cuối cùng là mọi thứ được thực thi bên ngoài savepoint đều được lưu trong table.
+
+Sau khi đã định nghĩa một savepoint, bạn cũng có thể đổi ý và release nó, để các statement bên trong savepoint tuân theo cùng vòng đời với main transaction. Đây là một ví dụ:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> SAVEPOINT editors;
+   SAVEPOINT
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Emacs Editor' );
+   INSERT 0 1
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Vi Editor' );
+   INSERT 0 1
+   forumdb=> RELEASE SAVEPOINT editors;
+   RELEASE
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Atom Editor' );
+   INSERT 0 1
+   forumdb=> COMMIT;
+   COMMIT
+
+   forumdb=> SELECT tag FROM tags WHERE tag LIKE '%Editor';
+             tag
+   --------------
+     Emacs Editor
+     Vi Editor
+     Atom Editor
+   (3 rows)
+....
+
+Khi `RELEASE SAVEPOINT` được phát hành, savepoint giống như đã biến mất, và do đó hai statement `INSERT` tuân theo vòng đời của main transaction. Nói cách khác, giống như savepoint chưa từng được định nghĩa.
+
+Trong một transaction, bạn có thể có nhiều savepoint, nhưng một khi rollback một savepoint, bạn sẽ rollback tất cả savepoint theo sau nó:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> SAVEPOINT perl;
+   SAVEPOINT
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Rakudo Compiler' );
+   INSERT 0 1
+   forumdb=> SAVEPOINT gcc;
+   SAVEPOINT
+   forumdb=> INSERT INTO tags( tag ) VALUES ( 'Gnu C Compiler' );
+   INSERT 0 1
+   forumdb=> ROLLBACK TO SAVEPOINT perl;
+   ROLLBACK
+   forumdb=> COMMIT;
+   COMMIT
+
+
+   forumdb=> SELECT tag FROM tags WHERE tag LIKE '%Compiler';
+     tag
+   -----
+   (0 rows)
+....
+
+Như bạn có thể thấy, ngay cả khi một transaction đã phát hành `COMMIT`, mọi thứ được thực hiện sau savepoint `perl`, là savepoint mà transaction đã rollback về, cũng đã được rollback.
+
+Nói cách khác, rollback về một savepoint có nghĩa là rollback mọi thứ được thực hiện sau khi savepoint đó được khai báo.
+
+Transaction có thể dẫn đến một tình huống trong đó cluster không thể tiếp tục xử lý. Những tình huống này được gọi là deadlock và sẽ được mô tả trong phần tiếp theo.

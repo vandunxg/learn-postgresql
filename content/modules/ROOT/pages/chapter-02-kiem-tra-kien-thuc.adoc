@@ -1,0 +1,21 @@
+= Kiểm tra kiến thức
+
+* *`pg_ctl` command là gì?*
+
+  `pg_ctl` là một command được cung cấp cùng PostgreSQL, cho phép bạn start, restart, stop cluster và thực hiện các action khác trên cluster. Nó thường được dùng để manage toàn bộ cluster. Xem phần về `pg_ctl` để biết thêm chi tiết.
+
+* *Template database là gì?*
+
+  Template database là một database có thể được dùng làm cơ sở để clone một database khác (mới), database mới đó ban đầu sẽ bao gồm cùng các object. Xem phần *The template databases* để biết thêm chi tiết.
+
+* *`psql` command là gì?*
+
+  `psql` là client application chính thức để connect đến một PostgreSQL database. Đây là một command-line application có thể được dùng để nhập các SQL statement và lấy result từ cluster. Nó được cung cấp trong mọi version của PostgreSQL. Xem phần *The psql command-line client* để biết thêm chi tiết.
+
+* *Connection string là gì?*
+
+  Connection string là một URI chỉ định tất cả property cần thiết để connect đến một database, thường bao gồm username, host, database, v.v. Xem phần *The connection string scction* để biết thêm chi tiết.
+
+* *Các psql special command là gì?*
+
+  Special command là tất cả short command bắt đầu bằng ký hiệu backslash, chẳng hạn `\d`. Đây là các command mang tính thông tin và chỉ hợp lệ bên trong `psql client`. Xem phần *A glance at the psql commands* để biết thêm chi tiết.

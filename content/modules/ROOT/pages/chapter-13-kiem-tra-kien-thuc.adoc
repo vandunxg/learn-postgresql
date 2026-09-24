@@ -1,0 +1,21 @@
+= Kiểm tra kiến thức
+
+* *Làm thế nào để inspect plan của một query?*
+
+  Command đặc biệt `EXPLAIN` cho phép bạn inspect cách PostgreSQL sẽ thực thi một query nhất định, bằng cách hiển thị một “node” cho mỗi execution step. Xem phần *The EXPLAIN statement* để biết thêm chi tiết.
+
+* *Sự khác biệt giữa `EXPLAIN` và `EXPLAIN EXPLAIN’` là gì?*
+
+  Command `EXPLAIN` sẽ không thực thi query mà chỉ tính access plan; ngược lại, command `EXPLAIN ANALYZE` sẽ thực thi query và in query plan vào output. Xem phần *EXPLAIN ANALYZE* để biết thêm chi tiết.
+
+* *PostgreSQL giữ statistics up to date bằng cách nào?*
+
+  Statistics được cập nhật mỗi khi command `ANALYZE` thủ công được thực thi hoặc daemon auto-vacuum (auto-analyze) chạy trên một table. Xem phần *ANALYZE và cách cập nhật statistics* để biết thêm chi tiết.
+
+* *PostgreSQL quyết định sử dụng một access method cụ thể (ví dụ index) bằng cách nào?*
+
+  Optimizer quyết định path tới data dựa trên cost của từng access method: method có cost thấp nhất sẽ thắng và được dùng để access underlying data. Xem phần *Optimizer* để biết thêm chi tiết.
+
+* *Extension auto_explain là gì?*
+
+  Extension auto_explain cho phép system tự động output query execution plan vào log bất cứ khi nào query đạt một threshold đã định nghĩa (ví dụ, execution time vượt quá một giới hạn được đặt trước). Nhờ đó, DBA có thể tự động lấy thông tin về các query có vấn đề. Xem phần *Auto-explain* để biết thêm chi tiết.

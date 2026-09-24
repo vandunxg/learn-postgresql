@@ -1,0 +1,23 @@
+= Kiểm tra kiến thức
+
+* Có thể viết query trên một subscription của logical replication server không?
+
+  Có. Xem section Exploring logical replication setup để biết thêm chi tiết.
+
+* Có thể có các field khác nhau trên một subscription của logical replication server không?
+
+  Có thể có nhiều field hơn số field có trên publication server.
+
+  Xem section Exploring logical replication setup để biết thêm chi tiết.
+
+* Có phải configure file `pg_hba.conf` trước khi bắt đầu logical replication không?
+
+  Có. Xem section Exploring logical replication setup để biết thêm chi tiết.
+
+* Nếu sau một DDL statement trên publication server, subscription server không replicate data nào, tôi phải làm gì?
+
+  Bạn phải replicate DDL statement trên subscription server. Xem section DDL commands để biết thêm chi tiết.
+
+* Có thể bắt đầu logical replication từ một physical replication không?
+
+  Có, trên PostgreSQL 16 thì có thể.

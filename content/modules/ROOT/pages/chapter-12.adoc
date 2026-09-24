@@ -1,0 +1,11 @@
+= 12. Mở rộng Database – Hệ sinh thái Extension
+
+Extension là một cách mạnh mẽ để đóng gói các database object liên quan, chẳng hạn như function, routine và table, giúp việc quản lý các object đó như một unit duy nhất trở nên dễ dàng hơn. Extension cho phép bạn và các developer khác mở rộng tập feature vốn đã phong phú của PostgreSQL bằng cách cung cấp một cách rõ ràng, súc tích và chính xác để install, upgrade và remove feature cũng như object. Trong chapter này, bạn sẽ thấy extension là gì và cách install, upgrade hoặc remove chúng bằng các tool khác nhau. Hơn nữa, bạn sẽ học cách build extension của riêng mình từ đầu để có thể ngay lập tức đóng gói các script và tool riêng nhằm phân phối chúng trên các database và PostgreSQL instance khác.
+
+Chapter này gồm các topic sau:
+
+* Giới thiệu extension
+* Quản lý extension
+* Khám phá PGXN client
+* Cài đặt extension
+* Tự tạo extension

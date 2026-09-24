@@ -1,0 +1,5 @@
+= Tổng kết
+
+Trong chapter này, chúng ta đã giới thiệu thế giới của server-side programming. Chủ đề này rộng đến mức có những cuốn sách riêng chỉ viết về nó. Chúng ta đã cố gắng giúp bạn hiểu rõ hơn các concept chính của server-side programming. Chúng ta đã nói về các data type chính được PostgreSQL quản lý, sau đó xem cách có thể tạo data type mới bằng composite data type. Chúng ta cũng đề cập đến SQL function và polymorphic function, và cuối cùng cung cấp một số thông tin về ngôn ngữ PL/pgSQL.
+
+Trong chapter tiếp theo, chúng ta sẽ dùng các concept này để giới thiệu event management trong PostgreSQL. Chúng ta sẽ nói về event management thông qua việc sử dụng trigger và các function gắn với chúng.

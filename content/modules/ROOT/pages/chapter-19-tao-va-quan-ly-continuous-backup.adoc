@@ -1,0 +1,354 @@
+= Tạo và quản lý continuous backup
+
+Bây giờ system đã được configure tốt, hãy bắt đầu quản lý backup.
+
+== Tạo stanza
+
+Việc đầu tiên cần làm là tạo stanza trên repository server. Để thực hiện việc này, với tư cách postgres user, hãy chạy command sau:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 stanza-create
+2023-07-11 08:34:48.439 P00   INFO: stanza-create command begin 2.46:
+--compress-level-network=9 --exec-id=2602-fbad976e --log-level-
+console=info --log-level-file=info --pg1-host=192.168.122.170 --pg1-host-
+user=postgres --pg1-path=/var/lib/postgresql/16/main --pg1-port=5432
+--repo1-cipher-pass=<redacted> --repo1-cipher-type=aes-256-cbc --repo1-
+path=/var/lib/pgbackrest --stanza=pg1
+2023-07-11 08:34:49.558 P00           INFO: stanza-create for stanza 'pg1' on
+repo1
+2023-07-11 08:34:49.741 P00           INFO: stanza-create command end: completed
+successfully (1305ms)
+....
+
+Bây giờ stanza đã được tạo. Nếu đi đến `/var/lib/pgbackrest`, chúng ta có thể thấy directory structure sẽ được continuous backup system sử dụng:
+
+[source,text]
+....
+postgres@pgbackrest:/var/lib/pgbackrest$ ls -l
+total 8
+drwxr-x--- 3 postgres postgres 4096 Jul 11 08:34 archive
+drwxr-x--- 3 postgres postgres 4096 Jul 11 08:34 backup
+....
+
+== Kiểm tra stanza
+
+Sau khi tạo stanza, hãy kiểm tra system đã sẵn sàng nhận continuous backup hay chưa bằng cách thực hiện:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 check
+[....]
+
+completed successfully (2868ms)
+....
+
+Nếu mọi thứ ổn, chúng ta sẽ nhận được thông báo completed successfully (như ở trên); bây giờ chúng ta đã sẵn sàng quản lý continuous backup.
+
+== Quản lý base backup
+
+Như đã đề cập trước đó, pgbackrest có khả năng xử lý full backup, differential backup và incremental backup bằng một command-line statement đơn giản.
+
+Để tạo một full base backup, chúng ta có thể làm như sau:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 --type=full backup
+....
+
+Khi nhấn phím Enter trên bàn phím, nếu mọi thứ ổn, chúng ta sẽ nhận được thông báo sau:
+
+[source,text]
+....
+2023-07-11 08:42:58.125 P00          INFO: expire command end: completed
+successfully (46ms)
+....
+
+Bây giờ, nếu muốn xem thông tin về repository, chúng ta có thể dùng info command như sau:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 info
+stanza: pg1
+     status: ok
+     cipher: aes-256-cbc
+
+
+     db (current)
+        wal archive min/max (15): 000000010000000000000001/000000010000000
+000000004
+
+
+          full backup: 20230711-084245F
+               timestamp start/stop: 2023-07-11 08:42:45 / 2023-07-11
+08:42:57
+            wal start/stop: 000000010000000000000004 /
+000000010000000000000004
+               database size: 22.0MB, database backup size: 22.0MB
+               repo1: backup set size: 2.9MB, backup size: 2.9MB
+....
+
+info command cho chúng ta biết về các WAL segment, thời điểm bắt đầu của full backup, kích thước database ban đầu và kích thước backup trong repository.
+
+Tương tự, bắt đầu từ full backup này, chúng ta có thể tạo một incremental backup:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 --type=incr backup
+
+
+2023-07-11 08:44:35.816 P00        INFO: expire command end: completed
+successfully (15ms)
+....
+
+Chúng ta cũng có thể tạo một differential backup:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 --type=diff backup
+
+
+2023-07-11 08:45:40.020 P00        INFO: expire command end: completed
+successfully (32ms)
+....
+
+Bây giờ, một info command sẽ theo dõi cả ba backup:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 info
+stanza: pg1
+     status: ok
+     cipher: aes-256-cbc
+
+
+     db (current)
+        wal archive min/max (15): 000000010000000000000001/000000010000000
+000000008
+
+
+          full backup: 20230711-084245F
+              timestamp start/stop: 2023-07-11 08:42:45 / 2023-07-11
+08:42:57
+            wal start/stop: 000000010000000000000004 /
+000000010000000000000004
+              database size: 22.0MB, database backup size: 22.0MB
+              repo1: backup set size: 2.9MB, backup size: 2.9MB
+
+
+          incr backup: 20230711-084245F_20230711-084431I
+              timestamp start/stop: 2023-07-11 08:44:31 / 2023-07-11
+08:44:35
+            wal start/stop: 000000010000000000000006 /
+000000010000000000000006
+              database size: 22.0MB, database backup size: 8.3KB
+              repo1: backup set size: 2.9MB, backup size: 496B
+....
+
+[source,text]
+....
+           backup reference list: 20230711-084245F
+
+
+          diff backup: 20230711-084245F_20230711-084536D
+              timestamp start/stop: 2023-07-11 08:45:36 / 2023-07-11
+08:45:39
+            wal start/stop: 000000010000000000000008 /
+000000010000000000000008
+              database size: 22.0MB, database backup size: 8.3KB
+              repo1: backup set size: 2.9MB, backup size: 496B
+              backup reference list: 20230711-084245F
+....
+
+Vì chúng ta đã đặt `repo1-retention-full=2` trong file `pgbackrest.conf`, pgbackrest (sau hai backup) sẽ xóa full backup đầu tiên cùng với các differential hoặc incremental backup liên kết với nó. Ví dụ, sau đây là việc thực thi hai full backup:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 --type=full backup
+
+
+2023-07-11 08:48:39.866 P00          INFO: expire command end: completed
+successfully (22ms)
+
+
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 --type=full backup
+
+
+2023-07-11 08:49:37.101 P00          INFO: expire command end: completed
+successfully (34ms)
+....
+
+Sau đó, chúng ta sẽ có kết quả sau:
+
+[source,text]
+....
+postgres@pgbackrest:~$ pgbackrest --stanza=pg1 info
+stanza: pg1
+     status: ok
+     cipher: aes-256-cbc
+
+
+     db (current)
+        wal archive min/max (15): 000000010000000000000001/000000010000000
+00000000C
+
+
+          full backup: 20230711-084830F
+               timestamp start/stop: 2023-07-11 08:48:30 / 2023-07-11
+08:48:39
+            wal start/stop: 00000001000000000000000A /
+00000001000000000000000A
+               database size: 22.0MB, database backup size: 22.0MB
+               repo1: backup set size: 2.9MB, backup size: 2.9MB
+
+
+          full backup: 20230711-084928F
+               timestamp start/stop: 2023-07-11 08:49:28 / 2023-07-11
+08:49:36
+            wal start/stop: 00000001000000000000000C /
+00000001000000000000000C
+               database size: 22.0MB, database backup size: 22.0MB
+               repo1: backup set size: 2.9MB, backup size: 2.9MB
+....
+
+Như có thể thấy, system đã tự động xóa full backup đầu tiên cùng với các incremental và differential backup liên quan.
+
+== Quản lý PITR
+
+Trong section này, chúng ta sẽ xem cách restore một PostgreSQL cluster sau một disaster.
+
+Để xây dựng ví dụ, hãy tạo một table trên PostgreSQL server:
+
+[source,text]
+....
+postgres=# create table users (id integer, user_name text);
+CREATE TABLE
+....
+
+Và hãy populate table đó bằng một số data:
+
+[source,text]
+....
+postgres=# insert into users select generate_
+series(1,10000),'user_'||generate_series(1,10000)::text;
+INSERT 0 10000
+....
+
+Bây giờ hãy xem thời gian trên PostgreSQL server:
+
+[source,text]
+....
+postgres=# select now();
+                now
+------------------------------
+ 2023-07-11 08:55:08.22447+00
+(1 row)
+....
+
+Giả sử một disaster đã xảy ra sau thời điểm này; chẳng hạn, giả sử chúng ta đã drop một table sau thời điểm này:
+
+[source,text]
+....
+postgres=#     drop table users;
+DROP TABLE
+....
+
+Bây giờ hãy thử recovery tại thời điểm `2023-07-11 08:55:08`, tức là thời điểm trước khi disaster xảy ra. Trên server pg1, chúng ta cần stop postgresql server:
+
+[source,text]
+....
+# systemctl stop postgresql
+....
+
+Sau đó, chúng ta thực hiện pgbackrest restore command:
+
+[source,text]
+....
+root@pg1:# su - postgres
+postgres@pg1:$ pgbackrest --stanza=pg1 --delta --log-level-console=info
+--type=time "--target=2023-07-11 08:55:08" restore
+
+
+2023-07-11 08:57:39.803 P00         INFO: restore command end: completed
+successfully (1905ms)
+....
+
+Bây giờ hãy start postgresql server với tư cách root user:
+
+[source,text]
+....
+# systemctl start postgresql
+....
+
+Sau đó, chúng ta kiểm tra postgresql log:
+
+[source,text]
+....
+2023-07-11 08:59:06.844 P00         INFO: archive-get command end: completed
+successfully (532ms)
+2023-07-11 08:59:06.849 UTC [8786] LOG:           restored log file
+"00000001000000000000000D" from archive
+2023-07-11 08:59:06.898 UTC [8786] LOG:           consistent recovery state reached
+at 0/C000138
+2023-07-11 08:59:06.898 UTC [8783] LOG:           database system is ready to
+accept read-only connections
+2023-07-11 08:59:06.938 P00   INFO: archive-get command begin 2.46:
+[00000001000000000000000E, pg_wal/RECOVERYXLOG] --exec-id=8797-9e31ebc7
+--log-level-console=info --log-level-file=info --pg1-path=/var/lib/
+postgresql/15/main --repo1-host=192.168.122.120 --repo1-host-port=22
+--repo1-host-user=postgres --stanza=pg1
+2023-07-11 08:59:07.274 P00   INFO: unable to find
+00000001000000000000000E in the archive
+2023-07-11 08:59:07.375 P00         INFO: archive-get command end: completed
+successfully (440ms)
+....
+
+[source,text]
+....
+2023-07-11 08:59:07.379 UTC [8786] LOG: recovery stopping before commit
+of transaction 737, time 2023-07-11 08:55:13.072211+00
+2023-07-11 08:59:07.379 UTC [8786] LOG:         pausing at the end of recovery
+
+
+2023-07-11 08:59:07.379 UTC [8786] HINT:          Execute pg_wal_replay_resume()
+to promote.
+....
+
+Như có thể thấy, để kết thúc quy trình PITR, PostgreSQL đề xuất chúng ta thực thi `pg_wal_replay_resume()`. Vì vậy, hãy vào PostgreSQL environment và thực hiện như sau:
+
+[source,text]
+....
+postgres=# select pg_wal_replay_resume();
+ pg_wal_replay_resume
+----------------------
+
+
+(1 row)
+....
+
+Bây giờ, nếu kiểm tra database db1, table users đã xuất hiện và database hiện ở trạng thái giống như tại `2020-05-30 16:23:38`:
+
+[source,text]
+....
+postgres=# \d
+           List of relations
+ Schema | Name      | Type   |   Owner
+--------+-------+-------+----------
+ public | users | table | postgres
+(1 row)
+....
+
+Cuối cùng, chúng ta có thể thực thi:
+
+[source,text]
+....
+postgres=# select count(*) from users ;
+ count
+-------
+ 10000
+(1 row)
+....
+
+Bây giờ chúng ta đã khôi phục được trạng thái tồn tại trước disaster.
+
+Như đã thấy, quản lý continuous backup và PITR bằng pgbackrest thực sự đơn giản. Continuous backup và PITR không bao giờ nên bị thiếu trong setup của một production environment phức tạp. Điều này bảo vệ chúng ta khỏi việc data bị xóa ngoài ý muốn và cung cấp một “last resort” để sử dụng khi cả primary và replica server đều không còn khả dụng.

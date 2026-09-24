@@ -1,0 +1,1028 @@
+= Khám phá một logical replication setup và các feature logical replication mới trên PostgreSQL 16
+
+Bây giờ hãy khám phá cách thực hiện logical replication. Trong section này, chúng ta sẽ chuẩn bị environment cần thiết để có thể thực hiện logical replication.
+
+== Thiết lập môi trường logical replication
+
+Giả sử chúng ta có hai machine, gọi là `pg_pub` và `pg_sub`. Cần nhớ thiết lập internal DNS hoặc file `/etc hosts` để `pg_pub` có thể reach `pg_sub`; ví dụ, đối với server `pg_pub`, primary server sẽ có IP `192.168.144.3`, còn đối với server `pg_sub`, replica server sẽ có IP `192.168.144.2`. Nếu sử dụng container `chapter18`, bạn có thể execute:
+
+[source,text]
+....
+chapter_18$ bash run-pg-docker.sh chapter18_logical_clear
+....
+
+Sau khi vào container đầu tiên, bạn có thể mở một bash terminal khác và execute:
+
+[source,text]
+....
+chapter_18$ bash run-pg-docker_replica.sh chapter18_logical_clear
+....
+
+Bây giờ hãy kiểm tra xem có connection giữa hai server hay không:
+
+[source,text]
+....
+postgres@pg_pub:~$ ping pg_sub
+PING pg_sub (192.168.144.3) 56(84) bytes of data.
+64 bytes from chapter18_logical_clear_learn_postgresql_sub_1.chapter18_
+logical_clear_default (192.168.144.3): icmp_seq=1 ttl=64 time=0.094 ms
+
+
+postgres@pg_sub:~$ ping pg_pub
+PING pg_pub (192.168.144.2) 56(84) bytes of data.
+64 bytes from chapter18_logical_clear_learn_postgresql_pub_1.chapter18_
+logical_clear_default (192.168.144.2): icmp_seq=1 ttl=64 time=0.070 ms
+....
+
+Như minh họa ở đây, có connection giữa hai server.
+
+== Replica role
+
+Để thực hiện logical replication, cũng như chúng ta đã làm trong chapter trước khi nói về physical replication, cần có một database user với replication permissions. Vì vậy, hãy tạo user sau trên publication server:
+
+[source,text]
+....
+postgres=# CREATE USER replicarole WITH REPLICATION ENCRYPTED PASSWORD
+'LearnPostgreSQL';
+CREATE ROLE
+....
+
+User này sẽ được dùng để quản lý logical replication.
+
+== Primary server – postgresql.conf
+
+Bây giờ chúng ta sẽ sửa file `postgresql.conf` trên cả hai server; mục đích là bảo đảm hai server listen trên port 5432 cho các network interface. Sau đó, chúng ta sẽ sửa một số value khác để cố gắng tối ưu logical replication procedure:
+
+. Trước tiên, thêm các line sau vào cuối file `postgresql.conf` trên publication server:
+
+[source,text]
+....
+   # Add settings for extensions here
+   listen_addresses = '*'
+   wal_level = logical
+   max_wal_senders = 10
+....
+
+Bây giờ hãy xem lần lượt từng parameter:
+
+* `listen addresses = '*'`: Theo cách này, PostgreSQL sẽ listen trên port 5432 ở tất cả network interface. Chúng ta cũng có thể chỉ cần thêm IP address của interface nơi muốn PostgreSQL service listen.
+* `wal level = logical`: Chúng ta đã đổi value từ `replica` (mặc định) thành `logical`; theo cách này, ngoài toàn bộ thông tin có trong model `wal level = replica`, PostgreSQL sẽ thêm thông tin để có thể thực hiện reverse engineering process. Với `wal level = logical`, chúng ta bật khả năng logical replication.
+* `max_replication_slots = 10`: Value này phải được đặt ít nhất là một cho mỗi subscriber, cộng thêm số slot cần thiết để initialize các table.
+* `max_wal_senders = 10`: Value này phải được đặt thành một số ít nhất bằng một cho mỗi replication slot, cộng thêm số cần thiết cho physical replication.
+[%start=2]
+. Sau khi đặt các giá trị này, hãy restart primary PostgreSQL server trên physical server; chúng ta cần execute:
+
+[source,text]
+....
+# systemctl restart postgresql
+....
+
+Với container đi kèm sách, chúng ta chỉ cần thoát khỏi container bằng `Ctrl + D`, sau đó restart nó.
+
+[%start=3]
+. Sau khi hoàn tất, chúng ta sẽ chạy command này từ shell:
+
+[source,text]
+....
+# netstat -an | grep 5432
+tcp 0 0 0.0.0.0:5432 0.0.0.0:* LISTEN
+tcp6 0 0 :::5432 :::* LISTEN
+unix 2 [ ACC ] STREAM LISTENING 19910 /var/run/
+postgresql/.s.PGSQL.5432
+....
+
+Như chúng ta có thể thấy, PostgreSQL hiện lắng nghe trên tất cả network interface có trên server.
+
+== Replica server – postgresql.conf
+
+Đối với replica server, các thay đổi đối với `postgresql.conf` như sau:
+
+[source,text]
+....
+# Add settings for extensions here
+max_logical_replication_workers = 4
+max_worker_processes = 10
+....
+
+Như chúng ta có thể thấy, các giá trị của `listen_addresses` và `wal_level` giống hệt primary; ở đây chúng ta không có các giá trị cho `max_replication_slots` và `max_wal_senders`, nhưng có các giá trị sau:
+
+* `max_logical_replication_workers`: Parameter này phải được đặt thành một cho mỗi subscription, cộng thêm một số giá trị cần tính đến cho việc đồng bộ table.
+* `max_worker_processes`: Giá trị này phải được đặt ít nhất là một cho mỗi replication worker, cộng thêm một.
+
+Ở đây, cũng như đã làm với primary, hãy restart PostgreSQL server:
+
+[source,text]
+....
+# systemctl restart postgresql
+....
+
+Sau khi restart, hãy chạy command này từ shell:
+
+[source,text]
+....
+# netstat -an | grep 5432
+tcp 0 0 0.0.0.0:5432 0.0.0.0:* LISTEN
+tcp6 0 0 :::5432 :::* LISTEN
+unix 2 [ ACC ] STREAM LISTENING 19910 /var/run/postgresql/.s.PGSQL.5432
+....
+
+Như chúng ta có thể thấy, PostgreSQL hiện lắng nghe trên tất cả network interface có trên server.
+
+== File pg_hba.conf
+
+Bây giờ hãy configure file này trên primary server để có thể kết nối replica machine với primary machine. Trên primary machine, chúng ta đặt như sau:
+
+[source,text]
+....
+# IPv4 local connections:
+host all all 127.0.0.1/32 md5
+host all replicarole 192.168.144.2/32 md5
+....
+
+Điều này cho phép user thực hiện replication tới replica machine để query primary server. Để activate thay đổi, cần reload primary server:
+
+[source,text]
+....
+# systemctl reload postgresql
+....
+
+== Thiết lập logical replication
+
+Tại thời điểm này, chúng ta đã sẵn sàng để bắt đầu chuẩn bị logical replica:
+
+. Hãy đi tới primary machine và tạo database của chúng ta:
+
+[source,text]
+....
+   postgres=# create database db_source;
+   CREATE DATABASE
+   dostgres=# \c db_source
+   You are now connected to database "db_source" as user "postgres"
+....
+
+. Bây giờ hãy tạo một table tên là `t1`, bảo đảm rằng table có primary key:
+
+[source,text]
+....
+   db_source=# create table t1 (id integer not null primary key, name
+   varchar(64));
+   CREATE TABLE
+....
+
+. Hãy cấp quyền SELECT cho user `REPLICAROLE`:
+
+[source,text]
+....
+   db_source=# GRANT SELECT ON ALL TABLES IN SCHEMA public TO
+   replicarole;
+   GRANT
+....
+
+. Bây giờ hãy tạo publication trên primary machine, trong đó chúng ta sẽ chỉ ra danh sách các table muốn replicate trên replica machine.
+
+   Chúng ta cũng có thể chỉ ra tất cả table, như trong ví dụ sau:
+
+[source,text]
+....
+   db_source=# CREATE PUBLICATION all_tables_pub FOR ALL TABLES;
+   CREATE PUBLICATION
+....
+
+[%start=5]
+. Tại thời điểm này, chúng ta đi tới replica machine và tạo một database mới:
+
+[source,text]
+....
+   postgres=# create database db_destination;
+   CREATE DATABASE
+   postgres=# \c db_destination
+   You are now connected to database "db_destination" as user
+   "postgres"
+....
+
+. Chúng ta tạo lại chính xác structure của table đã tạo trên primary machine:
+
+[source,text]
+....
+   db_destination=# create table t1 (id integer not null primary key,
+   name varchar(64));
+   CREATE TABLE
+....
+
+. Sau đó, chúng ta phải thiết lập subscription để data từ publication được replicate trên replica machine:
+
+[source,text]
+....
+   db_destination=# CREATE SUBSCRIPTION sub_all_tables CONNECTION
+   'user=replicarole password=LearnPostgreSQL host=pg_pub port=5432
+   dbname=db_source' PUBLICATION all_tables_pub;
+   NOTICE:    created replication slot "sub_all_tables" on publisher
+   CREATE SUBSCRIPTION
+....
+
+   Bây giờ thiết lập logical replication của chúng ta đã hoàn tất.
+
+[%start=8]
+. Chúng ta có thể thử insert một số data vào primary server:
+
+[source,text]
+....
+   db_source=#     insert into t1 values(1,'Linux'),(2,'FreeBSD');
+   INSERT 0 2
+....
+
+. Như có thể thấy ở đây, cùng data đó đã được replicate trên replica server:
+
+[source,text]
+....
+   db_destination=# select * from t1;
+   id |   name
+   ----+---------
+     1 | Linux
+     2 | FreeBSD
+   (2 rows)
+....
+
+Như vậy, chúng ta đã chuẩn bị thành công logical replica. Tiếp theo chúng ta sẽ học cách monitor nó trong section kế tiếp.
+
+== Monitoring logical replication
+
+Cũng giống như physical replication, PostgreSQL cung cấp các tool cần thiết để monitor logical replication.
+
+Đối với logical replication, chúng ta phải query table `pg_stat_replication`, cũng là table được dùng để monitor physical replication, như có thể thấy ở đây:
+
+[source,text]
+....
+db_source=# \x
+Expanded display is on.
+db_source=# select * from pg_stat_replication ;
+-[ RECORD 1 ]----+------------------------------
+pid                  | 144
+usesysid             | 16477
+usename              | replicarole
+application_name | sub_all_tables
+client_addr          | 192.168.144.2
+client_hostname      |
+client_port          | 43162
+backend_start        | 2023-06-16 15:04:09.074749+00
+backend_xmin         |
+state                | streaming
+sent_lsn             | 0/1DD0398
+write_lsn            | 0/1DD0398
+flush_lsn            | 0/1DD0398
+replay_lsn           | 0/1DD0398
+write_lag            |
+flush_lag            |
+replay_lag           |
+sync_priority        | 0
+sync_state           | async
+reply_time           | 2023-06-16 15:05:23.524003+00
+....
+
+Thông tin được hiển thị bởi query này giống với những gì chúng ta đã thấy trong trường hợp physical replication, nhưng chúng ta biết thông tin này tham chiếu tới một logical replica vì có slot name `sub_all_tables`, được tạo trước đó, trong `application_name`.
+
+Query này phải được thực hiện trên primary server (`pg_pub`). Nếu chạy cùng query trên replica machine (`pg_sub`), chúng ta không nhận được kết quả nào, như có thể thấy ở đây:
+
+[source,text]
+....
+db_destination=# select * from pg_stat_replication ;
+(0 rows)
+....
+
+Ngoài ra còn có hai catalog table khác mà chúng ta có thể query để lấy thêm thông tin về publication và subscription. Giả sử trên primary server, chúng ta thực hiện:
+
+[source,text]
+....
+db_source=# select * from pg_publication;
+-[ RECORD 1 ]+---------------
+oid             | 16479
+pubname         | all_tables_pub
+pubowner        | 10
+puballtables | t
+pubinsert       | t
+pubupdate       | t
+pubdelete       | t
+pubtruncate     | t
+pubviaroot      | f
+....
+
+Nếu làm vậy, chúng ta nhận được thông tin về tất cả publication được tạo trong database. Để biết thêm thông tin, hãy tham khảo documentation chính thức: https://www.postgresql.org/docs/current/catalog-pg-publication.html.
+
+Tương tự, giả sử chúng ta chạy query này trên replica server:
+
+[source,text]
+....
+db_destination=# select * from pg_subscription;
+-[ RECORD 1 ]----+-------------------------------------
+oid                   | 16477
+subdbid               | 16471
+subskiplsn            | 0/0
+subname               | sub_all_tables
+subowner              | 10
+subenabled            | t
+subbinary             | f
+substream             | f
+subtwophasestate | d
+subdisableonerr       | f
+subconninfo      | user=replicarole password=LearnPostgreSQL host=pg_pub
+port=5432 dbname=db_source
+subslotname          | sub_all_tables
+subsynccommit        | off
+subpublications      | {all_tables_pub}
+....
+
+Khi đó chúng ta có thông tin về tất cả subscription được tạo trong database. Để biết thêm thông tin, hãy tham khảo documentation chính thức: https://www.postgresql.org/docs/current/catalog-pg-subscription.html.
+
+== Read-only so với write-allowed
+
+Trong chapter trước, chúng ta đã thấy rằng chỉ có thể access physical replication server bằng các read operation và không cho phép write operation. Chúng ta cũng đã thấy physical replication replicate mọi loại operation, cả DML operation lẫn DDL operation. Với logical replication, chúng ta cũng có thể thực hiện write operation trên replica server, nhưng trong logical replica, chỉ DML operation được replicate tới replica server; DDL operation không được replicate. Hãy thực hiện một số test và xem điều gì xảy ra. Trong các ví dụ sau, primary server sẽ luôn được gọi là `pg_pub`, còn server có logical replication sẽ luôn được gọi là `pg_sub`.
+
+Đây là tình trạng ban đầu trên server `pg_pub`:
+
+[source,text]
+....
+db_source=#      select * from t1;
+ id |     name
+----+---------
+   1 | Linux
+   2 | FreeBSD
+(2 rows)
+....
+
+Đây là tình trạng ban đầu trên server `pg_sub`:
+
+[source,text]
+....
+db_destination=# select * from t1;
+ id |     name
+----+---------
+   1 | Linux
+   2 | FreeBSD
+(2 rows)
+....
+
+Hãy insert một record trên server `pg_sub`:
+
+[source,text]
+....
+db_destination=# insert into t1 values (3,'OpenBSD');
+INSERT 0 1
+....
+
+Đây là tình trạng hiện tại trên server `pg_sub`:
+
+[source,text]
+....
+db_destination=# select * from t1;
+   id |   name
+----+---------
+    1 | Linux
+    2 | FreeBSD
+    3 | OpenBSD
+(3 rows)
+....
+
+Trên server `pg_pub`, chúng ta vẫn có như sau:
+
+[source,text]
+....
+db_source=# select * from t1;
+   id |   name
+----+---------
+    1 | Linux
+    2 | FreeBSD
+(2 rows)
+....
+
+[quote]
+____
+*Lưu ý:* Logical replica cho phép write operation trên replica server.
+
+____
+Hãy xem điều gì xảy ra nếu chúng ta thêm một record vào server `pg_pub`:
+
+[source,text]
+....
+db_source=# insert into t1 values(4,'Minix');
+INSERT 0 1
+....
+
+Tình trạng trên server `pg_pub` như sau:
+
+[source,text]
+....
+db_source=# select * from t1;
+   id |   name
+----+---------
+    1 | Linux
+    2 | FreeBSD
+    4 | Minix
+(3 rows)
+....
+
+Tình trạng trên server `pg_sub` như sau:
+
+[source,text]
+....
+db_destination=# select * from t1;
+ id | name
+----+--------
+ 1   | Linux
+ 2   | FreeBSD
+ 3   | OpenBSD
+ 4   | Minix
+(4 rows)
+....
+
+Như có thể thấy, các value đã được insert vào table của primary server `pg_pub` và replicate qua logical replica tới server `pg_sub`. Bây giờ hãy xem điều gì xảy ra nếu chúng ta thử insert một record có key value đã được insert trên server `pg_sub`. Chẳng hạn, hãy thử insert record này:
+
+[source,text]
+....
+db_source=# insert into t1 values(3,'Windows');
+INSERT 0 1
+....
+
+Tình trạng trên server `pg_pub` lúc này là:
+
+[source,text]
+....
+db_source=# select * from t1;
+   id |     name
+----+---------
+    1 | Linux
+    2 | FreeBSD
+    4 | Minix
+    3 | Windows
+(4 rows)
+....
+
+Tuy nhiên, tình trạng trên server `pg_sub` lúc này là:
+
+[source,text]
+....
+db_destination=# select * from t1;
+   id |     name
+----+---------
+    1 | Linux
+    2 | FreeBSD
+    3 | OpenBSD
+    4 | Minix
+(4 rows)
+....
+
+Không có record nào được insert trên server `pg_sub`. Nếu không ở trong container environment, chúng ta có thể kiểm tra file `postgresql.log` của replica server `pg_sub`; nếu dùng Docker environment `chapter18_logical_clear`, chúng ta có thể mở một cửa sổ bash terminal khác và execute hai statement sau để xem log:
+
+[source,text]
+....
+$ cd chapter18_logical_clear
+$ chapter18_logical_clear$ sudo docker-compose logs -f
+
+
+learn_postgresql_sub_1 | 2023-06-16 15:17:23.774 UTC [213] ERROR:
+duplicate key value violates unique constraint "t1_pkey"
+learn_postgresql_sub_1 | 2023-06-16 15:17:23.774 UTC [213] DETAIL:                   Key
+(id)=(3) already exists.
+learn_postgresql_sub_1 | 2023-06-16 15:17:23.774 UTC [213] CONTEXT:
+processing remote data for replication origin "pg_16477" during message
+type "INSERT" for replication target relation "public.t1" in transaction
+780, finished at 0/1DD0918
+learn_postgresql_sub_1 | 2023-06-16 15:17:23.776 UTC [1] LOG: background
+worker "logical replication worker" (PID 213) exited with exit code 1
+....
+
+Nếu kiểm tra log của primary server `pg_pub`, chúng ta sẽ thấy các message sau:
+
+[source,text]
+....
+learn_postgresql_pub_1 | 2023-06-16 15:17:23.774 UTC [221] LOG:                  logical
+decoding found consistent point at 0/1DD0720
+learn_postgresql_pub_1 | 2023-06-16 15:17:23.774 UTC [221] DETAIL:                   There
+are no running transactions.
+learn_postgresql_pub_1 | 2023-06-16 15:17:23.774 UTC [221] STATEMENT:
+START_REPLICATION SLOT "sub_all_tables" LOGICAL 0/1DD0638 (proto_version
+'3', publication_names '"all_tables_pub"')
+....
+
+Lỗi duplicate key trên replica server khiến primary server ghi lại message được minh họa ở đây.
+
+Vì vậy, nếu bây giờ thử thêm một record khác trên primary server, record này sẽ không được insert trên replica server. Giả sử chúng ta đã thử thực hiện statement này trên server `pg_pub`:
+
+[source,text]
+....
+db_source=# insert into t1 values(5,'Unix');
+INSERT 0 1
+....
+
+Khi đó trên server `pg_pub` sẽ có:
+
+[source,text]
+....
+db_source=#      select * from t1;
+ id |     name
+----+---------
+   1 | Linux
+   2 | FreeBSD
+   4 | Minix
+   3 | Windows
+   5 | Unix
+(5 rows)
+....
+
+Tuy nhiên, trên replica server `pg_sub`, chúng ta vẫn sẽ có:
+
+[source,text]
+....
+db_destination=# select * from t1;
+ id |     name
+----+---------
+   1 | Linux
+   2 | FreeBSD
+   3 | OpenBSD
+   4 | Minix
+(4 rows)
+....
+
+Từ thời điểm này, logical replication không còn replicate data nữa, và nếu chúng ta execute query này trên server `pg_pub`:
+
+[source,text]
+....
+db_source=# select * from pg_stat_replication;
+(0 rows)
+....
+
+Sẽ không còn replication nào được tìm thấy; đó là vì logical replication của chúng ta không còn hoạt động.
+
+[quote]
+____
+*Lưu ý:* Nếu muốn write record trên replica server, chúng ta phải bảo đảm các record đó không conflict với các record trên primary server.
+
+____
+Một cách đơn giản để đưa replica server về cùng trạng thái là drop subscription, truncate table rồi tạo lại subscription:
+
+[source,text]
+....
+db_destination=# drop subscription sub_all_tables ;
+NOTICE:     dropped replication slot "sub_all_tables" on publisher
+DROP SUBSCRIPTION
+db_destination=# truncate t1;
+TRUNCATE TABLE
+db_destination=# CREATE SUBSCRIPTION sub_all_tables CONNECTION
+'user=replicarole password=LearnPostgreSQL host=pg_pub port=5432
+dbname=db_source' PUBLICATION all_tables_pub;
+NOTICE:     created replication slot "sub_all_tables" on publisher
+CREATE SUBSCRIPTION
+....
+
+Bây giờ, nếu kiểm tra cả hai server, primary server và replica server sẽ có toàn bộ data được đồng bộ.
+Trên server `pg_pub`, ta có:
+
+[source,text]
+....
+db_source=# select * from t1;
+   id |   name
+----+---------
+    1 | Linux
+    2 | FreeBSD
+    4 | Minix
+    3 | Windows
+    5 | Unix
+(5 rows)
+....
+
+Trên replica `pg_sub`, ta có:
+
+[source,text]
+....
+db_destination=# select * from t1;
+   id |   name
+----+---------
+    1 | Linux
+    2 | FreeBSD
+    4 | Minix
+    3 | Windows
+    5 | Unix
+(5 rows)
+....
+
+Bây giờ, nếu thực thi lại query trên `pg_stat_replication`, ta sẽ thấy logical replication:
+
+[source,text]
+....
+db_source=# \x
+Expanded display is on.
+db_source=#      select * from pg_stat_replication;
+-[ RECORD 1 ]----+------------------------------
+pid                 | 337
+usesysid            | 16477
+usename             | replicarole
+application_name | sub_all_tables
+client_addr         | 192.168.144.2
+client_hostname     |
+client_port         | 57826
+backend_start       | 2023-06-16 15:24:36.905319+00
+backend_xmin        |
+state               | streaming
+sent_lsn            | 0/1DD0BC0
+write_lsn           | 0/1DD0BC0
+flush_lsn           | 0/1DD0BC0
+replay_lsn          | 0/1DD0BC0
+write_lag           |
+flush_lag           |
+replay_lag          |
+sync_priority       | 0
+sync_state          | async
+reply_time          | 2023-06-16 15:27:47.24564+00
+....
+
+== Lệnh DDL
+
+Ở section trước, chúng ta đã nói rằng logical replication không replicate các lệnh DDL, nhưng điều gì xảy ra nếu áp dụng một DDL statement trên primary server vốn đã được replicate bằng logical replication? Các lệnh DDL gồm:
+
+* `CREATE`
+* `ALTER`
+* `DROP`
+* `RENAME`
+* `TRUNCATE`
+* `COMMENT`
+
+Giả sử bây giờ chúng ta muốn thêm một field vào table `t1` trên primary server `pg_pub`:
+
+[source,text]
+....
+db_source=# alter table t1 add description varchar(64);
+ALTER TABLE
+....
+
+Bây giờ hãy thử thực hiện một DML command trên server `pg_pub`. Một số ví dụ về DML command:
+
+* `INSERT`
+* `DELETE`
+* `UPDATE`
+
+Ví dụ, giả sử chúng ta thử xóa một record khỏi table `t1` của server `pg_pub`:
+
+[source,text]
+....
+db_source=# delete from t1 where id=5;
+DELETE 1
+....
+
+Trên server `pg_pub`, ta sẽ có:
+
+[source,text]
+....
+db_source=# select * from t1;
+    id |     name   | description
+----+---------+-------------
+     1 | Linux     |
+     2 | FreeBSD |
+     4 | Minix     |
+     3 | Windows |
+(4 rows)
+....
+
+Tuy nhiên, trên server `pg_sub`, ta vẫn có:
+
+[source,text]
+....
+db_destination=#       select * from t1;
+    id |     name
+----+---------
+     1 | Linux
+     2 | FreeBSD
+     4 | Minix
+     3 | Windows
+     5 | Unix
+(5 rows)
+....
+
+Nếu kiểm tra `postgresql.log` trên server `pg_sub`, ta sẽ thấy:
+
+[source,text]
+....
+learn_postgresql_sub_1 | 2023-06-16 15:30:57.973 UTC [364] ERROR:
+logical replication target relation "public.t1" is missing replicated
+column: "description"
+learn_postgresql_sub_1 | 2023-06-16 15:30:57.973 UTC [364] CONTEXT:
+processing remote data for replication origin "pg_16480" during message
+type "DELETE" in transaction 783, finished at 0/1DD5380
+learn_postgresql_sub_1 | 2023-06-16 15:30:57.975 UTC [1] LOG: background
+worker "logical replication worker" (PID 364) exited with exit code 1
+^CERROR: Aborting.
+....
+
+Logical replication không còn hoạt động vì logical replication target relation `public.t1` thiếu một số replicated column, như server log đã báo cáo. Nếu muốn giải quyết vấn đề này, chúng ta phải thực thi DDL trên replica server:
+
+[source,text]
+....
+db_destination=# alter table t1 add description varchar(64);
+ALTER TABLE
+....
+
+Bây giờ, nếu kiểm tra các record trên server `pg_sub`, ta có cùng các record đang hiện diện trên server `pg_pub`:
+
+[source,text]
+....
+db_destination=# select * from t1;
+ id |     name   | description
+----+---------+-------------
+   1 | Linux     |
+   2 | FreeBSD |
+   4 | Minix     |
+   3 | Windows |
+(4 rows)
+....
+
+[quote]
+____
+Các lệnh DDL luôn phải được replicate trên các replica server.
+
+____
+== Vô hiệu hóa logical replication
+
+Ở section trước, chúng ta đã dùng lệnh `DROP SUBSCRIPTION` để drop một subscription. Có thể có những trường hợp không thể trực tiếp dùng command này. Ví dụ, giả sử primary server không thể truy cập được và chúng ta cần drop subscription trên replica server. Nếu thử thực thi một lệnh `DROP SUBSCRIPTION`, ta sẽ nhận được response sau:
+
+[source,text]
+....
+db_destination=# drop subscription sub_all_tables ;
+ERROR:     could not connect to publisher when attempting to [..]
+HINT: Use ALTER SUBSCRIPTION ... SET (slot_name = NONE) to disassociate
+the subscription from the slot.
+....
+
+PostgreSQL đề xuất dùng `ALTER SUBSCRIPTION ... SET (slot_name = NONE)` để disassociate subscription khỏi slot. Vấn đề là chúng ta không thể thực thi command này trước khi disable subscription. Thực tế, nếu bây giờ thử thực hiện command PostgreSQL đề xuất, ta sẽ nhận được:
+
+[source,text]
+....
+db_destination=#     alter subscription sub_all_tables SET (slot_name =
+NONE);
+ERROR:    cannot set slot_name = NONE for enabled subscription
+....
+
+Các bước đúng cần thực thi như sau:
+
+. Disable subscription.
+. Set `slot_name` thành `NONE`.
+. Drop subscription.
+
+Chúng ta phải thực hiện ba statement sau:
+
+[source,text]
+....
+db_destination=# alter subscription sub_all_tables disable;
+ALTER SUBSCRIPTION
+db_destination=# alter subscription sub_all_tables SET (slot_name = NONE);
+ALTER SUBSCRIPTION
+db_destination=# drop subscription sub_all_tables ;
+DROP SUBSCRIPTION
+....
+
+Đây là các bước đúng nếu muốn drop một subscription khi primary server không thể truy cập được. Ta cũng có thể dùng command `ALTER SUBSCRIPTION sub_name DISABLE` để detach subscription khỏi publication, và command `ALTER SUBSCRIPTION sub_name ENABLE` để re-attach subscription vào publication.
+
+== Tạo logical replication bằng physical replication instance
+
+Trên PostgreSQL 16, có thể tạo một logical replication bắt đầu từ một physical replication.
+
+Các bước cần thực hiện là:
+
+. Set `wal_level=logical` trên Primary và Physical Replication server.
+
+   Trên Primary server:
+
+[%start=2]
+. Tạo một role cho physical replication:
+
+[source,text]
+....
+   CREATE ROLE replicarole WITH REPLICATION LOGIN PASSWORD
+   'LearnPostgreSQL'.
+....
+
+. Tạo một role cho logical replication trên Primary server:
+
+[source,text]
+....
+   CREATE ROLE logicalreplicarole WITH REPLICATION LOGIN PASSWORD
+   'LearnPostgreSQL'
+....
+
+. Gán các permission phù hợp cho `logicalreplicarole` đối với các schema và table mà chúng ta muốn replicate bằng logical replication, chẳng hạn:
+
+[source,text]
+....
+   GRANT USAGE ON SCHEMA forum TO logicalreplicarole;
+   GRANT SELECT ON forum.users TO logicalreplicarole
+....
+
+. Tạo một physical replication slot hoặc physical replication.
+
+. Tạo một publication sẽ được replicate trên Physical replication server và được logical replication subscription trên Logical Replication server sử dụng.
+
+   Trên Physical replication server:
+
+[%start=7]
+. Set `hot_standby_feedback = on` để ngăn các vấn đề do hoạt động vacuum trên primary server gây ra và được phản ánh trên replica server; các vấn đề này có thể tạo conflict với những query rất dài trên replica.
+
+. Tạo replica bằng command `pg_basebackup`, như đã mô tả trong chapter trước.
+
+   Trên Logical replication server:
+
+[%start=9]
+. Tạo các table mà bạn muốn replicate data từ physical replication.
+
+. Tạo một subscription tham chiếu tới publication được tạo trên primary như chúng ta đã thấy.
+
+Bây giờ, hãy thử feature này bằng Docker container; scenario chúng ta muốn thử là:
+
+[%start=11]
+. Một database `forumdb` trên primary server.
+. Một physical replica của toàn bộ cluster trên replica server.
+. Một logical replication của các table `forum.users` trên logical replication server.
+
+image::chapter-18-figure-18-3-000.jpg[Hình 18.3: Cascade physical/logical replication]
+
+*Hình 18.3: Cascade physical/logical replication*
+
+Hãy sử dụng các Docker container `chapter18_physical_logical` và thực hiện các bước sau:
+
+. Start tất cả container bằng:
+
+[source,text]
+....
+   $ bash run-pg-docker-replica-logical.sh chapter18_physical_logical
+....
+
+. Sau khi thực thi statement trên Docker host, ta có ba container đang chạy:
+
+[source,text]
+....
+   chapter18_physical_logical_learn_postgresql_replica_sub_1
+   chapter18_physical_logical_learn_postgresql_master_pub_1
+   chapter18_physical_logical_learn_postgresql_replica_1
+....
+
+. Script đã chạy đưa chúng ta trực tiếp vào container nơi primary node chạy; bây giờ, chúng ta phải mở hai cửa sổ bash terminal và thực thi statement dưới đây trong cửa sổ thứ nhất (để vào physical replication node):
+
+[source,text]
+....
+   $ bash run-pg-docker-replica1.sh chapter18_physical_logical
+....
+
+. Trong cửa sổ thứ hai, chúng ta phải thực thi statement dưới đây để vào logical replication node:
+
+[source,text]
+....
+   bash run-pg-docker-replica2.sh chapter18_physical_logical
+....
+
+. Như có thể thấy, trên primary node ta có:
+
+[source,text]
+....
+   postgres@pg_master_pub:~$ psql
+
+
+   postgres=# select * from pg_stat_replication;
+   -[ RECORD 1 ]----+------------------------------
+   pid               | 108
+   usesysid          | 16384
+   usename           | replicarole
+   application_name | walreceiver
+   client_addr       | 172.29.0.4
+   client_hostname   |
+   client_port       | 43400
+   backend_start     | 2023-06-20 16:10:30.779359+00
+   backend_xmin      |
+   state             | streaming
+   sent_lsn          | 0/3005948
+   write_lsn         | 0/3005948
+   flush_lsn         | 0/3005948
+   replay_lsn        | 0/3005948
+   write_lag         |
+   flush_lag         |
+   replay_lag        |
+   sync_priority     | 0
+   sync_state        | async
+   reply_time        | 2023-06-20 16:11:49.332655+00
+....
+
+   Trên physical replication server, ta có:
+
+[source,text]
+....
+   postgres@pg_replica:~$ psql forumdb
+
+
+   forumdb=# select * from pg_stat_replication;
+   -[ RECORD 1 ]----+------------------------------
+   pid               | 101
+   usesysid          | 16468
+   usename           | logicalreplicarole
+   application_name | users_sub
+   client_addr       | 172.29.0.2
+   client_hostname   |
+   client_port       | 43950
+   backend_start     | 2023-06-20 16:10:39.685477+00
+   backend_xmin      |
+   state             | streaming
+   sent_lsn          | 0/3005948
+   write_lsn         | 0/3005948
+   flush_lsn         | 0/3005948
+   replay_lsn        | 0/3005948
+   write_lag         |
+   flush_lag         |
+   replay_lag         |
+   sync_priority     | 0
+   sync_state        | async
+   reply_time        | 2023-06-20 16:11:39.389851+00
+....
+
+[%start=6]
+. Vậy hãy thử thực hiện một số operation; trên primary server, hãy nhập:
+
+[source,text]
+....
+   forumdb=# select * from forum.users;
+    pk | username | gecos |                     email
+   ----+----------+-------+-----------------------------
+     1 | enrico       | 1       | enrico.pirozzi@packtpub.xyz
+   (1 row)
+....
+
+   Trên physical replication server, nhập:
+
+[source,text]
+....
+   forumdb=# select * from forum.users;
+    pk | username | gecos |                     email
+   ----+----------+-------+-----------------------------
+     1 | enrico       | 1       | enrico.pirozzi@packtpub.xyz
+   (1 row)
+....
+
+   Và trên logical replication server, nhập:
+
+[source,text]
+....
+   postgres@pg_replica_sub:~$ psql forumdb
+
+
+   forumdb=# select * from forum.users;
+    pk | username | gecos |                     email
+   ----+----------+-------+-----------------------------
+     1 | enrico       | 1       | enrico.pirozzi@packtpub.xyz
+   (1 row)
+....
+
+[%start=7]
+. Bây giờ, hãy thử xóa một record trên physical replication server:
+
+[source,text]
+....
+   forumdb=# delete from forum.users ;
+   ERROR:    cannot execute DELETE in a read-only transaction
+....
+
+. Và hãy thử insert một record trên logical replication server:
+
+[source,text]
+....
+   forumdb=# insert into forum.users (pk,username,gecos,email) values
+   (2,'luca',1,'luca.ferrari@packtpub.xyz');
+   INSERT 0 1
+
+
+   forumdb=# select * from forum.users order by pk;
+    pk | username | gecos |                   email
+   ----+----------+-------+-----------------------------
+     1 | enrico    | 1       | enrico.pirozzi@packtpub.xyz
+     2 | luca      | 1       | luca.ferrari@packtpub.xyz
+   (2 rows)
+....
+
+. Bây giờ, hãy thử xóa một record trên primary server:
+
+[source,text]
+....
+   forumdb=# delete from forum.users where pk =1 ;
+   DELETE 1
+....
+
+. Và hãy xem điều gì đã xảy ra trên physical replication server:
+
+[source,text]
+....
+   forumdb=# select * from forum.users;
+   (0 rows)
+....
+
+. Và trên logical replication server:
+
+[source,text]
+....
+   forumdb=# select * from forum.users;
+    pk | username | gecos |                 email
+   ----+----------+-------+---------------------------
+     2 | luca      | 1       | luca.ferrari@packtpub.xyz
+   (1 row)
+....

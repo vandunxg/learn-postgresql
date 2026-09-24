@@ -1,0 +1,459 @@
+= Tạo và quản lý database
+
+Trong section này, trước hết chúng ta sẽ tạo database đầu tiên, sau đó học cách xóa một database và cuối cùng là cách tạo database mới từ một database hiện có. Chúng ta cũng sẽ phân tích góc nhìn của DBA. Chúng ta sẽ xem điều gì xảy ra phía sau khi tạo database mới và tìm hiểu một số function cơ bản hữu ích cho DBA để hình dung kích thước thực của database.
+
+Hãy xem cách tạo database từ đầu và điều gì xảy ra phía sau khi database được tạo.
+
+== Tạo database
+
+Để tạo một database có tên `databasename` từ đầu, bạn cần execute statement đơn giản sau:
+
+[source,sql]
+....
+CREATE DATABASE databasename;
+....
+
+[quote]
+____
+SQL là một case-insensitive language, vì vậy chúng ta có thể viết tất cả command bằng chữ hoa hoặc chữ thường.
+
+____
+Bây giờ hãy xem điều gì xảy ra phía sau khi tạo database mới. PostgreSQL thực hiện các bước sau:
+
+. Tạo một bản copy vật lý của template database `template1`
+. Gán database name cho database vừa được copy
+
+Database `template1` là một database được tạo bởi process `initdb` trong quá trình initialize PostgreSQL cluster.
+
+== Quản lý database
+
+Chúng ta vừa xem cách tạo database. Trong section này, chúng ta sẽ xem cách quản lý database, cách list tất cả database hiện có trong một cluster, cách tạo database bắt đầu từ một database hiện có, cách drop database, và điều gì xảy ra bên trong khi tạo và drop database.
+
+== Giới thiệu schema
+
+Như đã nêu trong Chapter 1, *Introduction to PostgreSQL*: “một database có thể được tổ chức thành các namespace, được gọi là schema. Schema là một mnemonic name mà user có thể gán để tổ chức database object, chẳng hạn table, thành một collection có cấu trúc hơn. Schema không thể được lồng nhau, vì vậy chúng biểu diễn một flat namespace.”
+
+Nhắc lại Chapter 1, *Introduction to PostgreSQL*, chúng ta đã học rằng có hai loại user: normal user và superuser:
+
+* Superuser có thể làm mọi thứ trên các database và schema.
+* Normal user có thể thực hiện các operation tùy theo privilege set của mình.
+
+== PostgreSQL và public schema
+
+Bắt đầu từ PostgreSQL 15, PostgreSQL đã thay đổi cách quản lý public schema. Trong section này, chúng ta sẽ xem nó hoạt động như thế nào. Trước PostgreSQL 15, bất kỳ user nào cũng có thể thực hiện bất kỳ DDL operation nào trên public schema. PostgreSQL 15 giới thiệu concept remove global privilege khỏi public schema.
+
+Bắt đầu từ PostgreSQL 15:
+
+* Normal user sẽ không thể execute DDL trên public schema.
+* Normal user sẽ không thể thực hiện DML trên public schema trừ khi nhận được permission từ superuser.
+
+Hãy dùng một ví dụ để giải thích rõ hơn feature mới này. Chúng ta sẽ làm việc như thể đang ở trên PostgreSQL version <=14.x.
+
+Các bước chúng ta sẽ execute như sau (một số instruction sẽ được giải thích sau trong sách):
+
+. Chúng ta sẽ tạo một normal user tên `myuser`.
+. Chúng ta sẽ connect đến database bằng user `myuser`.
+. Với tư cách `myuser`, chúng ta sẽ thử tạo một table mới tên `mytable`.
+
+Dưới đây là execution của những gì vừa nêu:
+
+[source,text]
+....
+forumdb=# create user myuser with password 'SuperSecret' login;
+CREATE ROLE
+forumdb=# set role to myuser;
+SET
+forumdb=> create table mytable(id integer);
+ERROR:     permission denied for schema public
+LINE 1: create table mytable(id integer);
+....
+
+Như có thể thấy, normal user không thể tạo table (DDL) trên public schema.
+
+== Variable search_path
+
+PostgreSQL có nhiều system variable. Một trong số đó có tên `search_path`. Variable `search_path` chứa sequence schema mà PostgreSQL dùng để tìm table; giá trị mặc định của `search_path` là `$user,public`. Điều này có nghĩa là trước tiên nó sẽ tìm các table trong schema có tên trùng với user hiện tại, sau đó sẽ tìm trong public schema.
+
+Ví dụ, nếu có một user tên `forum` và muốn hiển thị tất cả record có trong một table tên `cities`, trước tiên PostgreSQL sẽ tìm table `cities` trong schema `forum`, và nếu không tìm thấy table `cities` trong schema `forum`, PostgreSQL sẽ tìm table `cities` trong public schema.
+
+== Cách đúng để bắt đầu làm việc
+
+Hãy bắt đầu từ đầu và execute các bước sau:
+
+. Với tư cách superuser, hãy tạo database mới tên `myforumdb` và connect đến đó.
+. Với tư cách superuser, hãy tạo user mới tên `myforum`.
+. Với tư cách superuser, hãy tạo schema mới tên `myforum` với authorization cho user `myforum`.
+. Hãy connect đến database bằng user `myforum`:
+
+[source,text]
+....
+postgres=# create database myforumdb;
+CREATE DATABASE
+postgres=# \c myforumdb
+You are now connected to database "myforumdb" as user "postgres".
+myforumdb=# create user myforum with password 'SuperSecret' login;
+CREATE ROLE
+myforumdb=# create schema myforum authorization myforum;
+CREATE SCHEMA
+....
+
+Bây giờ hãy thử connect đến database `myforumdb` bằng user `myforum`:
+
+[source,text]
+....
+postgres@learn_postgresql:/$ psql -U myforum myforumdb
+myforumdb=>
+....
+
+Hãy thử tạo một table mới tên `mytable` như đã làm trước đó:
+
+[source,text]
+....
+myforumdb=> create table mytable(id integer);
+CREATE TABLE
+....
+
+Bây giờ đã hoạt động! Nó hoạt động vì table `mytable` được tạo bên trong schema `myforum` như đã giải thích ở trên.
+
+[quote]
+____
+Database `forumdb` được cung cấp cùng container đã được setup sẵn để sử dụng với user `forum`, tham chiếu đến schema `forum`.
+
+____
+== List tất cả table
+
+Bây giờ hãy connect đến database `forumdb` bằng user `forum`:
+
+[source,text]
+....
+postgres@learn_postgresql:/$ psql -U forum forumdb
+forumdb=>
+....
+
+Để list tất cả table có trong database `forumdb`, chúng ta phải dùng command `psql` `\dt`. Command `\dt` tạo một list tất cả table hiện có trong database `forumdb`:
+
+[source,text]
+....
+forumdb=> \dt
+              List of relations
+ Schema |          Name      | Type   | Owner
+--------+--------------+-------+-------
+ forum    | categories       | table | forum
+ forum    | j_posts_tags | table | forum
+ forum    | posts            | table | forum
+ forum    | tags             | table | forum
+ forum    | users            | table | forum
+(5 rows)
+....
+
+== Tạo database mới từ một modified template
+
+Bây giờ chúng ta đã học cách list tất cả table trong một database, hãy bảo đảm rằng mọi thay đổi được thực hiện trên database `template1` sẽ xuất hiện trong tất cả database được tạo sau đó. Chúng ta sẽ thực hiện các bước sau:
+
+. Connect đến database `template1`.
+. Tạo một table tên `dummytable` bên trong database `template1`.
+. Tạo một database mới tên `dummydb`.
+
+Hãy bắt đầu tạo database bằng các bước sau:
+
+. Connect đến database `template1`:
+
+[source,text]
+....
+   postgres@learn_postgresql:/$ psql template1
+   template1=#
+....
+
+. Với tư cách *superuser*, tạo một table tên `dummytable`. Hiện tại, chúng ta chưa cần lo về syntax chính xác để tạo table; nội dung này sẽ được giải thích chi tiết hơn sau:
+
+[source,text]
+....
+   template1=# create table dummytable (dummyfield integer not null
+   primary key);
+   CREATE TABLE
+....
+
+. Dùng command `\dt` để hiển thị list các table hiện có trong database `template1`:
+
+[source,text]
+....
+   template1=# \dt
+                List of relations
+    Schema |        Name   | Type   |     Owner
+   --------+------------+-------+----------
+    public | dummytable | table | postgres
+   (1 row)
+....
+. Vì vậy, chúng ta đã thêm thành công một table mới vào database `template1`. Bây giờ hãy thử tạo một database mới có tên `dummydb` và liệt kê tất cả table trong database `dummydb`:
+
+[source,text]
+....
+template1=# create database dummydb;
+CREATE DATABASE
+template1=# \c dummydb
+You are now connected to database "dummydb" as user "postgres".
+....
+
+Database `dummydb` chứa các table sau:
+
+[source,text]
+....
+dummydb=# \dt
+             List of relations
+ Schema |       Name      | Type    |   Owner
+--------+------------+-------+----------
+ public | dummytable | table | postgres
+(1 row)
+....
+
+Đúng như dự kiến, trong database `dummydb`, chúng ta có thể thấy table được tạo trước đó trong database `template1`.
+
+[quote]
+____
+Điều quan trọng cần nhớ là mọi thay đổi được thực hiện trên database `template1` sẽ có mặt trong tất cả database được tạo sau thay đổi đó.
+
+____
+Bây giờ chúng ta sẽ xóa database `dummydb` và dummy table trong database `template1`.
+
+== Xóa table và database
+Trong phần tiếp theo, bạn sẽ học cách xóa table và database. Các command chúng ta sẽ học là:
+
+* `DROP TABLE`: Dùng để xóa một table trong database.
+* `DROP DATABASE`: Dùng để xóa một database trong cluster.
+
+== Xóa table
+Trong PostgreSQL, command cần dùng để xóa một table đơn giản là `DROP TABLE tablename`. Để làm việc này, chúng ta phải connect đến database chứa table đó, sau đó chạy command `DROP TABLE tablename`.
+
+Ví dụ, nếu muốn xóa table `dummytable` khỏi database `template1`, chúng ta phải thực hiện các bước sau.
+
+Chúng ta connect đến database `template1` bằng command sau:
+
+[source,text]
+....
+dummydb=# \c template1
+You are now connected to database "template1" as user "postgres".
+....
+
+Và chúng ta có thể xóa table bằng command sau:
+
+[source,text]
+....
+template1=# drop table dummytable;
+DROP TABLE
+....
+
+== Xóa database
+Trong PostgreSQL, command cần dùng để xóa một table đơn giản là `DROP DATABASE databasename`; ví dụ, nếu muốn xóa database `dummydb`, chúng ta phải thực thi command sau:
+
+[source,text]
+....
+template1=# drop database dummydb ;
+DROP DATABASE
+....
+
+Sau đó, mọi thứ đã trở về trạng thái ban đầu của chapter.
+
+== Tạo bản sao database
+Các bước sau đây cho bạn biết cách tạo một database mới từ một template database:
+
+. Tạo một bản sao của database `forumdb` trên cùng PostgreSQL cluster bằng cách thực hiện command sau:
+
+[source,text]
+....
+   template1=# create database forumdb2 template forumdb;
+   CREATE DATABASE
+....
+
+   Khi sử dụng command này, bạn chỉ đang yêu cầu PostgreSQL tạo một database mới có tên `forumdb2`, sử dụng database `forumdb` làm template.
+
+[%start=2]
+. Connect đến database `forumdb2` với tư cách forum user:
+
+[source,text]
+....
+   postgres@learn_postgresql:/$ psql -U forum forumdb2
+   forumdb2=>
+....
+
+. Liệt kê tất cả table trong database `forumdb2`:
+
+[source,text]
+....
+   forumdb2=> \dt
+                List of relations
+    Schema |       Name       | Type    | Owner
+   --------+--------------+-------+-------
+    forum    | categories     | table | forum
+    forum    | j_posts_tags | table | forum
+    forum    | posts          | table | forum
+    forum    | tags           | table | forum
+    forum    | users          | table | forum
+   (5 rows)
+....
+
+Bạn có thể thấy các table có trong database `forumdb` hiện cũng có trong database này.
+
+== Xác nhận kích thước database
+Bây giờ chúng ta sẽ giải quyết câu hỏi làm thế nào để xác định kích thước thực của một database. Có hai phương thức bạn có thể sử dụng để làm việc này: `psql` và SQL. Hãy so sánh hai phương thức trong các phần sau.
+
+== Phương thức psql
+Chúng ta có thể kiểm tra kích thước database bằng phương thức `psql`, theo các bước sau:
+
+. Đầu tiên, hãy connect đến `forumdb` và chuyển về expanded mode:
+
+[source,text]
+....
+   postgres@learn_postgresql:/$ psql -U forum forumdb
+   forumdb=> \x
+   Expanded display is on.
+....
+
+. Sau đó, thực thi command sau:
+
+[source,text]
+....
+   forumdb=# \l+ forumdb
+   List of databases
+   -[ RECORD 1 ]-----+-----------
+   Name                 | forumdb
+   Owner                | forum
+   Encoding             | UTF8
+   Collate              | en_US.utf8
+   Ctype                | en_US.utf8
+   ICU Locale           |
+   Locale Provider      | libc
+   Access privileges    |
+   Size                 | 7685 kB
+   Tablespace           | pg_default
+   Description          |
+....
+
+Trong field `Size`, giờ đây bạn có thể thấy kích thước thực của database tại thời điểm đó.
+
+== Phương thức SQL
+Khi sử dụng phương thức được mô tả ở trên, bạn có thể thấy mình không thể connect đến database thông qua command `psql`. Điều này xảy ra khi chúng ta chỉ có web access đến database; ví dụ, nếu chúng ta chỉ có quyền truy cập vào server-side installation của pgadmin4. Nếu điều này xảy ra, phương thức SQL là một cách tiếp cận thay thế cho phép bạn tìm cùng thông tin. Để sử dụng phương thức này, hãy hoàn thành các bước sau:
+
+. Thực thi command sau:
+
+[source,text]
+....
+   forumdb=> select pg_database_size('forumdb');
+   -[ RECORD 1 ]----+--------
+   pg_database_size | 7869231
+....
+
+   Function `pg_database_size(name)` trả về disk space được database có tên `forumdb` sử dụng. Điều này có nghĩa result là số byte được database sử dụng.
+
+[%start=2]
+. Nếu muốn result dễ đọc hơn theo dạng “human”, bạn có thể sử dụng function `pg_size_pretty` và viết như sau:
+
+[source,text]
+....
+   forumdb=> select pg_size_pretty(pg_database_size('forumdb'));
+   -[ RECORD 1 ]--+--------
+   pg_size_pretty | 7685 kB
+....
+
+Như bạn có thể thấy, cả hai phương thức đều cho cùng một result.
+
+== Những gì xảy ra phía sau khi tạo database
+Chúng ta vừa học các command dùng để tạo một database mới, nhưng điều gì xảy ra phía sau khi một database được tạo?
+
+Trong phần này, chúng ta sẽ xem xét các mối quan hệ tồn tại giữa những gì chúng ta thực hiện ở SQL level và những gì xảy ra về mặt vật lý trong filesystem; lưu ý rằng các số OID chúng ta thấy dưới đây liên quan đến Docker image đã tạo. Các giá trị số trong Docker image của bạn có thể khác.
+
+Để hiểu điều này, chúng ta cần giới thiệu system table `pg_database`:
+
+. Quay lại expanded mode và thực thi như sau:
+
+[source,text]
+....
+   forumdb=> select * from pg_database where datname='forumdb';
+   -[ RECORD 1 ]--+-----------
+   oid               | 16386
+   datname           | forumdb
+   datdba            | 16385
+   encoding          | 6
+   datlocprovider | c
+   datistemplate     | f
+   datallowconn      | t
+   datconnlimit      | -1
+   datfrozenxid      | 717
+   datminmxid        | 1
+   dattablespace     | 1663
+   datcollate        | en_US.utf8
+   datctype          | en_US.utf8
+   daticulocale      |
+   datcollversion | 2.31
+   datacl            |
+....
+
+   Query này cung cấp cho chúng ta mọi thông tin về database `forumdb`. Field đầu tiên là một Object Identifier (OID), một số nhận diện duy nhất database có tên `forumdb`.
+
+[%start=2]
+. Thoát môi trường `psql` và đi đến directory `$PGDATA` (như đã trình bày trong các chapter trước). Trong môi trường Linux Debian, chúng ta phải thực thi:
+
+[source,text]
+....
+   cd /var/lib/postgresql/16/main/
+....
+
+   Với Docker image, path như sau:
+
+[source,text]
+....
+   cd /postgres/16/data
+....
+
+   Nếu không biết giá trị của `$PGDATA` là gì, chúng ta có thể thực thi command sau với tư cách superuser:
+
+[source,text]
+....
+   forumdb=# show data_directory;
+     data_directory
+   -------------------
+   /postgres/16/data
+   (1 row)
+....
+
+[%start=3]
+. Sử dụng command `ls` để xem bên trong directory `main` hoặc `data` (Docker image):
+
+[source,text]
+....
+   postgres@learn_postgresql:~/data$ ls -l
+   total 128
+   drwx------ 8 postgres postgres           4096 Jan   3 09:49 base
+   drwx------ 2 postgres postgres           4096 Jan   3 09:49 global
+   [...]
+....
+
+   Như bạn có thể thấy, directory đầu tiên có tên `base`. Nó chứa tất cả database nằm trong cluster.
+
+[%start=4]
+. Đi vào directory `base` để xem nội dung:
+
+[source,text]
+....
+   postgres@learn_postgresql:~/data$ cd base
+   postgres@learn_postgresql:~/data/base$
+....
+
+. Liệt kê tất cả file hiện có trong directory:
+
+[source,text]
+....
+   postgres@learn_postgresql:~/data/base$ ls -l
+   total 40
+   drwx------ 2 postgres postgres           4096 Jan   3 09:45 1
+   drwx------ 2 postgres postgres 12288 Jan            3 09:14 16386
+   [....]
+....
+
+Như bạn có thể thấy, có một directory tên `16386`; tên của nó chính xác giống OID trong `pg_database` catalog.
+
+[quote]
+____
+Khi PostgreSQL tạo một database mới, nó copy directory tương ứng với database `template1`, sau đó đặt cho nó một tên mới. Trong PostgreSQL, database là các directory.
+
+____
+Trong phần này, chúng ta đã học cách quản lý database. Trong phần tiếp theo, chúng ta sẽ học cách quản lý table.

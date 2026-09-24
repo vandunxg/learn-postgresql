@@ -1,0 +1,11 @@
+= Tóm tắt
+
+PostgreSQL có thể xử lý nhiều database trong một cluster duy nhất, được phục vụ từ phần disk storage nằm trong một directory duy nhất có tên `PGDATA`. Cluster chạy nhiều process khác nhau; một process đặc biệt có tên `postmaster` chịu trách nhiệm spawn các process khác, mỗi process cho một client connection, và theo dõi trạng thái của các process maintenance.
+
+Configuration của cluster được quản lý thông qua các text-based configuration file, trong đó file chính là `postgresql.conf`. Có thể filter incoming user connection bằng các rule được đặt trong text file `pg_hba.conf`.
+
+Bạn có thể tương tác với trạng thái của cluster thông qua tool `pg_ctl` hoặc, tùy operating system, bằng các program khác được cung cấp như `service` hoặc `systemctl`.
+
+Chương này đã trình bày những thông tin cần thiết để bạn không chỉ có thể install PostgreSQL mà còn có thể start và stop nó thường xuyên, integrate nó với operating system, và connect đến cluster.
+
+Ở chương tiếp theo, bạn sẽ học cách manage user và connection.

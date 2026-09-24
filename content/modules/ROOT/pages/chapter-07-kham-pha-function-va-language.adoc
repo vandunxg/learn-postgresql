@@ -1,0 +1,1113 @@
+= Khám phá function và language
+
+PostgreSQL có khả năng execute server-side code. Có nhiều cách cung cấp cho PostgreSQL code cần được execute. Ví dụ, user có thể tạo function bằng các programming language khác nhau. Các language chính được PostgreSQL hỗ trợ như sau:
+
+* SQL
+* PL/pgSQL
+* C
+
+Các language được liệt kê này là built-in language; ngoài ra còn có những language khác mà PostgreSQL có thể quản lý, nhưng trước khi sử dụng chúng, chúng ta cần install chúng trên system. Một số language được hỗ trợ khác như sau:
+
+* PL/Python
+* PL/Perl
+* PL/tcl
+* PL/Java
+
+Trong section này, chúng ta sẽ nói về function SQL và PL/pgSQL.
+
+== Functions
+
+Cấu trúc command dùng để định nghĩa một function như sau:
+
+[source,text]
+....
+CREATE FUNCTION function_name(p1 type, p2 type,p3 type, ....., pn type)
+    RETURNS type AS
+BEGIN
+   -- function logic
+END;
+LANGUAGE language_name
+....
+
+Các bước sau luôn áp dụng cho bất kỳ loại function nào mà chúng ta muốn tạo:
+
+. Chỉ định tên function sau các keyword `CREATE FUNCTION`.
+. Lập danh sách các parameter được phân tách bằng dấu phẩy.
+. Chỉ định return data type sau keyword `RETURNS`.
+. Với language PL/pgSQL, đặt code vào giữa block `BEGIN` và `END`.
+. Với language PL/pgSQL, function phải kết thúc bằng keyword `END`, theo sau là dấu chấm phẩy.
+. Xác định language mà function được viết bằng, ví dụ sql hoặc plpgsql, plperl, plpython, v.v.
+
+Đây là scheme cơ bản mà chúng ta sẽ tham chiếu về sau trong chapter; scheme này có thể có một vài biến thể nhỏ trong một số trường hợp cụ thể.
+
+== SQL functions
+
+SQL function là cách dễ nhất để viết function trong PostgreSQL, và chúng ta có thể sử dụng bất kỳ SQL command nào bên trong chúng.
+
+== Basic functions
+
+Section này sẽ chỉ cho bạn những bước đầu tiên trong thế giới SQL function. Ví dụ, function sau thực hiện phép cộng giữa hai số:
+
+[source,text]
+....
+forumdb=> CREATE OR REPLACE FUNCTION my_sum(x integer, y integer) RETURNS
+integer AS $$
+   SELECT x + y;
+$$ LANGUAGE SQL;
+CREATE FUNCTION
+
+
+
+forumdb=> select my_sum(1,2);
+   my_sum
+--------
+        3
+(1 row)
+....
+
+Như có thể thấy trong ví dụ trước, code function được đặt giữa `$$`; chúng ta có thể xem `$$` như các label. Function có thể được gọi bằng statement `SELECT` mà không cần bất kỳ clause `FROM` nào. Các argument của SQL function có thể được tham chiếu trong function body bằng số (cách cũ) hoặc bằng tên của chúng (cách mới). Ví dụ, chúng ta có thể viết cùng function theo cách này:
+
+[source,text]
+....
+CREATE OR REPLACE FUNCTION my_sum(integer, integer) RETURNS integer AS $$
+ SELECT $1 + $2;
+$$ LANGUAGE SQL;
+....
+
+Trong function trước, chúng ta thấy cách cũ để tham chiếu parameter bên trong function. Theo cách cũ, các parameter được tham chiếu theo vị trí, vì vậy value `$1` tương ứng với parameter thứ nhất của function, `$2` tương ứng với parameter thứ hai, v.v. Trong code của SQL function, chúng ta có thể sử dụng tất cả SQL command, bao gồm những command đã thấy trong các chapter trước.
+
+== SQL functions trả về một set các element
+
+Trong section này, chúng ta sẽ xem cách tạo một SQL function trả về một result set của một data type. Ví dụ, giả sử chúng ta muốn viết một function nhận `p_title` làm parameter và xóa tất cả record có `title=p_title`, đồng thời trả về tất cả key của các record đã xóa. Function sau sẽ thực hiện được điều đó:
+
+[source,text]
+....
+forumdb=> CREATE OR REPLACE FUNCTION delete_posts(p_title text) returns
+setof integer as $$
+delete from posts where title=p_title returning pk;
+$$
+LANGUAGE SQL;
+CREATE FUNCTION
+....
+
+Đây là tình trạng trước khi chúng ta gọi function `delete_posts`:
+
+[source,text]
+....
+forumdb=> select pk,title from posts order by pk;
+ pk |                title
+----+------------------------------
+   5 | Indexing PostgreSQL
+   6 | Indexing Mysql
+   7 | A view of     Data types in C++
+(3 rows)
+....
+Bây giờ, giả sử chúng ta muốn xóa record có field `title` bằng `A view of Data types in C++`. Table `posts` có field `pk` làm primary key, và với record `A view of Data types in C++`, giá trị của `pk` bằng `7`; vì vậy trước hết, hãy xóa các record khỏi table `j_posts_tags` mà giá trị `post_pk=7`. Lý do là có một foreign key liên kết các table `posts` và `j_posts_tags`:
+
+[source,text]
+....
+     forumdb=> delete from j_posts_tags where post_pk = 7;
+     DELETE 1
+....
+
+Bây giờ hãy gọi function `delete_posts`, sử dụng `A view of Data types in C++` làm parameter. Đây là trạng thái sau khi chúng ta gọi function `delete_posts`:
+
+[source,text]
+....
+     forumdb=> select delete_posts('A view of            Data types in C++');
+      delete_posts
+     --------------
+                   7
+     (1 row)
+     forumdb=> select pk,title from posts order by pk;
+      pk |          title
+     ----+---------------------
+       5 | Indexing PostgreSQL
+       6 | Indexing Mysql
+     (2 rows)
+....
+
+Trong function này, chúng ta đã giới thiệu một loại data type mới - data type `setof`. Directive `setof` đơn giản định nghĩa một result set của một data type. Ví dụ, function `delete_posts` được định nghĩa để trả về một set các integer, vì vậy result của nó sẽ là một integer dataset. Chúng ta có thể sử dụng directive `setof` với bất kỳ data type nào.
+
+== SQL functions trả về table
+
+Trong section trước, chúng ta đã thấy cách viết một function trả về một result set của một data type duy nhất; tuy nhiên, có thể có những trường hợp chúng ta cần function trả về một result set gồm nhiều field. Ví dụ, hãy xét cùng function như trước, nhưng lần này chúng ta muốn cặp `pk`, `title` được trả về làm result, vì vậy function của chúng ta trở thành như sau:
+
+[source,text]
+....
+     forumdb=> create or replace function delete_posts_table (p_title text)
+     returns table (ret_key integer,ret_title text) AS $$
+     delete from posts where title=p_title returning pk,title;
+     $$
+     language SQL;
+     CREATE FUNCTION
+....
+
+Điểm khác biệt duy nhất giữa function này và function trước là hiện giờ function trả về một table type; bên trong table type, chúng ta phải chỉ định tên và type của các field. Như đã thấy trước đây, đây là trạng thái trước khi gọi function:
+
+[source,text]
+....
+    forumdb=> select pk,title from posts order by pk;
+     pk |            title
+    ----+---------------------
+        5 | Indexing PostgreSQL
+        6 | Indexing Mysql
+    (2 rows)
+....
+
+Bây giờ hãy insert một record mới:
+
+[source,text]
+....
+    forumdb=> insert into posts(title,author,category) values ('My new
+    post',1,1);
+    INSERT 0 1
+....
+
+Bây giờ hãy gọi function `delete_posts_table`. Cách gọi function đúng là:
+
+[source,text]
+....
+    forumdb=> select * from         delete_posts_table('My new post');
+     ret_key |     ret_title
+    ---------+-------------
+             9 | My new post
+    (1 row)
+    )
+....
+
+Đây là trạng thái sau khi gọi function:
+
+[source,text]
+....
+    forumdb=> select pk,title from posts order by pk;
+     pk |            title
+    ----+---------------------
+        5 | Indexing PostgreSQL
+        6 | Indexing Mysql
+    (2 rows)
+....
+
+Các function trả về một table có thể được xử lý như các table thực, theo nghĩa chúng ta có thể sử dụng chúng với các option `in`, `exists`, `join`, v.v.
+
+== Polymorphic SQL functions
+
+Trong section này, chúng ta sẽ nói ngắn gọn về polymorphic SQL functions.
+
+Polymorphic function hữu ích cho DBA khi chúng ta cần viết một function phải làm việc với các data type khác nhau. Để hiểu rõ hơn về polymorphic function, hãy bắt đầu bằng một ví dụ. Giả sử chúng ta muốn tạo lại một thứ trông giống function Oracle `NVL` - nói cách khác, chúng ta muốn tạo một function nhận hai parameter và thay parameter đầu tiên bằng parameter thứ hai nếu parameter đầu tiên là `NULL`. Vấn đề là chúng ta muốn viết một function duy nhất hợp lệ cho mọi data type (integer, real, text, v.v.).
+
+Function sau đây làm cho điều đó khả thi:
+
+[source,text]
+....
+      forumdb=> create or replace function nvl ( anyelement,anyelement) returns
+      anyelement as $$
+      select coalesce($1,$2);
+      $$
+      language SQL;
+      CREATE FUNCTION
+....
+
+Đây là cách gọi function:
+
+[source,text]
+....
+      forumdb=> select nvl(NULL::int,1);
+       nvl
+      -----
+           1
+      (1 row)
+
+
+      forumdb=> select nvl(''::text,'n'::text);
+       nvl
+      -----
+
+
+      (1 row)
+
+      forumdb=> select nvl('a'::text,'n'::text);
+       nvl
+      -----
+       a
+      (1 row)
+....
+
+Để biết thêm thông tin, xem documentation chính thức tại https://www.postgresql.org/docs/current/extend-type-system.html.
+
+== PL/pgSQL functions
+
+Trong section này, chúng ta sẽ nói về ngôn ngữ PL/pgSQL. Ngôn ngữ PL/pgSQL là procedural language built-in mặc định của PostgreSQL. Như được mô tả trong documentation chính thức, các mục tiêu thiết kế của PL/pgSQL là tạo ra một loadable procedural language có thể:
+
+* Được sử dụng để tạo function và trigger procedure (chúng ta sẽ nói về trigger trong chapter tiếp theo).
+* Thêm control structure mới.
+* Thêm data type mới vào SQL language.
+
+Nó rất giống Oracle PL/SQL và hỗ trợ những thành phần sau:
+
+* Variable declaration
+* Expression
+* Control structure như conditional structure hoặc loop structure
+* Cursor
+
+== Tổng quan đầu tiên
+
+Như đã thấy ở phần đầu của section SQL functions, prototype để viết function trong PostgreSQL như sau:
+
+[source,text]
+....
+   CREATE FUNCTION function_name(p1 type, p2 type,p3 type, ....., pn type)
+       RETURNS type AS
+   BEGIN
+       -- function logic
+   END;
+   LANGUAGE language_name
+....
+
+Bây giờ, giả sử chúng ta muốn tạo lại function `my_sum` bằng ngôn ngữ PL/pgSQL:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_sum(x integer, y integer) RETURNS
+   integer AS
+   $BODY$
+   DECLARE
+       ret integer;
+   BEGIN
+       ret := x + y;
+       return ret;
+      END;
+      $BODY$
+      language 'plpgsql';
+      CREATE FUNCTION
+   forumdb=> select my_sum(2,3);
+    my_sum
+   --------
+          5
+   (1 row)
+....
+
+Query trước đó cung cấp cùng result như query đã thấy ở đầu chapter. Bây giờ hãy xem xét nó chi tiết hơn:
+
+. Sau đây là function header; ở đây, bạn định nghĩa tên function, input parameter và return value:
+
+[source,text]
+....
+       CREATE OR REPLACE FUNCTION my_sum(x integer, y integer) RETURNS
+       integer AS
+....
+
+. Sau đây là một label chỉ ra phần bắt đầu của code. Chúng ta có thể đặt bất kỳ string nào giữa các ký tự `$$`; điều quan trọng là label đó xuất hiện giống hệt ở cuối function:
+
+[source,text]
+....
+       $BODY$
+....
+
+. Trong section sau, chúng ta có thể định nghĩa các variable; điều quan trọng là mỗi declaration hoặc statement kết thúc bằng dấu chấm phẩy:
+
+[source,text]
+....
+       DECLARE
+         ret integer;
+....
+
+. Với statement `BEGIN`, chúng ta báo cho PostgreSQL rằng muốn bắt đầu viết logic của mình:
+
+[source,text]
+....
+       BEGIN
+         ret := x + y;
+         return ret;
+....
+
+[CAUTION]
+====
+Không viết dấu chấm phẩy sau `BEGIN` - điều đó không đúng và sẽ tạo ra syntax error.
+
+====
+[%start=5]
+. Giữa statement `BEGIN` và statement `END`, chúng ta có thể đặt code của mình:
+
+[source,text]
+....
+            END;
+....
+
+. Instruction `END` chỉ ra rằng code của chúng ta đã kết thúc:
+
+[source,text]
+....
+            $BODY$
+....
+
+. Label này đóng label đầu tiên; cuối cùng, statement `language` chỉ định ngôn ngữ mà function được viết bằng:
+
+[source,text]
+....
+            language 'plpgsql';
+....
+
+== Dropping functions
+
+Để drop một function, chúng ta phải thực thi command `DROP FUNCTION`, theo sau là tên function và các parameter của nó. Ví dụ, để drop function `my_sum`, chúng ta phải thực thi:
+
+[source,text]
+....
+   forumdb=> DROP FUNCTION my_sum(integer,integer);
+   DROP FUNCTION
+....
+
+== Declaring function parameters
+
+Sau khi học cách viết một PL/pgSQL function đơn giản, hãy đi vào chi tiết hơn một chút về từng khía cạnh đã thấy trong section trước. Hãy bắt đầu với việc declaration parameter. Trong hai ví dụ tiếp theo, chúng ta sẽ thấy hai cách khác nhau để định nghĩa function `my_sum` đã thấy trước đây.
+
+Ví dụ đầu tiên như sau:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_sum(integer, integer) RETURNS
+   integer AS
+   $BODY$
+   DECLARE
+    x alias for $1;
+    y alias for $2;
+   ret integer;
+   BEGIN
+    ret := x + y;
+    return ret;
+   END;
+   $BODY$
+   language 'plpgsql';
+   CREATE FUNCTION
+....
+
+Ví dụ thứ hai như sau:
+
+[source,text]
+....
+      forumdb=> CREATE OR REPLACE FUNCTION my_sum(integer, integer) RETURNS
+      integer AS
+      $BODY$
+      DECLARE
+       ret integer;
+      BEGIN
+       ret := $1 + $2;
+       return ret;
+      END;
+      $BODY$
+      language 'plpgsql';
+      CREATE FUNCTION
+....
+
+Trong ví dụ đầu tiên, chúng ta sử dụng alias; syntax của alias nói chung là như sau:
+
+[source,text]
+....
+      newname ALIAS FOR oldname;
+....
+
+Trong trường hợp cụ thể này, chúng ta sử dụng positional variable `$1` làm giá trị `oldname`. Trong ví dụ thứ hai, chúng ta sử dụng positional approach chính xác như đã làm với SQL functions.
+
+== IN/OUT parameters
+
+Trong ví dụ trước, chúng ta sử dụng clause `RETURNS` ở dòng đầu tiên của function definition; tuy nhiên, có một cách khác để đạt được cùng mục tiêu. Trong PL/pgSQL, chúng ta có thể định nghĩa tất cả parameter là input parameter, output parameter hoặc input/output parameter. Ví dụ, giả sử chúng ta viết như sau:
+
+[source,text]
+....
+      forumdb=> CREATE OR REPLACE FUNCTION my_sum_3_params(IN x integer,IN y
+      integer, OUT z integer) AS
+      $BODY$
+      BEGIN
+       z := x+y;
+      END;
+      $BODY$
+      language 'plpgsql';
+      CREATE FUNCTION
+....
+
+Chúng ta đã định nghĩa một function mới có tên `my_sum_3_params`, nhận hai input parameter (`x` và `y`) và có output parameter `z`. Vì có hai input parameter, function sẽ được gọi chỉ với hai parameter, chính xác như function trước:
+
+[source,text]
+....
+   forumdb=> select my_sum_3_params(2,3);
+    my_sum_3_params
+   -----------------
+                     5
+   (1 row)
+....
+
+Với kiểu định nghĩa parameter này, chúng ta có thể có các function với nhiều variable làm result. Ví dụ, nếu muốn một function nhận hai giá trị integer, tính tổng và tích của chúng, chúng ta có thể viết như sau:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_sum_mul(IN x integer,IN y
+   integer,OUT w integer, OUT z integer) AS
+   $BODY$
+   BEGIN
+    z := x+y;
+    w := x*y;
+   END;
+   $BODY$
+   language 'plpgsql';
+   CREATE FUNCTION
+....
+
+Điều lạ là nếu invoke function như trước, chúng ta sẽ có result sau:
+
+[source,text]
+....
+   forumdb=> select my_sum_mul(2,3);
+    my_sum_mul
+   ------------
+    (6,5)
+   (1 row)
+....
+
+Result này có vẻ hơi lạ vì result không phải scalar value mà là một record, tức một custom type. Để output được tách thành các column, chúng ta phải sử dụng syntax sau:
+
+[source,text]
+....
+      forumdb=> select * from my_sum_mul(2,3);
+          w | z
+      ---+---
+          6 | 5
+      (1 row)
+....
+
+Chúng ta có thể sử dụng result của function chính xác như result của một table và viết, ví dụ, như sau:
+
+[source,text]
+....
+      forumdb=> select * from my_sum_mul(2,3) where w=6;
+          w | z
+      ---+---
+          6 | 5
+      (1 row)
+....
+
+Chúng ta có thể định nghĩa các parameter như sau:
+
+* `IN`: Input parameter (nếu bỏ qua, đây là option mặc định)
+* `OUT`: Output parameter
+* `INOUT`: Input/output parameter
+
+== Function volatility categories
+
+Trong PostgreSQL, mỗi function có thể được định nghĩa là `VOLATILE`, `STABLE` hoặc `IMMUTABLE`. Nếu không chỉ định gì, giá trị mặc định là `VOLATILE`. Sự khác biệt giữa ba definition có thể này được mô tả rõ trong documentation chính thức (https://www.postgresql.org/docs/current/xfunc-volatility.html):
+
+[quote]
+____
+Một function `VOLATILE` có thể làm mọi thứ, bao gồm sửa đổi database. Nó có thể trả về các result khác nhau trong những lần gọi liên tiếp với cùng các argument. Optimizer không đưa ra giả định nào về behavior của các function như vậy. Một query sử dụng function volatile sẽ đánh giá lại function tại mỗi row nơi cần giá trị của nó. Nếu một function được đánh dấu là `VOLATILE`, nó có thể trả về các result khác nhau nếu chúng ta gọi nó nhiều lần bằng cùng các input parameter.
+
+Một function `STABLE` không thể sửa đổi database và được đảm bảo trả về cùng result với cùng các argument cho mọi row trong một statement duy nhất. Category này cho phép optimizer tối ưu nhiều lần gọi function thành một lần gọi duy nhất. Cụ thể, việc sử dụng một expression chứa function như vậy trong index scan condition là an toàn. Nếu một function được đánh dấu là `STABLE`, function sẽ trả về cùng result với cùng các parameter trong cùng một transaction.
+
+Một function `IMMUTABLE` không thể sửa đổi database và được đảm bảo trả về cùng result với cùng các argument mãi mãi. Category này cho phép optimizer pre-evaluate function khi query gọi nó với các argument hằng số.
+
+____
+Trong các trang tiếp theo của chapter này, chúng ta sẽ chỉ tập trung vào các ví dụ về volatile function; tuy nhiên, ở đây chúng ta sẽ xem nhanh một ví dụ về stable function và một ví dụ về immutable function:
+
+. Hãy bắt đầu với một stable function - ví dụ, function `now()` là một stable function. Function `now()` trả về date và time hiện tại tại thời điểm bắt đầu transaction, như có thể thấy ở đây:
+
+[source,text]
+....
+             forumdb=> begin ;
+             BEGIN
+
+
+             forumdb=*> select now();
+                            now
+             ------------------------------
+....
+[source,text]
+....
+2023-03-17 13:25:25.37224+00
+(1 row)
+
+
+forumdb=*> select now();
+               now
+------------------------------
+ 2023-03-17 13:25:25.37224+00
+(1 row)
+
+
+
+forumdb=*> commit;
+COMMIT
+
+
+
+forumdb=> begin ;
+BEGIN
+
+
+forumdb=*> select now();
+                 now
+-------------------------------
+ 2023-03-17 13:27:02.012632+00
+(1 row)
+
+
+forumdb=*> commit ;
+COMMIT
+....
+
+[NOTE]
+====
+Trong PostgreSQL 16, khi `psql` hiển thị prompt như `*>`, điều đó có nghĩa là chúng ta đang ở bên trong một transaction block.
+
+====
+[%start=2]
+. Bây giờ, hãy xem một function immutable, chẳng hạn function `lower(string_expression)`. Function `lower` nhận một string và chuyển nó sang dạng chữ thường. Như chúng ta có thể thấy, nếu các input parameter giống nhau, function `lower` luôn trả về cùng một result, ngay cả khi được thực thi trong các transaction khác nhau:
+
+[source,text]
+....
+forumdb=> begin;
+BEGIN
+
+
+forumdb=*> select now();
+                 now
+-------------------------------
+ 2023-03-17 13:33:39.586388+00
+(1 row)
+
+
+forumdb=*> select lower('MICKY MOUSE');
+    lower
+-------------
+ micky mouse
+(1 row)
+
+
+forumdb=*> commit;
+COMMIT
+
+
+forumdb=> begin;
+BEGIN
+
+
+forumdb=*> select now();
+                now
+-------------------------------
+ 2023-03-17 13:34:56.491773+00
+(1 row)
+
+
+
+forumdb=*> select lower('MICKY MOUSE');
+    lower
+-------------
+ micky mouse
+(1 row)
+
+
+forumdb=*> commit;
+COMMIT
+....
+
+== Cấu trúc điều khiển
+
+PL/pgSQL có khả năng quản lý các control structure như sau:
+
+* Conditional statements
+* Loop statements
+* Exception handler statements
+
+== Conditional statements
+
+Ngôn ngữ PL/pgSQL có thể quản lý các conditional statement dạng IF và các conditional statement dạng CASE.
+
+== IF statements
+
+Trong PL/pgSQL, syntax của một IF statement như sau:
+
+[source,text]
+....
+   IF boolean-expression THEN
+       statements
+   [ ELSIF boolean-expression THEN
+       statements
+   [ ELSIF boolean-expression THEN
+       statements
+       ...
+   ]
+   ]
+   [ ELSE
+       statements ]
+   END IF;
+....
+
+Ví dụ, giả sử chúng ta muốn viết một function khi được cung cấp hai input value `x` và `y` sẽ trả về các kết quả sau:
+
+* parameter thứ nhất lớn hơn parameter thứ hai nếu `x > y`
+* parameter thứ hai lớn hơn parameter thứ nhất nếu `x < y`
+* 2 parameter bằng nhau nếu `x = y`
+
+Chúng ta phải viết function như sau:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_check(x integer default 0, y
+   integer default 0) RETURNS text AS
+   $BODY$
+   BEGIN
+       IF x > y THEN
+       return 'first parameter is greater than second parameter';
+   ELSIF x < y THEN
+       return 'second parameter is greater than first parameter';
+       ELSE
+       return 'the 2 parameters are equals';
+       END IF;
+   END;
+   $BODY$
+   language 'plpgsql';
+   CREATE FUNCTION
+....
+
+Ở ví dụ này, chúng ta đã thấy construct IF ở dạng đầy đủ: `IF [...] THEN[...] ELSIF [...] ELSE[...] ENDIF;`
+
+Tuy nhiên, cũng có các dạng ngắn hơn như sau:
+
+* `IF [...] THEN[...] ELSE[...] ENDIF;`
+* `IF [...] THEN[...] ENDIF;`
+
+Một số ví dụ về result do function đã định nghĩa trước đó cung cấp như sau:
+
+[source,text]
+....
+   forumdb=> select my_check(1,2);
+                            my_check
+   -------------------------------------------------
+       second parameter is higher than first parameter
+   (1 row)
+
+
+
+   forumdb=> select my_check(2,1);
+                            my_check
+   -------------------------------------------------
+       first parameter is higher than second parameter
+   (1 row)
+
+
+
+   forumdb=>      select my_check(1,1);
+                 my_check
+   -----------------------------
+       the 2 parameters are equals
+   (1 row)
+....
+
+== CASE statements
+
+Trong PL/pgSQL, cũng có thể sử dụng CASE statement. CASE statement có thể có hai syntax sau.
+
+Sau đây là một simple CASE statement:
+
+[source,text]
+....
+   CASE search-expression
+       WHEN expression [, expression [ ... ]] THEN
+       statements
+       [ WHEN expression [, expression [ ... ]] THEN
+       statements
+       ... ]
+       [ ELSE
+       statements ]
+   END CASE;
+....
+
+Sau đây là một searched CASE statement:
+
+[source,text]
+....
+   CASE
+       WHEN boolean-expression THEN
+       statements
+       [ WHEN boolean-expression THEN
+       statements
+       ... ]
+       [ ELSE
+       statements ]
+   END CASE;
+....
+
+Bây giờ, chúng ta sẽ thực hiện các thao tác sau:
+
+* Chúng ta sẽ dùng syntax simple CASE đầu tiên khi phải lựa chọn từ một danh sách value.
+* Chúng ta sẽ dùng syntax thứ hai khi phải lựa chọn từ một range value.
+
+Hãy bắt đầu với syntax đầu tiên:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_check_value(x integer default 0)
+   RETURNS text AS
+   $BODY$
+   BEGIN
+       CASE x
+       WHEN 1 THEN return 'value = 1';
+       WHEN 2 THEN return 'value = 2';
+       ELSE return 'value >= 3 ';
+       END CASE;
+   END;
+   $BODY$
+   language 'plpgsql';
+   CREATE FUNCTION
+....
+
+Function `my_check_value` ở trên trả về:
+
+* `value = 1` nếu `x = 1`
+* `value = 2` nếu `x = 2`
+* `value >= 3` nếu `x >= 3`
+
+Chúng ta có thể thấy điều này ở đây:
+
+[source,text]
+....
+   forumdb=> select my_check_value(1);
+       my_check_value
+   ----------------
+       value = 1
+   (1 row)
+
+
+   forumdb=> select my_check_value(2);
+       my_check_value
+   ----------------
+       value = 2
+   (1 row)
+
+
+   forumdb=> select my_check_value(3);
+       my_check_value
+   ----------------
+       value >= 3
+   (1 row)
+....
+
+Bây giờ, hãy xem một ví dụ về searched CASE syntax:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_check_case(x integer default 0, y
+   integer default 0) RETURNS text AS
+   $BODY$
+   BEGIN
+     CASE
+    WHEN x > y THEN return 'first parameter is higher than second
+parameter';
+    WHEN x < y THEN return 'second parameter is higher than first
+parameter';
+   ELSE return 'the 2 parameters are equals';
+   END CASE;
+   END;
+   $BODY$
+   language 'plpgsql';
+   CREATE FUNCTION
+....
+
+Function `my_check_case` trả về cùng data với function `my_check` mà chúng ta đã viết trước đó:
+
+[source,text]
+....
+   forumdb=> select my_check_case(2,1);
+                         my_check_case
+   -------------------------------------------------
+      first parameter is higher than second parameter
+   (1 row)
+
+
+   forumdb=> select my_check_case(1,2);
+                         my_check_case
+   -------------------------------------------------
+      second parameter is higher than first parameter
+   (1 row)
+
+
+   forumdb=> select my_check_case(1,1);
+               my_check_case
+   -----------------------------
+      the 2 parameters are equals
+   (1 row)
+
+
+   forumdb=> select my_check_case();
+               my_check_case
+   -----------------------------
+   the 2 parameters are equals
+   (1 row)
+....
+
+== Loop statements
+
+PL/pgSQL có thể xử lý loop theo nhiều cách. Tiếp theo, chúng ta sẽ xem một số ví dụ về cách tạo loop. Để biết thêm chi tiết, chúng tôi khuyến nghị tham khảo official documentation tại https://www.postgresql.org/docs/current/plpgsql.html. Điều làm PL/pgSQL đặc biệt hữu ích là nó cho phép chúng ta xử lý data từ các query thông qua procedural language. Bây giờ chúng ta sẽ xem điều này có thể thực hiện như thế nào.
+
+Giả sử chúng ta muốn xây dựng một PL/pgSQL function khi được cung cấp một integer làm parameter sẽ trả về một result set thuộc một composite data type. Composite data type mà chúng ta muốn trả về như sau:
+
+[cols="3*", options="header"]
+|===
+|  |  | 
+| ID | pk field | Integer data type
+| TITLE | Title field | text data type
+| RECORD_DATA | Title field + content field | hstore data type
+|===
+
+Cách đúng để xây dựng một composite data type như sau:
+
+[source,text]
+....
+   forumdb=> create type my_ret_type as (
+    id integer,
+    title text,
+    record_data hstore
+   );
+   CREATE TYPE
+....
+
+Statement ở trên tạo một data type mới, một composite data type, được cấu thành từ một integer data type + một text data type + một hstore data type. Bây giờ, nếu muốn viết một function trả về một result set thuộc data type `my_ret_type`, lần thử đầu tiên của chúng ta có thể như sau:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_first_fun (p_id integer) returns
+   setof my_ret_type as
+   $$
+   DECLARE
+    rw posts%ROWTYPE; -- declare a rowtype;
+    ret my_ret_type;
+   BEGIN
+         for rw in select * from posts where pk=p_id loop
+           ret.id := rw.pk;
+           ret.title := rw.title;
+           ret.record_data := hstore(ARRAY['title',rw.title,'Title and Content'
+                                   ,format('%s %s',rw.title,rw.content)]);
+          return next ret;
+          end loop;
+      return;
+   END;
+   $$
+   language 'plpgsql';
+   CREATE FUNCTION
+....
+
+Như chúng ta có thể thấy, nhiều điều được tập trung trong một vài dòng code PL/pgSQL này:
+
+. `rw posts%ROWTYPE`: Với statement này, biến `rw` được định nghĩa là một container chứa một row duy nhất của table `posts`.
+. `for rw in select * from posts where pk=p_id loop`: Với statement này, chúng ta cycle trong result của selection, mỗi lần gán value do select command trả về cho biến `rw`. Ba bước tiếp theo gán các value cho biến `ret`.
+. `return next ret;`: Statement này trả về value của biến `ret` và chuyển đến record tiếp theo của for cycle.
+. `end loop;`: Statement này cho PostgreSQL biết rằng for cycle kết thúc tại đây.
+. `return;`: Đây là return instruction của function.
+
+[quote]
+____
+Điều quan trọng cần nhớ là ngôn ngữ PL/pgSQL nằm bên trong PostgreSQL transaction system. Điều này có nghĩa là các function được thực thi atomically và function trả về các result không phải tại thời điểm thực thi command `RETURN NEXT`, mà tại thời điểm thực thi command `RETURN` được đặt ở cuối function. Điều này có thể có nghĩa là với các dataset rất lớn, PL/pgSQL function có thể mất nhiều thời gian trước khi trả về result.
+
+____
+== Record type
+
+Trong một ví dụ trước đó, chúng ta đã giới thiệu data type `%ROWTYPE`. Trong ngôn ngữ PL/pgSQL, có thể khái quát hóa concept này. Có một data type tên là `record` khái quát hóa concept của `%ROWTYPE`.
+
+Ví dụ, chúng ta có thể viết lại `my_first_fun` như sau:
+
+[source,text]
+....
+   forumdb=> CREATE OR REPLACE FUNCTION my_second_fun (p_id integer) returns
+   setof my_ret_type as
+   $$
+   DECLARE
+        rw record; -- declare a record variable
+        ret my_ret_type;
+   BEGIN
+        for rw in select * from posts where pk=p_id loop
+        ret.id := rw.pk;
+        ret.title := rw.title;
+        ret.record_data := hstore(ARRAY['title',rw.title
+                           ,'Title and Content',format('%s %s',rw.title,rw.
+   content)]);
+        return next ret;
+    end loop;
+    return;
+   END;
+   $$
+   language 'plpgsql';
+   CREATE FUNCTION
+....
+
+Điểm khác biệt duy nhất giữa `my_first_fun` và `my_second_fun` nằm trong definition này:
+
+[source,text]
+....
+   rw record; -- declare a record variable
+....
+
+Lần này, biến `rw` được định nghĩa là một record data type. Điều này có nghĩa là biến `rw` là một object có thể được gắn với bất kỳ record nào của bất kỳ table nào. Result của hai function `my_first_fun` và `my_second_fun` là giống nhau:
+
+[source,text]
+....
+forumdb=> \x
+Expanded display is on.
+forumdb=> select * from my_first_fun(5);
+-[ RECORD 1 ]-----------------------
+id            | 5
+title         | Indexing PostgreSQL
+record_data | "title"=>"Indexing PostgreSQL", "Title and
+Content"=>"Indexing PostgreSQL Btree in PostgreSQL is...."
+....
+== Các statement xử lý exception
+
+PL/pgSQL cũng có thể xử lý exception. Block `BEGIN...END` của một function cho phép option `EXCEPTION`, hoạt động như một catch cho các exception. Ví dụ, nếu viết một function để chia hai số, chúng ta có thể gặp vấn đề khi chia cho 0:
+
+[source,text]
+....
+forumdb=> CREATE OR REPLACE FUNCTION my_first_except (x real, y real )
+returns real as
+$$
+DECLARE
+   ret real;
+BEGIN
+   ret := x / y;
+   return ret;
+END;
+$$
+language 'plpgsql';
+CREATE FUNCTION
+....
+
+Function này hoạt động tốt nếu `y <> 0`, như có thể thấy ở đây:
+
+[source,text]
+....
+forumdb=> \x
+Expanded display is off.
+forumdb=> select my_first_except(4,2);
+   my_first_except
+-----------------
+                  2
+(1 row)
+....
+
+Tuy nhiên, nếu `y` nhận value 0, chúng ta gặp vấn đề:
+
+[source,text]
+....
+forumdb=> select my_first_except(4,0);
+ERROR:    division by zero
+CONTEXT: PL/pgSQL function my_first_except(real,real) line 5 at
+assignment
+....
+
+Để giải quyết vấn đề này, chúng ta phải xử lý exception. Để làm vậy, chúng ta phải viết lại function theo cách sau:
+
+[source,text]
+....
+forumdb=> CREATE OR REPLACE FUNCTION my_second_except (x real, y real )
+returns real as
+$$
+DECLARE
+   ret real;
+BEGIN
+   ret := x / y;
+   return ret;
+EXCEPTION
+   WHEN division_by_zero THEN
+         RAISE INFO 'DIVISION BY ZERO';
+         RAISE INFO 'Error % %', SQLSTATE, SQLERRM;
+         RETURN 0;
+END;
+$$
+language 'plpgsql' ;
+CREATE FUNCTION
+....
+
+Các variable `SQLSTATE` và `SQLERRM` chứa status và message gắn với error được tạo ra. Bây giờ, khi thực thi function thứ hai, chúng ta không còn nhận error từ PostgreSQL nữa:
+
+[source,text]
+....
+forumdb=> select my_second_except(4,0);
+INFO:      DIVISION BY ZERO
+INFO:      Error 22012 division by zero
+ my_second_except
+------------------
+                     0
+(1 row)
+....
+
+Danh sách các error mà PostgreSQL có thể quản lý có tại https://www.postgresql.org/docs/current/errcodes-appendix.html.
+
+== Security definer
+
+Option này cho phép user invoke một function như thể họ là owner của function đó. Nó có thể hữu ích trong mọi trường hợp chúng ta muốn hiển thị data mà average user không có quyền access.
+
+Ví dụ, trong PostgreSQL có một system view tên là `pg_stat_activity`, cho phép chúng ta xem PostgreSQL hiện đang làm gì.
+
+Với user forum, hãy thực thi statement này:
+
+[source,text]
+....
+postgres@learn_postgresql:~$ psql -U forum forumdb
+forumdb=>
+
+forumdb=> select pid,query from pg_stat_activity          ;
+   pid |                       query
+-----+------------------------------------------
+    74 | <insufficient privilege>
+    75 | <insufficient privilege>
+   217 | select pid,query from pg_stat_activity ;
+   [..]
+....
+
+Như có thể thấy ở trên, có một số result là `<insufficient privilege>`. Dưới đây là các bước để giải quyết vấn đề này:
+
+* Kết nối tới database với user postgres:
+
+[source,text]
+....
+  postgres@learn_postgresql:~$ psql forumdb
+  forumdb=#
+....
+
+* Bây giờ hãy thực thi function `my_stat_activity()` được viết ở đây:
+
+[source,text]
+....
+  forumdb=# create function forum.my_stat_activity()
+  returns table (pid integer,query text)
+  as $$
+          select pid, query   from pg_stat_activity;
+  $$ language 'sql'
+  security definer;
+....
+
+* Hãy cấp execute permission trên function `forum.my_stat_activity` cho user forum. Chúng ta sẽ tìm hiểu feature này trong Chapter 10, Granting and Revoking Permissions:
+
+[source,text]
+....
+  forumdb=# grant execute on function forum.my_stat_activity TO forum;
+....
+
+* Kết nối lại tới database với user forum:
+
+[source,text]
+....
+  postgres@learn_postgresql:~$ psql -U forum forumdb
+  forumdb=>
+....
+
+* Bây giờ hãy thực thi query bên dưới:
+
+[source,text]
+....
+  forumdb=> select * from my_stat_activity();
+   pid |                 query
+  -----+-----------------------------------
+     74 |
+     75 |
+    271 | select * from my_stat_activity();
+    [..]
+....
+
+Chúng ta không còn gặp vấn đề trước đó. Đó là vì security definer cho phép function `forum.my_stat_activity()` được thực thi với permission của user đã tạo nó; trong trường hợp này, user tạo function là user postgres.

@@ -1,0 +1,94 @@
+= Thực hiện selective restore
+
+Khi thực hiện plain SQL database dump, bạn được phép edit thủ công kết quả vì đó là plain text, và chọn lọc remove những phần không muốn restore. Với custom format và `pg_restore`, bạn cũng có thể làm chính xác điều tương tự, nhưng cần thực hiện một vài bước.
+
+Trước hết, bạn luôn có thể inspect content của binary dump bằng `pg_restore` và option `--list` của nó; option này in index (Table of Contents, gọi tắt là ToC) ra màn hình. Sau option `--list`, bạn cần chỉ định single file hoặc directory chứa backup để in TOC:
+
+[source,text]
+....
+$ pg_restore --list backup.d
+;
+; Archive created at 2023-09-29 15:35:12 UTC
+;     dbname: forumdb
+;     TOC Entries: 39
+;     Compression: -1
+;     Dump Version: 1.14-0
+;     Format: DIRECTORY
+;
+;
+; Selected TOC Entries:
+;
+6; 2615 16653 SCHEMA - forum forum
+215; 1259 16654 TABLE forum categories forum
+216; 1259 16659 SEQUENCE forum categories_pk_seq forum
+217; 1259 16660 TABLE forum delete_posts forum
+218; 1259 16665 TABLE forum j_posts_tags forum
+219; 1259 16668 TABLE forum new_categories forum
+220; 1259 16673 TABLE forum posts forum
+221; 1259 16682 SEQUENCE forum posts_pk_seq forum
+222; 1259 16683 TABLE forum tags forum
+223; 1259 16688 SEQUENCE forum tags_pk_seq forum
+224; 1259 16689 TABLE forum users forum
+225; 1259 16694 SEQUENCE forum users_pk_seq forum
+3368; 0 16654 TABLE DATA forum categories forum
+3370; 0 16660 TABLE DATA forum delete_posts forum
+3371; 0 16665 TABLE DATA forum j_posts_tags forum
+3372; 0 16668 TABLE DATA forum new_categories forum
+3373; 0 16673 TABLE DATA forum posts forum
+3375; 0 16683 TABLE DATA forum tags forum
+3377; 0 16689 TABLE DATA forum users forum
+3385; 0 0 SEQUENCE SET forum categories_pk_seq forum
+...
+....
+
+Các line bắt đầu bằng dấu chấm phẩy là comment, và như bạn có thể thấy, một vài line đầu tiên được in ra là banner mô tả content của backup, thời điểm backup được lấy, format (trong ví dụ này là “directory”) và số entry (object) trong backup.
+
+Mỗi line không phải comment đại diện cho một database object hoặc một action đơn mà restore process sẽ thực hiện. Ví dụ, hãy xem line sau:
+
+[source,text]
+....
+222; 1259 16683 TABLE forum tags forum
+....
+
+Điều này cho biết table `tags` sẽ được user `forum` restore trong schema `forum`.
+
+Line sau có nghĩa là cùng table đó sẽ được nạp data:
+
+[source,text]
+....
+3373; 0 16673 TABLE DATA forum posts forum
+....
+
+Nhờ ToC này, bạn có thể kiểm soát restoration process. Thực tế, nếu di chuyển hoặc xóa các line khỏi ToC, bạn có thể yêu cầu `pg_restore` thay đổi execution của nó. Ví dụ, trước hết hãy lưu ToC vào một text file:
+
+[source,text]
+....
+$ pg_restore --list backup.d > custom_toc.txt
+....
+
+Bây giờ, edit file `custom_toc.txt` bằng editor yêu thích và comment phần được đề cập như sau, bằng cách đặt dấu chấm phẩy ở character đầu tiên của line hoặc remove các line nạp table `tags` và join table liên quan:
+
+[source,text]
+....
+;3373; 0 16673 TABLE DATA forum posts forum
+;3371; 0 16665 TABLE DATA forum j_posts_tags forum
+....
+
+Bây giờ, lưu file `custom_toc.txt`. Khi đó, có thể restore database bằng `pg_restore`, nhưng bạn phải yêu cầu program tuân theo ToC riêng của mình thay vì ToC đầy đủ và chưa sửa đổi đi kèm chính backup. Vì mục đích này, `pg_restore` cho phép chỉ định flag `-L` cùng ToC cần dùng:
+
+[source,text]
+....
+$ psql -c 'DROP DATABASE forumdb;'
+DROP DATABASE
+
+$ pg_restore -C -d postgres -L custom_toc.txt                backup.d
+$ psql -c 'SELECT count(*) FROM forum.tags;' forumdb
+count
+-------
+     0
+(1 row)
+....
+
+Như bạn có thể thấy, table đã được tạo nhưng rỗng. Điều này minh họa cách bạn có thể điều khiển restoration của một backup để sắp xếp lại có chọn lọc các object cần restore.
+
+Cũng có thể sắp xếp lại các line để một số object được restore trước những object khác, nhưng việc này phức tạp hơn nhiều, đặc biệt khi tồn tại cross-reference và dependency giữa các object. Dù vậy, đây là một cách cực kỳ linh hoạt để quyết định có chọn lọc những gì cần restore; hơn nữa, bạn có thể tạo một ToC khác để restore cùng format backup trong các working set khác nhau.

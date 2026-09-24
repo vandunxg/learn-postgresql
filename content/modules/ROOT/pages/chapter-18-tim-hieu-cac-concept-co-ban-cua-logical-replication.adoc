@@ -1,0 +1,35 @@
+= Tìm hiểu các concept cơ bản của logical replication
+
+Logical replication là một method mà chúng ta có thể dùng để replicate data dựa trên concept `identity replication`. `REPLICA IDENTITY` là một parameter có trong các table management command (chẳng hạn `CREATE TABLE` và `ALTER TABLE`); PostgreSQL sử dụng parameter này để lấy thêm thông tin bên trong WAL segments, nhằm nhận biết tuple nào đã bị xóa và tuple nào đã được update. Parameter `REPLICA IDENTITY` có thể nhận bốn value:
+
+* `DEFAULT`
+* `USING INDEX index_name`
+* `FULL`
+* `NOTHING`
+
+Concept đằng sau logical replication là chuyển logic của các command được thực thi trên primary machine tới server, chứ không phải bản copy chính xác của các block cần replicate, byte theo byte. Ở trung tâm của logical replication là một reverse engineering process; bắt đầu từ các WAL segments và sử dụng logical decoding process, process này có thể suy ra các SQL command ban đầu rồi chuyển chúng tới replication machine, cũng bằng logical decoding process.
+
+Hãy xem flow chart cho thấy PostgreSQL thực thi query nội bộ như thế nào:
+
+image::chapter-18-figure-18-1-000.jpg[Hình 18.1: Minh họa backend process]
+
+*Hình 18.1: Minh họa backend process*
+
+Như có thể thấy, trước khi được execute, một query cần trải qua một số bước nội bộ; nguyên nhân là system cố gắng execute query theo cách tốt nhất có thể, dựa trên các điều kiện đang tồn tại trong database tại thời điểm đó. Bây giờ, giả sử chúng ta muốn replicate data theo cách logical; lúc này, chúng ta có hai khả năng:
+
+* Chúng ta có thể capture các command trước khi chúng đến parser rồi chuyển các command này tới một machine thứ hai.
+* Chúng ta có thể tìm cách lấy các query đã được parse.
+
+Method đầu tiên được triển khai bởi các system dựa trên trigger, được thiết kế trước khi có native logical replication; một ví dụ về application của method này có thể tìm thấy ở Slony (https://www.slony.info/).
+
+Method thứ hai được sử dụng trong logical replication.
+
+Trong logical replication, chúng ta sẽ lấy các command cần gửi tới replica server từ bên trong WAL segments. Vấn đề là trong WAL segments, data được biểu diễn theo dạng physical. Nói cách khác, trong WAL segments, data đã sẵn sàng để được gửi hoặc archive nhằm tạo ra các bản copy physical, chứ không phải logical.
+
+Logical replication dựa trên concept rằng các WAL segments, sau khi được xử lý qua một logical decoding process đảo ngược thông tin physical thành thông tin logical, sẽ được cung cấp thông qua một publication mechanism. Sau đó, primary sẽ bắt đầu một publication process, còn replica sẽ bắt đầu một subscription process; bằng cách connect tới publication của primary, process này có thể chuyển các instruction đã decode trực tiếp tới query executor của replica machine.
+
+image::chapter-18-figure-18-2-000.jpg[Hình 18.2: Sơ đồ logical replication]
+
+*Hình 18.2: Sơ đồ logical replication*
+
+Như có thể thấy từ diagram, bằng cách sử dụng một reverse engineering process, các instruction được lấy ra từ WAL segments; các instruction này đã sẵn sàng để được executor của replica server xử lý mà không cần parsing action nào. Method thứ hai này nhanh hơn nhiều so với method đầu tiên. Method đầu tiên là method duy nhất có sẵn trong các PostgreSQL version trước 9.4; từ 9.4 trở đi, có một extension tên là `pglogical`, và kể từ version 10.0, logical replica đã trở thành native.

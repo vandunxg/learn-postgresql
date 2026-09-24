@@ -1,0 +1,9 @@
+= 18. Logical Replication
+
+Trong chapter trước, chúng ta đã nói về WAL segments và physical replication ở các mode synchronous, asynchronous và cascading. Trong chapter này, chúng ta sẽ đề cập đến logical replication. Chúng ta sẽ xem cách thực hiện một logical replica, logical replication khác physical replication như thế nào và khi nào nên dùng logical replication thay vì physical replication. Chúng ta cũng sẽ thấy logical replication có thể được dùng để thực hiện PostgreSQL hot upgrade. Chapter này nhằm giới thiệu về logical replication; để biết thêm thông tin, hãy tham khảo các tài liệu nâng cao hơn, chẳng hạn *Mastering PostgreSQL* của Hans-Jürgen Schönig.
+
+Chapter này bao gồm các chủ đề sau:
+
+* Tìm hiểu các concept cơ bản của logical replication
+* So sánh logical replication và physical replication
+* Khám phá một logical replication setup và các feature logical replication mới trên PostgreSQL 16

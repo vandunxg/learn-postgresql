@@ -1,0 +1,18 @@
+= 8 Triggers và Rules
+
+Trong chapter trước, chúng ta đã nói về server-side programming. Trong chapter này, chúng ta sẽ dùng các concept được giới thiệu ở chapter trước để quản lý việc lập trình các event trong PostgreSQL.
+
+Điều đầu tiên chúng ta cần xử lý là event trong PostgreSQL thực sự là gì. Trong PostgreSQL, các event có thể là các statement `SELECT`/`INSERT`/`UPDATE` và `DELETE`. Ngoài ra còn có các event liên quan đến thao tác data definition language (DDL); tuy nhiên, chúng ta sẽ nói về các event đó trong Chapter 17, Event Triggers.
+
+Trong PostgreSQL có hai cách để xử lý event:
+
+* Rules
+* Triggers
+
+Trong chapter này, chúng ta sẽ khám phá cả hai cách và xem khi nào nên dùng cách này thay vì cách kia. Như một điểm bắt đầu, chúng ta có thể nói generally rằng rules thường là các event handler đơn giản, trong khi triggers là các event handler phức tạp hơn. Triggers và rules thường được dùng để update accumulator và modify hoặc delete record thuộc các table khác với table nơi chúng ta modify record. Chúng là các tool rất mạnh, cho phép chúng ta thực hiện operation trên các table khác với table nơi chúng ta modify data. Triggers và rules cũng sẽ được dùng trong chapter tiếp theo khi chúng ta nói về partitioning. Đó là vì trong PostgreSQL vẫn còn một partitioning model dựa trên trigger và rule.
+
+Trong chapter này, chúng ta sẽ nói về các nội dung sau:
+
+* Khám phá rules trong PostgreSQL
+* Quản lý triggers
+* Event triggers

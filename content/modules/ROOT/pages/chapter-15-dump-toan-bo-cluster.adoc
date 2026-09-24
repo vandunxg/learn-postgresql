@@ -1,0 +1,40 @@
+= Dump toàn bộ cluster
+
+`pg_dumpall` là tool dùng để dump một full cluster. Nói ngắn gọn, `pg_dumpall` loop qua tất cả database có trong cluster và thực hiện một `pg_dump` trên từng database, sau đó dump các object cụ thể ở cluster level, chẳng hạn role.
+
+`pg_dumpall` hoạt động tương tự `pg_dump`, vì vậy gần như mọi concept và option bạn đã thấy trong các section trước cũng áp dụng cho `pg_dumpall`. Nếu không chỉ định output format và file, `pg_dumpall` in mọi SQL statement cần thiết ra standard output. Giả sử bạn muốn lưu toàn bộ database content vào một SQL file duy nhất, command line sau cung cấp một full backup:
+
+[source,text]
+....
+$ pg_dumpall -f cluster.sql
+....
+
+File có thể nhanh chóng trở nên lớn, và lần này nó bắt đầu bằng việc tạo mọi role cần thiết:
+
+[source,text]
+....
+$ less cluster.sql
+...
+CREATE ROLE book_authors;
+ALTER ROLE book_authors WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB
+NOLOGIN NOREPLICATION NOBYPASSRLS;
+CREATE ROLE enrico;
+ALTER ROLE enrico WITH NOSUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN
+NOREPLICATION NOBYPASSRLS PASSWORD 'SCRAM-SHA-256$4096:PiAJvQ9sn/TcrlcfhJF
+isQ==$+gEEKa0oYVLPYNS1o4zO4Jng0qAwajBe3DHirEkJT40=:gek2heWOJT+G+8dJa
+zqtn4x3Wl5zYY0DyyyKed7pvXY=';
+CREATE ROLE forum;
+
+...
+....
+
+Sau đó nó tiếp tục bằng việc restore từng database, bao gồm cả `template1`. Tiếp theo, tất cả database được populate bằng các SQL statement do những lần chạy `pg_dump` riêng lẻ tạo ra.
+
+`pg_dumpall` chỉ tạo SQL script, vì vậy bạn cần restore cluster bằng `psql` hoặc một interactive connection. Tất cả option chính có thể dùng với `pg_dump` đã trình bày ở các section trước cũng áp dụng cho `pg_dumpall`.
+
+`pg_dumpall` cung cấp một option đặc biệt hữu ích là `--globals-only`, được dùng để chỉ dump các intra-cluster object, chẳng hạn role, tablespace và replication slot. Option này hữu ích để dump và restore các object đó giữa những cluster khác nhau:
+
+[source,text]
+....
+$ pg_dumpall --globals-only -f cluster.sql
+....

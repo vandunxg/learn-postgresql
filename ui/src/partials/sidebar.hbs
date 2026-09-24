@@ -1,0 +1,11 @@
+<aside id="docs-sidebar" class="docs-sidebar" data-sidebar aria-label="Documentation navigation">
+  <div class="book-meta">
+    {{#with page.componentVersion}}
+      <small>{{./displayVersion}}</small>
+      <strong>{{./title}}</strong>
+    {{/with}}
+  </div>
+  {{#with page.navigation}}
+    {{> nav-tree navigation=this}}
+  {{/with}}
+</aside>

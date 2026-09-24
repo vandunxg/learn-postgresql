@@ -1,0 +1,265 @@
+= Aggregate functions
+
+Aggregate function thực hiện một phép tính trên một tập row và trả về một row duy nhất. PostgreSQL cung cấp tất cả aggregate function chuẩn của SQL:
+
+* `AVG()`: Function này trả về giá trị trung bình.
+* `COUNT()`: Function này trả về số lượng value.
+* `MAX()`: Function này trả về value lớn nhất.
+* `MIN()`: Function này trả về value nhỏ nhất.
+* `SUM()`: Function này trả về tổng các value.
+
+Aggregate function được dùng cùng với `group by` clause. Một `group by` clause chia resultset thành các group row, và aggregate function thực hiện phép tính trên chúng. Ví dụ, nếu muốn đếm có bao nhiêu record trong mỗi category, trước tiên PostgreSQL group data rồi đếm data. Biểu đồ sau minh họa process này:
+
+image::chapter-05-figure-5-6-000.jpg[Hình 5.6: Group by aggregation]
+
+*Hình 5.6: Group by aggregation*
+
+Biểu đồ này minh họa rằng trước khi group data, PostgreSQL sort data internally. Vì vậy, chúng ta phải nhớ rằng một grouping operation luôn bao hàm một ordering operation; điều này sẽ rõ hơn khi chúng ta thảo luận về performance sau này.
+
+Bây giờ khi đã hiểu theory, hãy xem cách thực sự tính số record trong mỗi category:
+
+[source,text]
+....
+forumdb=> select category,count(*) from posts group by category;
+ category | count
+----------+-------
+       3 |       1
+       1 |       2
+(2 rows)
+....
+
+Query trước đó đếm số record trong mỗi category của table `posts`.
+
+Một cách khác để viết cùng query là như sau:
+
+[source,text]
+....
+forumdb=> select category,count(*) from posts group by 1;
+ category | count
+----------+-------
+       3 |       1
+       1 |       2
+(2 rows)
+....
+
+[quote]
+____
+Trong PostgreSQL, chúng ta có thể viết điều kiện `group by` bằng tên field hoặc vị trí của chúng trong query.
+
+____
+Một condition khác mà chúng ta có thể dùng là `having` condition. Giả sử chúng ta muốn đếm số record trong mỗi category có count lớn hơn 2. Để làm điều đó, chúng ta phải thêm `having` condition sau `group by` condition, bằng cách viết như sau:
+
+[source,text]
+....
+forumdb=> select category,count(*) from posts group by category having
+count(*) > 1;
+ category | count
+----------+-------
+       1 |       2
+(1 row)
+....
+
+Tương tự, chúng ta có thể viết:
+
+[source,text]
+....
+forumdb=> select category,count(*) from posts group by 1 having count(*) >
+1;
+ category | count
+----------+-------
+       1 |       2
+(1 row)
+....
+
+Bây giờ hãy xem các aggregate function hoạt động thế nào khi chúng ta thêm alias. Hãy quay lại query đầu tiên và viết như sau:
+
+[source,text]
+....
+forumdb=> select category,count(*) as category_count from posts group by
+category;
+ category | category_count
+----------+----------------
+       3 |                 1
+       1 |                 2
+(2 rows)
+....
+
+Như có thể thấy ở đây, chúng ta có thể dùng alias trên aggregate function.
+
+Tuy nhiên, nếu muốn dùng alias bên trong một query cũng có `having` condition thì sao? Để trả lời câu hỏi này, hãy thử statement sau:
+
+[source,text]
+....
+forumdb=> select category,count(*) as category_count from posts group by
+category having category_count > 1;
+ERROR:     column "category_count" does not exist
+....
+
+Như có thể thấy, chúng ta không thể dùng alias trong `having` condition. Cách đúng để viết query trước đó là:
+
+[source,text]
+....
+forumdb=> select category,count(*) as category_count from posts group by
+category having count(*) > 1;
+    category | category_count
+    ----------+----------------
+               1 |                 2
+    (1 row)
+....
+
+Trong chapter tiếp theo, chúng ta sẽ thảo luận chi tiết hơn về aggregate.
+
+== UNION/UNION ALL
+
+UNION operator được dùng để combine resultset của hai hoặc nhiều `SELECT` statement. Chúng ta chỉ có thể dùng `UNION` statement nếu tuân thủ các rule sau:
+
+* Mỗi `SELECT` statement trong `UNION` phải có cùng số lượng column.
+* Các column phải có data type tương tự nhau.
+* Các column trong mỗi `SELECT` statement phải có cùng thứ tự.
+
+Hãy cùng xem một ví dụ.
+
+Trước tiên, chúng ta cần insert một số data:
+
+[source,text]
+....
+forumdb=> insert into tags (tag) values ('Database'),('Operating
+Systems');
+INSERT 0 2
+....
+
+Tình trạng trên table `tags` là:
+
+[source,text]
+....
+forumdb=> select tag from tags;
+          tag
+-------------------
+ Database
+ Operating Systems
+(2 rows)
+....
+
+Và trên table `categories` là:
+
+[source,text]
+....
+forumdb=> select title from categories;
+             title
+-----------------------
+ Database
+ Unix
+ Programming Languages
+ New Category
+ Database
+(5 rows)
+....
+
+Bây giờ giả sử chúng ta muốn có một resultset là union của `tags` và `categories`; nói cách khác, chúng ta muốn nhận được result sau:
+
+[source,text]
+....
+Operating Systems
+Database
+New Category
+Programming Languages
+Unix
+....
+
+Để đạt được điều này, chúng ta phải dùng UNION operator:
+
+[source,text]
+....
+forumdb=> select tag as datalist from tags UNION select title as datalist
+from categories;
+        datalist
+-----------------------
+ New Category
+ Operating Systems
+ Programming Languages
+ Database
+ Unix
+(5 rows)
+....
+
+UNION operator combine các value của hai table và loại bỏ duplicate. Nếu không muốn duplicate bị loại bỏ mà muốn chúng vẫn còn trong resultset, chúng ta phải dùng UNION ALL operator:
+
+[source,text]
+....
+forumdb=> select tag as datalist from tags UNION ALL select title as
+datalist from categories order by 1;
+         datalist
+-----------------------
+ Database
+ Database
+ Database
+ New Category
+ Operating Systems
+ Programming Languages
+ Unix
+(7 rows)
+....
+
+== EXCEPT/INTERSECT
+
+EXCEPT operator trả về các row bằng cách so sánh resultset của hai hoặc nhiều query. EXCEPT operator trả về các row distinct từ query thứ nhất (bên trái) không có trong output của query thứ hai (bên phải). Tương tự UNION operator, EXCEPT operator cũng có thể compare các query có cùng số lượng field và cùng data type.
+
+Ví dụ, giả sử chúng ta có:
+
+[source,text]
+....
+forumdb=> select tag from tags;
+        tag
+-------------------
+ Database
+ Operating Systems
+(2 rows)
+
+
+forumdb=> select title from categories;
+          title
+-----------------------
+ Database
+ Unix
+ Programming Languages
+ New Category
+ Database
+(5 rows)
+....
+
+Và chúng ta muốn nhận được result sau:
+
+[source,text]
+....
+New Category
+Programming Languages
+Unix
+....
+
+Chúng ta cần lấy tất cả record hiện diện trong table `categories` nhưng không hiện diện trong table `tags`, được order theo field `title`. Để làm điều này, chúng ta dùng query sau:
+
+[source,text]
+....
+forumdb=> select title as datalist from categories except select tag as
+datalist from tags order by 1;
+        datalist
+-----------------------
+ New Category
+ Programming Languages
+ Unix
+(3 rows)
+....
+
+INTERSECT operator thực hiện operation ngược lại. Nó search tất cả record hiện diện trong table thứ nhất và đồng thời hiện diện trong table thứ hai:
+
+[source,text]
+....
+forumdb=> select title as datalist from categories intersect select tag as
+datalist from tags order by 1;
+ datalist
+----------
+ Database
+(1 row)
+....
+
+Trong section này, chúng ta đã xem xét chi tiết các instruction cần thiết để search data trong các table bằng nhiều statement và join khác nhau. Trong section tiếp theo, chúng ta sẽ xem cách modify data trong các table theo những cách nâng cao hơn.

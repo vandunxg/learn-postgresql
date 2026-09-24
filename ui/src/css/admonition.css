@@ -1,0 +1,19 @@
+.admonitionblock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: .8rem;
+  margin: 1.6rem 0;
+  padding: .9rem 1rem;
+  border-left: 4px solid var(--color-accent);
+  border-radius: 0 7px 7px 0;
+  background: var(--color-note-background);
+}
+.admonitionblock > table { display: contents; }
+.admonitionblock > table td { padding: 0; border: 0; }
+.admonitionblock > table td.icon { color: var(--color-accent-strong); font-weight: 700; text-transform: uppercase; }
+.admonitionblock > table td.content { min-width: 0; }
+.admonitionblock p { margin: 0; }
+.admonitionblock.tip { border-left-color: #5b8f68; background: var(--color-tip-background); }
+.admonitionblock.warning { border-left-color: #b2862f; background: var(--color-warning-background); }
+.admonitionblock.important { border-left-color: #ad6565; background: var(--color-important-background); }
+.admonitionblock.caution { border-left-color: #b2862f; background: var(--color-caution-background); }

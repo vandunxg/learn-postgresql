@@ -1,0 +1,118 @@
+= Khám phá extension `pg_trgm`
+
+Bây giờ chúng ta hãy quay lại Chapter 13, Indexes and Performance Optimization, trong section Indexes. Khi nói về indexing, chúng ta đã học cách làm cho query nhanh hơn thông qua việc sử dụng index. Tuy nhiên, B-tree index không index mọi loại operation. Bây giờ hãy xem xét các textual data type (`char`, `varchar` hoặc `text`). Chúng ta sẽ thấy rằng B-tree, khi sử dụng operator class `varchar_pattern_ops`, có thể index các text query cho những sentence bắt đầu bằng `search%`, nhưng không thể index các text query cho những sentence kết thúc bằng `%search` hoặc chứa `%search%`:
+
+. Trước khi đi sâu vào ví dụ, hãy đặt `enable_seqscan` thành `off` để buộc PostgreSQL sử dụng index nếu có. Chúng ta cần làm vậy vì trong trường hợp ví dụ này, PostgreSQL luôn sử dụng sequential scanning theo mặc định: table chỉ có một vài record và toàn bộ data hiện có trong table được lưu trên một page duy nhất:
+
+[source,text]
+....
+   forumdb=> set enable_seqscan to 'off';
+   SET
+....
+
+. Bây giờ, trong database của mình, chúng ta có thể thực thi query này trên table `categories`:
+
+[source,text]
+....
+   forumdb=> select pk,title from categories;
+    pk |             title
+   ----+-----------------------
+       1 | Database
+       2 | Unix
+       3 | Programming Languages
+....
+
+. Hãy tạo một B-tree index với varchar opclass để kiểm tra xem PostgreSQL có sử dụng index access tới table khi chúng ta thực hiện query với operator `like` hay không:
+
+[source,text]
+....
+   forumdb=> create index on categories using btree(title varchar_
+   pattern_ops);
+   CREATE INDEX
+....
+
+   Bây giờ hãy thực hiện một số query `like`:
+
+[%start=4]
+. Trong ví dụ đầu tiên, hãy thực hiện một query `like` sử dụng predicate `‘search%'`:
+
+[source,text]
+....
+   forumdb=> explain analyze select * from categories where title like
+   'Da%';
+                                                                                   QUERY PL
+   AN
+   ---------------------------------------------------------
+    Index Scan using categories_title_idx on categories
+   (cost=0.13..8.15 rows=1 width=68)
+   (actual time=0.033..0.037 rows=1 loops=1)
+        Index Cond: ((title ~>=~ 'Da'::text) AND (title ~<~ 'Db'::text))
+        Filter: (title ~~ 'Da%'::text)
+    Planning Time: 0.172 ms
+    Execution Time: 0.075 ms
+   (5 rows)
+....
+
+. Trong ví dụ thứ hai, hãy thực hiện một query `like` sử dụng predicate `‘%search'`:
+
+[source,text]
+....
+   forumdb=> explain analyze select * from categories where title like
+   '%Da%';
+                                                                              QUERY PLAN
+   ---------------------------------------------------------
+    Seq Scan on categories (cost=10000000000.00..10000000001.04 rows=1
+   width=68) (actual time=17.278..17.283 rows=1 loops=1)
+        Filter: (title ~~ '%Da%'::text)
+        Rows Removed by Filter: 2
+   Planning Time: 0.101 ms
+   JIT:
+     Functions: 2
+     Options: Inlining true, Optimization true, Expressions true,
+   Deforming true
+       Timing: Generation 0.477 ms, Inlining 5.469 ms, Optimization
+   7.027 ms, Emission 4.750 ms, Total 17.722 ms
+    Execution Time: 17.834 ms
+   (9 rows)
+....
+
+Như có thể thấy, chỉ trong trường hợp đầu tiên PostgreSQL mới sử dụng index approach. Trong trường hợp thứ hai, PostgreSQL sử dụng sequential scan (vì không có index nào có thể sử dụng được). Để cải thiện kiểu search này, chúng ta có thể sử dụng extension `pg_trgm`, đây là một extension chính thức và nằm trong official PostgreSQL contribs package. Khi sử dụng extension này, PostgreSQL tách mỗi word thành một tập trigram và tạo một GIST hoặc GIN index trên đó. Ví dụ, nếu xét word `dog`, tập trigram của nó gồm `d`, `do`, `og` và `dog`. Hãy xem cách hoạt động này trong thực tế:
+
+. Trước hết, hãy cài đặt extension:
+
+[source,text]
+....
+   forumdb=> create extension pg_trgm;
+   CREATE EXTENSION
+....
+
+. Bây giờ chúng ta có thể tạo GIN hoặc GIST index bằng opclass trigram. Ví dụ, hãy tạo một GIN index bằng opclass `gin_trgm_ops`:
+
+[source,text]
+....
+   forumdb=> create index           on categories using gin (title gin_trgm_
+   ops);
+   CREATE INDEX
+....
+
+. Bây giờ hãy thực hiện query `like`:
+
+[source,text]
+....
+   forumdb=> explain analyze select * from categories where title like
+   'Da%';
+                                                                                       QUERY PL
+   AN
+   ---------------------------------------------------------- Index
+   Scan using categories_title_idx on categories (cost=0.13..8.15
+   rows=1 width=68) (actual time=0.029..0.032 rows=1 loops=1)
+        Index Cond: ((title ~>=~ 'Da'::text) AND (title ~<~ 'Db'::text))
+        Filter: (title ~~ 'Da%'::text)
+    Planning Time: 0.217 ms
+    Execution Time: 0.069 ms
+   (5 rows)
+....
+
+Như có thể thấy ở đây, PostgreSQL hiện có thể tạo index access bằng một query `like`. Điều tương tự xảy ra với mọi loại query `like` và `ilike`; extension `pg_trgm` giải quyết access index cho các table của loại query này. Để biết thêm thông tin về extension `pg_trgm`, xem https://www.postgresql.org/docs/current/pgtrgm.html.
+
+Extension `pg_trgm` giúp công việc của DBA dễ dàng hơn trong mọi trường hợp cần optimize query `like` và `ilike`. Bây giờ chúng ta sẽ chuyển sang extension tiếp theo, `postgres_fdw`.

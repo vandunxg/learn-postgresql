@@ -1,0 +1,9 @@
+= Yêu cầu kỹ thuật
+
+Trước khi bắt đầu, hãy nhớ khởi động Docker container có tên `chapter_05`, như minh họa dưới đây:
+
+[source,text]
+....
+$ bash run-pg-docker.sh chapter_05
+postgres@learn_postgresql:~$ psql -U forum forumdb
+....

@@ -1,0 +1,9 @@
+= 14. Logging và Auditing
+
+PostgreSQL cung cấp một logging infrastructure rất phong phú. Có khả năng kiểm tra log là một kỹ năng then chốt đối với mọi database administrator – log cung cấp gợi ý và thông tin về những gì cluster đã làm, đang làm và những gì đã xảy ra trong quá khứ. Chapter này sẽ giải thích các khái niệm cơ bản về PostgreSQL log configuration, cung cấp cho bạn lời giải thích về cách configure logging machinery để lấy thông tin cần thiết về cluster activity. Log có thể được phân tích thủ công, nhưng database administrator thường cũng tận dụng các tool tự động để có được insight rộng hơn về cluster activity. Chủ đề auditing có liên quan đến logging, đây là khả năng theo dõi ai đã làm gì trên data nào. Auditing thường được áp dụng do luật của chính phủ yêu cầu, thay vì do nhu cầu của database administrator. Tuy nhiên, một auditing system tốt cũng có thể giúp administrator xác định điều gì đã xảy ra trong database.
+
+Trong chapter này, bạn sẽ tìm hiểu các chủ đề sau:
+
+* Giới thiệu về logging
+* Trích xuất thông tin từ log bằng pgBadger
+* Triển khai auditing

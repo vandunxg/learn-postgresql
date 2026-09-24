@@ -1,0 +1,84 @@
+= Sử dụng clause like
+
+Giả sử chúng ta muốn tìm tất cả record có giá trị field `title` bắt đầu bằng string Prog.
+
+Để làm vậy, chúng ta phải sử dụng điều kiện like:
+
+[source,text]
+....
+forumdb=> \x
+Expanded display is on.
+forumdb=> select * from categories where title like 'Prog%';
+-[ RECORD 1 ]--------------------------------
+pk           | 3
+title        | Programming Languages
+description | All about programming languages
+....
+
+Như minh họa, query trên trả về tất cả record có `title` bắt đầu bằng string Prog. Tương tự, nếu muốn tìm tất cả record có title kết thúc bằng từ Languages, chúng ta sẽ viết như sau:
+
+[source,text]
+....
+forumdb=> select * from categories where title like '%Languages';
+-[ RECORD 1 ]--------------------------------
+pk           | 3
+title        | Programming Languages
+description | All about programming languages
+....
+
+Hai kiểu tìm kiếm này cũng có thể kết hợp. Ví dụ, nếu muốn tìm tất cả record chứa chuỗi con `discuss`, chúng ta sẽ viết như sau:
+
+[source,text]
+....
+forumdb=> \x
+Expanded display is off
+forumdb=> select * from categories where description like '%discuss%';
+ pk |   title   |           description
+----+----------+------------------------------
+1 | Database | Database related discussions
+2 | Unix       | Unix and Linux discussions
+(2 rows)
+....
+
+Query ở đây sẽ trả về tất cả record mà `description` chứa string discuss.
+
+Bây giờ hãy thử chạy query sau và xem điều gì xảy ra:
+
+[source,text]
+....
+forumdb=> select * from categories where title like 'prog%';
+(0 rows)
+....
+
+Như có thể thấy, tìm kiếm không trả về kết quả nào. Điều này xảy ra vì tìm kiếm like phân biệt chữ hoa chữ thường.
+
+Bây giờ hãy giới thiệu function `upper` (text). Function upper, khi nhận một input string, trả về chính string đó với tất cả ký tự được viết hoa, như sau:
+
+[source,text]
+....
+forumdb=> select upper('prog');
+ upper
+-------
+ PROG
+(1 row)
+....
+
+[quote]
+____
+Trong PostgreSQL, có thể gọi function mà không cần viết `FROM`. PostgreSQL không cần dummy table để thực thi câu lệnh `SELECT`. Nếu dùng Oracle DB, query tương tự phải được viết như sau: `select upper('prog') from DUAL;`.
+
+____
+Quay lại ví dụ trước, nếu muốn thực hiện tìm kiếm like không phân biệt chữ hoa chữ thường, chúng ta phải viết statement này:
+
+[source,text]
+....
+forumdb=> select * from categories where upper(description) like
+'%DISCUSS%';
+ pk |  title   |            description
+----+----------+------------------------------
+   1 | Database | Database related discussions
+   2 | Unix       | Unix and Linux discussions
+(2 rows)
+....
+
+Đến đây, chúng ta đã trình bày mọi cách sử dụng operator `like`.

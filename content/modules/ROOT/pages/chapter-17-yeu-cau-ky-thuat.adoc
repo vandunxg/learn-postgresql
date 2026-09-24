@@ -1,0 +1,52 @@
+= Yêu cầu kỹ thuật
+
+Trong Learn PostgreSQL GitHub repository, bạn có thể tìm thấy ba Docker image:
+
+* `chapter17_streaming`: replication bất đồng bộ Primary/replica; nếu muốn sử dụng replica container sau khi khởi động container bằng:
+
+[source,text]
+....
+  chapter_17$ bash run-pg-docker.sh chapter17_streaming
+....
+
+  bạn phải chạy:
+
+[source,text]
+....
+  chapter_17$ bash run-pg-docker_replica.sh chapter17_streaming
+....
+
+* *`chapter17_synchronous`*: replication đồng bộ Primary/replica; nếu muốn sử dụng replica container sau khi khởi động container bằng:
+
+[source,text]
+....
+  chapter_17$ bash run-pg-docker.sh chapter17_synchronous
+....
+
+  bạn phải chạy:
+
+[source,text]
+....
+  chapter_17$ bash run-pg-docker_replica.sh chapter17_synchronous
+....
+
+* *`chapter17_delayed`*: Primary/replica với replication delayed; nếu muốn sử dụng replica container sau khi khởi động container bằng:
+
+[source,text]
+....
+  chapter_17$ bash run-pg-docker.sh chapter17_delayed
+....
+
+  bạn phải chạy:
+
+[source,text]
+....
+  chapter_17$ bash run-pg-docker_replica.sh chapter17_delayed
+....
+
+Tất cả replica container đều bị dừng khi chúng ta thoát khỏi primary container.
+
+Trong chương này, chúng ta sẽ đề cập đến các chủ đề sau:
+
+* Khám phá các khái niệm cơ bản về replication
+* Quản lý streaming replication

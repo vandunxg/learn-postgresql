@@ -1,0 +1,100 @@
+= Giới thiệu extension
+
+SQL là một declarative language cho phép bạn tạo và thao tác với object cũng như data. Bạn có thể group các SQL statement thành script để chạy script theo cách dễ dự đoán và reproducible hơn. Tuy nhiên, PostgreSQL xem các script như vậy là một sequence gồm các command không liên quan, nghĩa là bạn phải chịu trách nhiệm correlate các command đó vào những script phù hợp. Tình hình còn tệ hơn khi bạn phải xử lý các foreign programming language (ví dụ PL/Perl và những language không dựa trên SQL khác) hoặc binary library; cluster không biết gì về mục đích của bạn hay về mối quan hệ giữa các object. May mắn là extension giúp bạn lập lại order trong chaos.
+
+Extension là một tập file được đóng gói, có thể được install vào cluster để cung cấp thêm functionality, tức là “extend” tập feature hiện tại của cluster. Không giống script, extension được quản lý nghiêm ngặt thông qua các command cụ thể để install, deploy, load và upgrade toàn bộ extension như một thể thống nhất, ngay cả khi nó gồm nhiều file khác nhau.
+
+Extension có thể là một thứ tổng quát, chẳng hạn data type mới, index type mới hoặc service gửi email trực tiếp từ bên trong PostgreSQL; hoặc có thể là thứ rất cụ thể cho một use case nhất định, chẳng hạn một tập table và data cung cấp ad hoc configuration. Extension không áp đặt opinion về cách bạn sẽ sử dụng nó, vì vậy bạn có thể tự do install rồi bỏ đó, hoặc dùng nó trong mọi database của cluster.
+
+Mục tiêu chính của extension mechanism là cung cấp một common interface để administer feature mới. Nhờ extension, bạn có một tập statement chung để deploy, install, upgrade và remove một extension như một thể thống nhất trong cluster. Extension của bạn gồm một function duy nhất hay cả một tập object được liên kết với nhau không quan trọng; extension mechanism sẽ xử lý tất cả object cùng lúc, giúp việc administration dễ dàng hơn. Hơn nữa, extension machinery định nghĩa một cách standard để thêm feature theo cách có cấu trúc và sạch sẽ, nhờ đó mọi người dễ đóng góp cho PostgreSQL hơn.
+
+PostgreSQL đi kèm một tập extension hữu ích nằm trong `contrib` package và do chính các PostgreSQL developer phát triển. Vì vậy, tập contrib extension này vững chắc và an toàn để sử dụng, vì chúng được build gắn chặt với chính PostgreSQL database. Tuy nhiên, extension cũng có thể đến từ third party, và đây chính là điểm hay của approach này: bất kỳ ai cũng có thể đóng góp cho PostgreSQL bằng cách cung cấp feature mới thông qua extension. Lưu ý rằng các PostgreSQL developer không bảo đảm stability của third-party extension.
+
+[quote]
+____
+Các operating system package thường cung cấp package `postgrsql-contrib`, package này install toàn bộ PostgreSQL contrib extension. Package này được tách riêng để user có thể chọn có install các extension đó hay không. Rõ ràng, PostgreSQL vẫn hoạt động tốt ngay cả khi không có module `contrib`, vốn thực tế bổ sung feature thông qua extension.
+
+____
+PostgreSQL đã xây dựng cả một ecosystem xung quanh concept extension, vì vậy nó không chỉ cung cấp các statement để quản lý extension mà còn cung cấp một platform để build extension mới và chuyển các script hiện có thành extension. Sau đó, extension có thể được cung cấp công khai thông qua một global repository có tên *PostgreSQL eXtensions Network (PGXN)*.
+
+Bạn có thể hình dung extension PostgreSQL như các reusable library trong programming language, chẳng hạn module cho Perl, gem cho Ruby, JAR cho Java, v.v. Tương tự, PGXN infrastructure có thể được xem như CPAN đối với Perl (hoặc PEAR đối với PHP, v.v.).
+
+== Hệ sinh thái extension
+
+Điểm hay của extension là chúng cung cấp một cách thống nhất để bundle các module có thể được deploy (install) và sử dụng trong PostgreSQL. Developer được tự do đóng góp để mở rộng số lượng module có sẵn cho PostgreSQL, và số lượng này đã nhanh chóng phát triển thành một ecosystem hoàn chỉnh như hiện nay.
+
+Tương tự các programming language như Perl, Python và những language khác, PostgreSQL giờ đây có thể được customize bằng add-on và module dùng chung một infrastructure và architecture, đồng thời được quản lý bằng cùng các statement mà không phụ thuộc vào feature chúng cung cấp.
+
+Extension chủ yếu được tập hợp trong PGXN, một online repository có thể được query để lấy thông tin về một extension hoặc download một extension (và một version cụ thể của nó), đồng thời có thể được update bằng các module mới.
+
+[quote]
+____
+Hãy nhớ rằng PGXN đối với PostgreSQL cũng giống như CPAN đối với Perl, CTAN đối với LaTeX, PEAR đối với PHP, v.v.
+____
+Mặc dù bạn có thể tìm thấy các PostgreSQL extension ở khắp nơi trên internet, nhiều khả năng bạn sẽ làm việc với PGXN gần như mỗi khi cần một extension mới. PGXN không chỉ là một website hoặc một code repository đơn giản, mà là một platform chi tiết gồm bốn phần: search engine, extension manager, application programming interface (API) và client.
+
+Search engine cho phép user tìm kiếm một extension cụ thể trong nội dung PGXN. Manager chịu trách nhiệm tiếp nhận các extension mới (hoặc version mới của extension) và cho phép user lấy chúng (tức là phân phối các extension). API định nghĩa cách các application có thể tương tác với manager và search engine, từ đó định nghĩa cách xây dựng một client. Có hai client chính: PGXN website và application command-line `pgxnclient`. Application `pgxnclient` có lẽ là cách hiệu quả nhất để lấy và cài đặt một extension, nội dung này sẽ được trình bày chi tiết trong các subsection tiếp theo; tuy nhiên, bạn cũng có thể tương tác trực tiếp với PGXN website để tìm kiếm và download extension. Sau này trong chapter, bạn sẽ thấy một ví dụ sử dụng PGXN website.
+
+Extension được xây dựng trên PostgreSQL eXtension System (PGXS), một tập hợp rule cơ bản mà extension phải tuân thủ để cung cấp một interface quản lý thống nhất. Cụ thể, PostgreSQL cung cấp một Makefile thống nhất mà mọi extension nên sử dụng để cung cấp các chức năng chung nhằm cài đặt, upgrade và remove một extension. Bạn có thể inspect Makefile cơ sở của PGXS bằng cách tìm vị trí của nó với `pg_config`:
+
+[source,text]
+....
+$ pg_config --pgxs
+/usr/lib/postgresql/16/lib/pgxs/src/makefiles/pgxs.mk
+....
+
+`pgxs.mk` là Makefile cơ sở cung cấp các chức năng chung cho mọi extension; cách sử dụng file này sẽ rõ ràng hơn khi chúng ta trình bày cách tạo một extension từ đầu.
+
+== Thành phần của extension
+
+Một extension gồm hai thành phần chính: control file và script file:
+
+* *Control file* cung cấp thông tin về extension và cách quản lý nó, chẳng hạn cài đặt ở đâu và như thế nào, upgrade ra sao, v.v. Control file phần nào chính là metadata của extension.
+* *Script file* là một SQL file chứa các statement để tạo các database object thuộc extension. Ở một mức độ nào đó, đây là content của extension. Đến lượt mình, script file có thể load các file khác hoàn thiện extension, chẳng hạn shared library và những thứ tương tự.
+
+Khi bạn yêu cầu PostgreSQL cài đặt một extension, system inspect control file để lấy thông tin về extension, bảo đảm extension chưa được cài đặt trước đó, rồi thực thi script file bên trong một transaction. Kết quả là extension sẵn sàng trong database của bạn.
+
+Mỗi extension có một version để bạn có thể quyết định chính xác version nào cần cài đặt. Nếu không chỉ định version, PostgreSQL sẽ giả định rằng bạn muốn version mới nhất hiện có.
+
+Extension được cài đặt trong share directory của cluster, thường có thể tìm thấy bằng cách thực thi command `pg_config` với option `--sharedir`. Đây là một ví dụ:
+
+[source,text]
+....
+$ pg_config --sharedir
+/usr/share/postgresql/16
+....
+
+Tất cả file tạo nên extension sẽ được đặt trong shared directory, và cluster yêu cầu các file này có sẵn ở đó cho user chạy cluster (thường là operating-system user `postgres`). Khi các file đã có sẵn cho cluster, extension phải được cài đặt riêng trong từng database cần nó; hãy nhớ rằng PostgreSQL cung cấp isolation rất mạnh giữa các database, vì vậy một extension được load vào database này sẽ không tự động có sẵn trong database khác. Tuy nhiên, hãy nhớ rằng template database (xem Chapter 2) có thể được dùng làm skeleton cho các database mới tạo, vì vậy sau khi bạn cài đặt một extension trong template database, extension đó sẽ có sẵn trong tất cả database khác được tạo ra.
+
+== Control file
+
+Một extension control file phải có tên liên quan đến extension và có suffix `.control`. Ví dụ, `learnpg.control` là một tên hợp lệ.
+
+Control file là một text file nơi bạn có thể chỉ định các directive, tức instruction và metadata để PostgreSQL xử lý việc cài đặt extension. Mỗi directive có một name và một value. Các directive phổ biến nhất như sau:
+
+* `directory` chỉ định path tới nơi chứa script của extension.
+* `default_version` chỉ định version của extension cần cài đặt khi user không chỉ định version nào.
+* `comment` là mô tả về extension và mục đích của nó.
+* `requires` là danh sách tùy chọn các extension khác cần thiết để cài đặt và sử dụng extension này, do đó đại diện cho một dependency list.
+* `schema` là một SQL schema nơi các extension object sẽ được cài đặt.
+* `relocatable` cho biết extension có thể được chuyển sang một schema do user chọn hay không.
+* `superuser` cho biết extension có thể được cài đặt bởi các account không phải superuser hay không (mặc định là yes, nghĩa là chỉ superuser mới có thể cài đặt extension).
+
+Mỗi extension phải có ít nhất một control file, và file đó được gọi là main control file. Tuy nhiên, một extension có thể có thêm các control file (gọi là secondary control file).
+
+Mỗi secondary control file phải nhắm tới một version cụ thể và phải có cùng tên với main control file, với version number được đặt trước bằng double dash; ví dụ, nếu main control file là `learnpg.control`, các file thứ cấp có thể là `learnpg--1.1.control`, `learnpg--1.2.control`, v.v.
+
+== Script file
+
+Script file chứa plain SQL dùng để tạo các extension object. Một extension object có thể là một table, một trigger, một function hoặc một binding cho external language.
+
+Mỗi script file phải được đặt tên theo tên extension và có suffix `.sql`; version của extension được chỉ định bằng một number đứng trước double dash. Ví dụ, file `learnpg--1.0.sql` tạo các object cho version 1.0 của extension.
+
+Mỗi extension phải có ít nhất một script file, nhưng có thể chỉ định nhiều hơn một file. Trong trường hợp đó, mỗi file bổ sung phải bao gồm version cần upgrade từ và version đích cuối cùng. Ví dụ, file `learnpg--1.0-1.1.sql` cung cấp việc upgrade từ version 1.0 lên version 1.1.
+
+[quote]
+____
+Mỗi extension có một version number. Version number cao hơn nghĩa là upgrade extension, còn number thấp hơn nghĩa là downgrade extension. Ví dụ, version 1.2 là upgrade của 1.1, còn 1.0 là downgrade.
+
+____
+Như đã nêu, script file được thực thi trong một transaction và do đó không thể tương tác với transaction boundary (nghĩa là nó không thể phát hành `COMMIT` hoặc `ROLLBACK`). Tương tự, khi thực thi trong một transaction, script file bị ngăn không cho thực hiện bất kỳ thứ gì không thể chạy trong transaction block (ví dụ các utility command như `VACUUM`).

@@ -1,0 +1,57 @@
+= Default partition
+
+Trong section này, chúng ta sẽ xem điều gì xảy ra nếu insert data vào partitioned table khi child partition chưa tồn tại, và cách giải quyết bất tiện do việc này gây ra. Để mô phỏng vấn đề này, giả sử chúng ta muốn insert một date tương ứng với `2023-05-01` vào table có tên `part_tags`. Chúng ta sẽ nhận được kết quả sau:
+
+[source,text]
+....
+   forumdb=> insert into part_tags (tag,ins_date,level) values ('Ubuntu
+   Linux','2023-05-01',2);
+   ERROR:    no partition of relation "part_tags" found for row
+   DETAIL:    Partition key of the failing row contains (ins_date) = (2023-05-
+   01).
+....
+
+Điều này xảy ra vì PostgreSQL không tìm thấy giá trị date `2023-05-01` trong mapping của các child table.
+
+Để loại bỏ nhược điểm này, cần sử dụng một default partition, nơi mọi value không được ánh xạ tới child table sẽ được insert.
+
+Để làm vậy, hãy thực thi statement sau:
+
+[source,text]
+....
+   forumdb=> CREATE TABLE part_tags_default PARTITION OF part_tags default;
+   CREATE TABLE
+....
+
+Bây giờ hãy thử lặp lại entry trước đó:
+
+[source,text]
+....
+   forumdb=> insert into part_tags (tag,ins_date,level) values ('Ubuntu
+   Linux','2023-05-01',2);
+   INSERT 0 1
+....
+
+Tại thời điểm này, data đã được insert vào default partition và có thể nhìn thấy từ parent table `part_tags`, như chúng ta thấy ở đây:
+
+[source,text]
+....
+   forumdb=> select * from part_tags;
+      pk |   ins_date   |       tag           | level
+   ----+------------+--------------------+-------
+       1 | 2023-01-01 | Operating Systems     |     0
+       2 | 2023-02-01 | Linux                 |     1
+       3 | 2023-03-01 | BSD Unix              |     1
+       4 | 2023-04-01 | Rocky Linux Distro |        2
+       6 | 2023-05-01 | Ubuntu Linux          |     2
+   (5 rows)
+
+
+   forumdb=> select * from part_tags_default ;
+      pk |   ins_date   |    tag       | level
+
+
+   ----+------------+--------------+-------
+       6 | 2023-05-01 | Ubuntu Linux |        2
+   (1 row)
+....

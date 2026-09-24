@@ -1,0 +1,53 @@
+= Parallel backups
+
+Có thể dùng parallelization để tăng tốc backup và restore. Ý tưởng cơ bản là có nhiều process (và database connection), mỗi process được giao một task nhỏ hơn, nhờ đó thực hiện tất cả task song song sẽ cho performance tốt hơn.
+
+Điều quan trọng cần lưu ý là thường vấn đề không phải là backup nhanh hơn, mà là có thể thực hiện restoration nhanh nhất có thể. Vì vậy, mặc dù có thể thực hiện cả backup và restoration ở parallel mode, bạn sẽ thấy restoration quan trọng hơn.
+
+`pg_dump` cho phép chỉ định parallelism level qua command-line argument `-j`, và bạn phải gán cho nó một positive integer, tức số parallel process cần start. Sau đó `pg_dump` sẽ mở số parallel connection tới database bằng parallelism, cộng thêm một connection để điều khiển tất cả, và buộc mỗi connection dump một table riêng. Rõ ràng, không có ý nghĩa khi start nhiều process hơn số table trong database mà bạn cần backup.
+
+Vì tất cả process sẽ dump một table duy nhất, parallel mode chỉ khả dụng cho directory (`-Fd`) format, trong đó mỗi table được lưu trong một file riêng để các process không trộn lẫn việc ghi của chúng.
+
+Ví dụ, instruction sau sẽ dump database với ba parallel job, do đó mở bốn database connection:
+
+[source,text]
+....
+$ pg_dump -Fd -f backup_forumdb -v -j 3 forumdb
+...
+pg_dump: finished item 3373 TABLE DATA posts
+pg_dump: finished item 3370 TABLE DATA delete_posts
+pg_dump: finished item 3377 TABLE DATA users
+pg_dump: dumping contents of table "forum.j_posts_tags"
+pg_dump: dumping contents of table "forum.new_categories"
+pg_dump: dumping contents of table "forum.tags"
+pg_dump: finished item 3372 TABLE DATA new_categories
+pg_dump: finished item 3375 TABLE DATA tags
+pg_dump: finished item 3371 TABLE DATA j_posts_tags
+....
+
+Các message như `finished item` là những dumping process đơn lẻ đã hoàn tất cho một table duy nhất, và chúng sẽ không xuất hiện trong verbose output không parallel của command `pg_dump`. Điều quan trọng là phải xem xét số connection được mở bởi parallel `pg_dump`: chúng luôn được mở cho mỗi parallel job, cộng thêm một connection để synchronize và quản lý toàn bộ backup procedure. Điều này nghĩa là để thực hiện parallel backup, bạn phải bảo đảm có đủ connection khả dụng cho database; nếu không, backup sẽ fail.
+
+Một khía cạnh quan trọng khác của parallel backup là chúng có thể fail trong hoàn cảnh concurrent. Thực tế, ngay khi `pg_dump` bắt đầu, process “master” acquire light lock (shared lock) trên mọi object mà parallel process sẽ dump; trong khi khi khởi động, mỗi parallel process acquire exclusive (heavy) lock trên object. Việc này ngăn object (một table) bị destroy trước khi parallel process hoàn tất công việc. Tuy nhiên, giữa lúc master process acquire lock đầu tiên và lúc parallel process được spawn acquire heavy lock, một connection concurrent khác có thể cố acquire lock trên table, dẫn đến khả năng xảy ra deadlock. Để ngăn việc này, master `pg_dump` process sẽ phát hiện dependency và abort toàn bộ backup.
+
+`pg_restore` cũng hỗ trợ parallel restoration, bằng cùng mnemonic command-line argument `-j`. Command này sẽ spawn số process được chỉ định, tham gia vào việc load data, tạo index và mọi operation nặng, tốn thời gian khác.
+
+Không giống `pg_dump`, `pg_restore` có thể hoạt động parallel cho cả directory format và custom format. Không dễ xác định số parallel job cần chỉ định cho `pg_restore`, nhưng thông thường đó là số CPU core, dù các value lớn hơn một chút đôi khi có thể tạo ra restoration nhanh hơn.
+
+Ví dụ, command sau cho phép parallel restoration của backup đã tạo trước đó (line đầu tiên drop database để restoration thành công):
+
+[source,text]
+....
+$ psql -c "DROP DATABASE forumdb;"
+$ pg_restore -C -d postgres -j 4 -v backup.d
+...
+pg_restore: finished item 3388 SEQUENCE SET users_pk_seq
+pg_restore: finished item 3387 SEQUENCE SET tags_pk_seq
+....
+[source,text]
+....
+pg_restore: finished item 3220 FK CONSTRAINT j_posts_tags j_posts_tags_
+post_pk_fkey
+pg_restore: finished main parallel loop
+....
+
+Nhờ verbose flag, có thể thấy rõ `pg_restore` đã thực hiện việc restore song song data trong database như thế nào. Những message như `launching item` và `finished item` cho biết thời điểm và object mà một parallel worker đã tham gia xử lý.

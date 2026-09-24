@@ -1,0 +1,9 @@
+= Tóm tắt
+
+PostgreSQL khai thác MVCC để cung cấp quyền truy cập concurrent cao vào underlying data, và điều này có nghĩa là mỗi transaction nhận biết một snapshot của data trong khi system duy trì các version khác nhau của cùng các tuple. Sớm hay muộn, các tuple không hợp lệ sẽ bị loại bỏ và storage space sẽ được reclaim. Một mặt, MVCC cung cấp concurrency tốt hơn, nhưng mặt khác, nó đòi hỏi thêm effort để reclaim storage space sau khi các transaction không còn reference dead tuple. PostgreSQL cung cấp VACUUM cho mục đích này và cũng có một background process machinery tên là autovacuum để định kỳ và không xâm lấn giữ cho system sạch sẽ, khỏe mạnh.
+
+Để cải thiện I/O và reliability, PostgreSQL lưu data trong một journal được ghi tuần tự, là WAL. WAL được chia thành các segment, và tại những khoảng thời gian nhất định, được gọi là checkpoint, toàn bộ dirty data trong memory được force tới một vị trí xác định trong storage, còn các WAL segment được recycle.
+
+Trong chapter này, bạn đã tìm hiểu về internals của WAL và MVCC, cũng như transaction boundary và savepoint. Bạn cũng đã thấy cách áp đặt một transaction isolation level cụ thể; tùy thuộc vào nhu cầu, level đó có thể bảo vệ data của bạn trước các update concurrent trên cùng tuple.
+
+Trong chapter tiếp theo, bạn sẽ khám phá cách PostgreSQL có thể được mở rộng vượt ra ngoài các functionality thông thường thông qua các pluggable module được gọi là extension.

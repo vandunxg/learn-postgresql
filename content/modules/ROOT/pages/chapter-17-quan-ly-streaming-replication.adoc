@@ -1,0 +1,582 @@
+= Quản lý streaming replication
+
+Trong section này, chúng ta sẽ nói về lý do cần có replica.
+
+image::chapter-17-figure-17-1-000.jpg[Hình 17.1: Sơ đồ Primary/Replica]
+
+*Hình 17.1: Sơ đồ Primary/Replica*
+
+Trong môi trường production, bạn thường cần có khả năng restore hệ thống nhanh nhất có thể sau một system crash. Để làm điều này, chúng ta phải sử dụng kỹ thuật streaming replication. Để thực hiện được điều đó, cần ít nhất hai server, một primary server và một secondary server. Primary server thực hiện mọi operation do application program yêu cầu; replica server chỉ sẵn sàng cho read operation và có data được copy theo thời gian thực.
+
+== Các khái niệm cơ bản về streaming replication
+
+Ý tưởng đằng sau streaming replication là copy WAL file từ primary server sang một server khác (replica server).
+
+Replica server sẽ ở trong trạng thái continuous recovery và liên tục execute WAL được primary machine truyền đến; theo cách này, replica machine thực hiện binary replication data của primary machine thông qua WAL.
+
+Như đã thấy trong Chapter 15, Backup and Restore, trong một tình huống PITR classic, WAL segment được primary lưu ở đâu đó, sau đó recovery machine lấy chúng bằng các script thủ công:
+
+image::chapter-17-figure-17-2-000.jpg[Hình 17.2: Sơ đồ PITR]
+
+*Hình 17.2: Sơ đồ PITR*
+
+Trong context streaming replication, một communication channel sẽ được mở giữa replica và primary, và primary sẽ gửi WAL segment qua channel đó:
+
+image::chapter-17-figure-17-3-000.jpg[Hình 17.3: Sơ đồ WAL Primary/Replica]
+
+*Hình 17.3: Sơ đồ WAL Primary/Replica*
+
+Replica server sẽ nhận các WAL segment và chạy lại chúng, duy trì permanent recovery state.
+
+Bây giờ chúng ta sẽ xem cách thực hiện asynchronous physical replication. Kỹ thuật này rất tương tự PITR.
+
+== Môi trường asynchronous replication
+
+Hãy chuẩn bị môi trường. Chúng ta cần hai server: server thứ nhất có tên pg1 và IP là 192.168.122.10; server thứ hai có tên pg2 và IP là 192.168.122.11. Hãy xem các bước chuẩn bị cho physical replication.
+
+Trên primary server, chúng ta cần thực hiện những việc sau:
+
+. Việc đầu tiên cần làm là sửa đổi `listen_addresses` để nó lắng nghe trên network. Nếu đặt `listen_addresses = '*'`, PostgreSQL sẽ lắng nghe trên mọi IP; nếu không, chúng ta có thể chỉ định một list IP address được phân tách bằng dấu phẩy. Thay đổi này yêu cầu restart PostgreSQL service.
+
+. Chúng ta cần tạo một user mới có khả năng thực hiện replication:
+
+[source,text]
+....
+   postgres=# CREATE role replicarole WITH REPLICATION ENCRYPTED
+   PASSWORD 'SuperSecret' LOGIN;
+   CREATE ROLE
+....
+
+. Chúng ta phải sửa đổi file `pg_hba.conf` để từ replica machine, với user `replicarole`, có thể truy cập primary machine:
+
+[source,text]
+....
+   host    replication          replicarole         192.168.122.11/32
+   scram-sha-256
+....
+
+. Để kích hoạt configuration này, chúng ta cần reload PostgreSQL server. Ví dụ, có thể chạy như sau:
+
+[source,text]
+....
+   postgres=# select pg_reload_conf();
+    pg_reload_conf
+   ----------------
+    t
+   (1 row)
+....
+
+. Trên replica server, chúng ta phải tắt PostgreSQL service, xóa PGDATA directory rồi tạo lại nó, lần này để trống và đặt đúng permission. Để làm vậy, chúng ta có thể sử dụng các statement sau:
+
+[source,text]
+....
+   root@pg1:/# systemctl stop postgresql
+   root@pg1:/# cd /var/lib/postgresql/16/
+   root@pg1:/# rm -rf main
+   root@pg1:/# mkdir main
+   root@pg1:/# chown postgres:postgres main
+   root@pg1:/# chmod 0700 main
+....
+
+Tất cả path được sử dụng trong ví dụ này đều hợp lệ cho các distribution dựa trên Debian; đối với các distribution khác, hãy tham khảo tài liệu chính thức tương ứng.
+
+== Option wal_keep_segments
+
+Từ những gì đã hiểu, physical replication được thực hiện thông qua việc truyền WAL segment. Bây giờ hãy giả sử trong chốc lát rằng replica server bị dừng vì một lý do nào đó. Primary sẽ hoạt động thế nào? Khi replica server hoạt động trở lại, nó có tự realign với primary node hay không? Đây là những câu hỏi cần đặt ra nếu muốn replication system hoạt động chính xác.
+
+Chỉ thị trong `postgresql.conf` cho PostgreSQL biết cần giữ bao nhiêu WAL segment trên disk có tên là `wal_keep_segments`; theo mặc định, `wal_keep_segments` được đặt bằng zero vì replica không được cài đặt bởi PostgreSQL installation process. Điều này có nghĩa PostgreSQL sẽ không lưu thêm WAL segment nào làm buffer. Điều này cũng có nghĩa nếu replica machine (standby) bị dừng, nó sẽ không còn có thể realign khi khởi động lại. Điều này xảy ra vì trong khoảng thời gian replica cần để hoạt động trở lại, primary machine có thể đã tạo và xóa các WAL segment mới. Cách đầu tiên để khắc phục vấn đề này là đặt directive `wal_keep_segments` thành một giá trị lớn hơn zero trong `postgresql.conf`. Ví dụ, nếu đặt `wal_keep_segments = 100`, điều đó có nghĩa là sẽ có ít nhất 100 file WAL segment trong `pg_wal` folder, với tổng disk space chiếm dụng là 100 * 16 MB = 1.6 GB.
+
+Trong trường hợp này, primary luôn giữ các WAL segment bổ sung đó, và nếu replica bị dừng, nó chỉ có thể realign sau khi hoạt động trở lại nếu primary đã tạo ra số WAL segment nhỏ hơn `wal_keep_segments`.
+
+Giải pháp này cung cấp một static buffer, trong đó bạn có thể lưu các WAL segment cũ, và cung cấp một save anchor ngắn hơn khoảng thời gian primary cần để tạo ra số WAL segment lớn hơn `wal_keep_segments`. Đây là một static solution; nó cũng có nhược điểm là disk space bị chiếm dụng luôn bằng `wal_keep_segments * 16 MB`, ngay cả khi không còn cần giữ WAL segment trên primary server nữa (vì replica server đã xử lý chúng). Ưu điểm của solution này là nếu network bị down, PostgreSQL sử dụng disk space tối đa bằng `wal_keep_segments * 16 MB` để tránh lấp đầy toàn bộ disk space nếu primary server bị dừng; vì vậy nếu không có nhiều disk space, có thể sử dụng solution này, nhưng cần nhớ rằng nếu vượt quá size `wal_keep_segments * 16 MB`, replica sẽ không còn synchronized và chúng ta sẽ phải rebuild nó.
+
+== Cách dùng slot
+
+Trong PostgreSQL, có một approach khác có thể được sử dụng để giải quyết vấn đề lưu WAL segment: kỹ thuật slot. Thông qua kỹ thuật slot, chúng ta có thể yêu cầu PostgreSQL giữ mọi WAL segment trên primary cho đến khi chúng được truyền đến replica server. Theo cách này, chúng ta có cơ chế quản lý dynamic, variable và hoàn toàn automated đối với số WAL segment mà primary server phải giữ làm buffer. Đây là cách rất dễ để quản lý physical replica, và là method chúng ta sẽ tập trung trong cuốn sách này.
+
+Instruction cần thực hiện trên PostgreSQL để tạo slot mới như sau:
+
+[source,text]
+....
+postgres=# SELECT * FROM pg_create_physical_replication_slot('master');
+ slot_name | lsn
+-----------+-----
+ master    |
+(1 row)
+....
+
+Instruction cần thực hiện trên PostgreSQL để drop một slot là:
+
+[source,text]
+....
+postgres=# select pg_drop_replication_slot('master');
+ pg_drop_replication_slot
+--------------------------
+
+(1 row)
+....
+
+Sau này trong chương này, chúng ta sẽ xem xét các instruction này chi tiết hơn.
+
+== Command pg_basebackup
+
+Trong Chapter 15, Backup and Restore, ở section Basic concepts behind Point In Time Recovery, chúng ta đã nói về base backup; đây là một hot backup đóng vai trò là base khởi đầu để sau đó chúng ta có thể áp dụng tất cả WAL segment. Có một command tên là `pg_basebackup` triển khai quy trình này gần như tự động.
+
+Giá trị `max_wal_senders` cần ít nhất bằng 2. Đây là một command rất hữu ích cho DBA vì cho phép thực hiện mọi việc cần thiết chỉ bằng một instruction. Chúng ta sẽ sử dụng và giải thích command này kỹ hơn trong section tiếp theo, nơi chúng ta sẽ triển khai physical replication asynchronous đầu tiên.
+
+Để biết thêm thông tin về command `pg_basebackup`, hãy tham khảo https://www.PostgreSQL.org/docs/current/app-pgbasebackup.html.
+
+== Asynchronous replication
+
+Bây giờ chúng ta đã có tất cả building block cần thiết để dễ dàng và nhanh chóng tạo physical replication asynchronous đầu tiên. Theo mặc định, trong PostgreSQL, physical replication là asynchronous. Bây giờ hãy bắt đầu với kỹ thuật replication. Bằng cách làm theo các bước trong những section trước của chương này, chúng ta đã có một primary server sẵn sàng để replica server kết nối tới, và replica đã sẵn sàng nhận thông tin từ primary. Lúc này, PostgreSQL service trên replica server đã được tắt và PGDATA data folder đã được tạo, để trống, với permission phù hợp:
+
+. Hãy đi vào PGDATA directory với tư cách system postgres user:
+
+[source,text]
+....
+   root@pg2:# su - postgres
+   postgres@pg2:~$ cd /var/lib/PostgreSQL/16/main
+....
+
+. Bây giờ hãy chạy command `pg_basebackup` với các option phù hợp. Command này sẽ thực thi command `base_backup` từ primary machine đến replica machine và chuẩn bị replica machine để nhận rồi execute các WAL segment nhận được, khiến replica server duy trì permanent recovery state:
+
+[source,text]
+....
+   postgres@pg2:~/16/main$ pg_basebackup -h 192.168.122.10 -U
+   replicarole -p5432 -D /var/lib/PostgreSQL/16/main -Fp -Xs -P -R -S
+   master
+   Password:
+   22483/22483 kB (100%), 1/1 tablespace
+....
+
+   Password cần nhập là password của user `replicarole`; trong trường hợp này là `SuperSecret`. Nếu `pg_basebackup` không khởi động nhanh, điều đó có nghĩa là nó đang chờ checkpoint từ primary, vì vậy để cải thiện performance của operation này, chúng ta có thể vào primary server và execute:
+
+[source,text]
+....
+   postgres=# checkpoint ;
+   CHECKPOINT
+....
+
+   Hãy phân tích command `pg_basebackup` chi tiết hơn:
+
+** `-h`: Với option này, chúng ta thấy host mà replica muốn kết nối tới.
+** `-U`: Đây là user được tạo trên primary server và được sử dụng cho replication.
+** `-p`: Đây là port nơi primary server lắng nghe.
+** `-D`: Đây là giá trị PGDATA trên replica server.
+* `-Fp`: Thực hiện backup trên replica, duy trì cùng data structure như trên primary.
+* `-Xs`: Mở một connection thứ hai tới primary server và bắt đầu transfer các WAL segment cùng lúc với khi backup được thực hiện.
+* `-P`: Hiển thị progress của backup.
+* `-S`: Đây là slotname được tạo trên primary server.
+* `-R`: Tạo file `standby.signal` và thêm các connection setting vào file `PostgreSQL.auto.conf`:
+[source,text]
+....
+  postgres@pg2:~/16/main$ cat postgresql.auto.conf
+  # Do not edit this file manually!
+  # It will be overwritten by the ALTER SYSTEM command.
+  primary_conninfo = ‘user=replicarole password=SuperSecret channel_binding=-
+  disable host=192.168.122.10 port=5432 sslmode=disable sslcompression=0 sslcert-
+  mode=disable sslsni=1 ssl_min_protocol_version=TLSv1.2 gssencmode=disable
+  krbsrvname=postgres target_session_attrs=any load_balance_hosts=disable’
+  primary_slot_name = ‘master
+....
+
+[%start=3]
+. Bây giờ hãy start PostgreSQL service trên replica machine; physical replication sẽ hoạt động. Với tư cách root user, hãy thực thi lệnh sau:
+
+[source,text]
+....
+root@pg2:/var/lib/postgresql/16# systemctl start postgresql
+....
+
+Như có thể thấy từ PostgreSQL log file (`/var/log/postgresql/postgresql-16-main.log`), replica machine đã start ở standby mode và read-only mode:
+
+[source,text]
+....
+2023-05-22 13:27:29.823 UTC [1244] LOG:           entering standby mode
+2023-05-22 13:27:29.832 UTC [1244] LOG:           redo starts at 0/2000028
+2023-05-22 13:27:29.835 UTC [1244] LOG:           consistent recovery state
+reached at 0/2000100
+2023-05-22 13:27:29.835 UTC [1241] LOG:           database system is ready to
+accept read-only connections
+....
+
+[%start=4]
+. Hãy connect tới replica server và thử xem mọi thứ đã được replicated chưa:
+
+[source,text]
+....
+postgres=# \l
+                                                                                 List of
+databases
+Name      | Owner    | Encoding | Locale Provider |    Collate               |
+Ctype      | ICU Locale | ICU Rules |   Access privileges
+-----------+----------+----------+-----------------+-------------+--
+-----------+------------+-----------+-----------------------
+postgres | postgres | UTF8             | libc                | en_US.UTF-8 |
+en_US.UTF-8 |           |                   |
+template0 | postgres | UTF8            | libc            | en_US.UTF-8 |
+en_US.UTF-8 |            |                  | =c/postgres          +
+                         |            |           |                      |
+|                 |            |           | postgres=CTc/postgres
+template1 | postgres | UTF8             | libc            | en_US.UTF-8 |
+en_US.UTF-8 |            |                  | =c/postgres          +
+                         |            |           |                      |
+|                 |            |           | postgres=CTc/postgres
+(3 rows)
+....
+
+. Hãy thử tạo một table:
+
+[source,text]
+....
+postgres=# create table test_table (id integer);
+ERROR:    cannot execute CREATE TABLE in a read-only transaction
+....
+
+Như có thể thấy, server hiện đang ở read-only mode.
+
+== Monitoring replica
+
+Sau khi cài đặt thành công asynchronous replica server đầu tiên, hãy xem cách monitor health của replica. PostgreSQL cung cấp một view qua đó chúng ta có thể monitor status của các replica theo real time; view này có tên là `pg_stat_replication`. View này phải được query bằng cách connect tới primary node.
+
+Ví dụ, nếu connect tới main node, chúng ta có thể thấy như sau:
+
+[source,text]
+....
+postgres=# \x
+Expanded display is on.
+postgres=# select * from pg_stat_replication ;
+-[ RECORD 1 ]----+------------------------------
+pid                    | 1720
+usesysid               | 16388
+usename                | replicarole
+application_name | walreceiver
+client_addr          | 192.168.122.11
+client_hostname      |
+client_port          | 41690
+backend_start        | 2023-05-22 13:27:29.849+00
+backend_xmin         |
+state                | streaming
+sent_lsn             | 0/3000148
+write_lsn            | 0/3000148
+flush_lsn            | 0/3000148
+replay_lsn           | 0/3000148
+write_lag            |
+flush_lag            |
+replay_lag           |
+sync_priority        | 0
+sync_state           | async
+reply_time           | 2023-05-22 13:30:59.928374+00
+....
+
+Sử dụng view này, chúng ta có rất nhiều thông tin cần thiết để biết liệu `stand_by` server của mình có đang ở trạng thái tốt hay không.
+
+Ví dụ, chúng ta có thể thấy reply message cuối cùng nhận được từ replica server là `2023-05-22 13:30:59.928374+00`; đồng thời, nhờ sự khác biệt giữa giá trị `sent_lsn` và giá trị `replay_lsn`, chúng ta có thể thấy replication server đã hoàn toàn aligned. Để biết thêm thông tin về `pg_stat_replication`, hãy tham khảo official documentation (https://www.postgresql.org/docs/current/monitoring-stats.html#PG-STAT-REPLICATION-VIEW).
+
+== Synchronous replication
+
+Cho đến đây, chúng ta đã nói về asynchronous replication; điều này có nghĩa là primary server truyền information tới replica standby mà không chắc standby server đã replicated data hay chưa. Trong asynchronous replication, primary server không chờ replica server thực sự replicate data. Trong synchronous replication, khi primary thực hiện một commit, tất cả replicated server cũng commit một cách synchronous. Trong synchronous replication, sau khi commit được thực hiện, chúng ta chắc chắn rằng data đã được replicated trên primary và tất cả replica. Khi muốn đạt được synchronous replication, nên có các machine giống hệt nhau và một network connection tốt giữa các machine; nếu không, performance có thể trở nên chậm.
+
+== PostgreSQL settings
+
+Bắt đầu từ những gì đã thực hiện cho asynchronous replication và chỉ thay đổi một vài setting, chúng ta có thể chuyển từ asynchronous replication sang synchronous replication.
+
+== Primary server
+
+Trên primary server, chúng ta phải kiểm tra parameter `synchronous_commit` có được set thành `on` hay không. Hiện tại, `synchronous_commit = on` là giá trị default trên một PostgreSQL installation mới.
+
+Sau khi set parameter này, chúng ta phải thêm parameter `synchronous_standby_names`, liệt kê tên của tất cả standby server sẽ replicate data một cách synchronous. Chúng ta cũng có thể dùng wildcard `*`, qua đó cho PostgreSQL biết rằng mỗi standby server đều có thể là một synchronous replica. Ví dụ, để chuyển primary của ví dụ trước sang dạng có thể hỗ trợ asynchronous replication cho server `pg2`, chúng ta phải viết như sau:
+
+[source,text]
+....
+synchronous_standby_names = 'pg2'
+synchronous_commit = on
+....
+
+Sau đó, chúng ta cần restart server:
+
+[source,text]
+....
+# systemctl restart postgresql
+....
+
+== Standby server
+
+Trên standby server, chúng ta phải thêm một parameter vào connection string tới primary để primary biết reply request đến từ đâu. Chúng ta cần edit file `postgresql.auto.conf`; hiện tại file này như sau:
+
+[source,text]
+....
+# Do not edit this file manually!
+# It will be overwritten by the ALTER SYSTEM command.
+primary_conninfo = 'user=replicarole password=SuperSecret channel_
+binding=disable host=192.168.122.10 port=5432 sslmode=disable
+sslcompression=0 sslcertmode=disable sslsni=1 ssl_min_protocol_
+version=TLSv1.2 gssencmode=disable krbsrvname=postgres target_session_
+attrs=any load_balance_hosts=disable'
+primary_slot_name = 'master'
+....
+
+Chúng ta cần thay đổi thành như sau:
+
+[source,text]
+....
+# Do not edit this file manually!
+# It will be overwritten by the ALTER SYSTEM command.
+primary_conninfo = 'user=replicarole password=SuperSecret channel_
+binding=disable host=192.168.122.10 port=5432 sslmode=disable
+sslcompression=0 sslcertmode=disable sslsni=1 ssl_min_protocol_
+version=TLSv1.2 gssencmode=disable krbsrvname=postgres target_session_
+attrs=any load_balance_hosts=disable application_name=pg2'
+primary_slot_name = 'master'
+....
+
+Chúng ta đã thêm option `application_name=pg2`.
+
+Sau khi thực hiện việc này, hãy restart standby server. Bây giờ, nếu quay lại primary server và kiểm tra lại view `pg_stat_replication`, chúng ta sẽ thấy kết quả này:
+
+[source,text]
+....
+postgres=# select * from pg_stat_replication;
+-[ RECORD 1 ]----+------------------------------
+pid                 | 1811
+usesysid            | 16388
+usename             | replicarole
+application_name | pg2
+client_addr         | 192.168.122.11
+client_hostname     |
+client_port         | 43890
+backend_start       | 2023-05-22 13:41:13.846757+00
+backend_xmin        |
+state               | streaming
+sent_lsn            | 0/30001F8
+write_lsn           | 0/30001F8
+flush_lsn           | 0/30001F8
+replay_lsn          | 0/30001F8
+write_lag           |
+flush_lag           |
+replay_lag          |
+sync_priority       | 1
+sync_state          | sync
+reply_time          | 2023-05-22 13:41:33.879308+00
+....
+
+Như được thể hiện ở đây, primary server và các standby server được replicated theo cách synchronous bởi `sync_state=sync`.
+
+== Cascading replication
+
+Chúng ta đã tìm hiểu cách tạo một asynchronous replica bắt đầu từ một primary server. Tuy nhiên, trong một số trường hợp, chúng ta có thể cần nhiều asynchronous replica, và cách đơn giản nhất để làm điều này là kết nối một replica machine thứ hai vào primary machine bằng procedure vừa xem. Tuy nhiên, procedure này có thể làm tăng load trên primary machine, vì vậy PostgreSQL cung cấp một giải pháp thay thế: cascading physical replication. Schema chúng ta muốn đạt được là như sau:
+
+image::chapter-17-figure-17-4-000.jpg[Hình 17.4: Cascading replication]
+
+*Hình 17.4: Cascading replication*
+
+Để example hoạt động, chúng ta sẽ dùng một machine thứ ba có tên `pg3`.
+
+Các machine sẽ có những IP sau:
+
+* `PRIMARY (pg1): IP 192.168.122.10`
+* `First replica (pg2): IP 192.168.122.11`
+* `Second replica (pg3): IP 192.168.122.12`
+
+Bây giờ hãy thực hiện các bước sau:
+
+. Tương tự những gì đã làm trước đó, hãy configure machine `pg2` để nó có thể nhận request từ machine `pg3`. Chúng ta phải thêm dòng này vào file `pg_hba.conf`:
+
+[source,text]
+....
+   IPv4 local connections:
+   host replication replicarole 192.168.122.12/32 scram-sha-256
+....
+
+. Bây giờ, chúng ta phải reload PostgreSQL service:
+
+[source,text]
+....
+   root@pg2:#   systemctl reload postgresql
+....
+
+. Trên machine `pg2`, hãy thực thi SQL command sau:
+
+[source,text]
+....
+   root@pg2:/usr/local/pgsql# su - postgres
+   postgres@pg2:~$ psql
+   psql (16)
+   Type "help" for help.
+
+   postgres=# SELECT * FROM pg_create_physical_replication_
+   slot('standby1');
+    slot_name | lsn
+   -----------+-----
+    standby1     |
+   (1 row
+....
+
+. Như trước đó, chúng ta đã tạo một reference slot cho cascade replication. Bây giờ hãy đi tới machine `pg3` và tắt PostgreSQL service:
+
+[source,text]
+....
+   root@pg3:# systemctl stop postgresql
+....
+
+. Hãy xóa nội dung của directory `/var/lib/postgresql/16/main`:
+
+[source,text]
+....
+   root@pg3:# rm -rf /var/lib/postgresql/16/main/*
+....
+
+. Với tư cách PostgreSQL user, hãy thực hiện basebackup procedure:
+
+[source,text]
+....
+   posroot@pg3:~# su - postgres
+   root@pg3$: pg_basebackup -h 192.168.122.11 -U replicarole -p 5432 -D
+   /var/lib/PostgreSQL/16/main -Fp -Xs -P -R -S standby1
+   Password:
+   32743/32743 kB (100%), 1/1 tablespace
+....
+
+. Tại thời điểm này, chúng ta có thể restart PostgreSQL service. Với tư cách root user, hãy thực thi lệnh sau:
+
+[source,text]
+....
+   # root@pg3:~# systemctl start postgresql
+....
+
+   Đến đây là xong! Nếu query view `pg_stat_replication` trên `standby1` server, chúng ta sẽ thấy có một replica thứ hai. Bây giờ system của chúng ta có hai replica và đã đạt được mục tiêu đề ra.
+
+[%start=8]
+. Đây là `pg_stat_replication` trên primary server (`pg1`):
+
+[source,text]
+....
+   postgres=# select * from pg_stat_replication ;
+   -[ RECORD 1 ]----+------------------------------
+   pid                  | 14339
+   usesysid             | 16390
+   usename              | replicarole
+   application_name | walreceiver
+   client_addr       | 192.168.122.11
+   client_hostname   |
+   client_port       | 38844
+   backend_start     | 2023-05-29 09:31:18.443699+00
+   backend_xmin      |
+   state             | streaming
+   sent_lsn          | 0/43F1E40
+   write_lsn         | 0/43F1E40
+   flush_lsn         | 0/43F1E40
+   replay_lsn        | 0/43F1E40
+   write_lag         |
+   flush_lag         |
+   replay_lag        |
+   sync_priority     | 0
+   sync_state        | async
+   reply_time        | 2023-05-29 09:39:57.357726+00
+....
+
+[%start=9]
+.. Đây là `pg_stat_replication` trên standby1 server (`pg2`):
+
+[source,text]
+....
+   postgres=# select * from pg_stat_replication;
+   -[ RECORD 1 ]----+------------------------------
+   pid               | 13015
+   usesysid          | 16390
+   usename           | replicarole
+   application_name | walreceiver
+   client_addr       | 192.168.122.12
+   client_hostname   |
+   client_port       | 50990
+   backend_start     | 2023-05-29 09:39:26.994899+00
+   backend_xmin      |
+   state             | streaming
+   sent_lsn          | 0/43F1E40
+   write_lsn         | 0/43F1E40
+   flush_lsn         | 0/43F1E40
+   replay_lsn        | 0/43F1E40
+   write_lag         |
+   flush_lag         |
+   replay_lag        |
+   sync_priority     | 0
+   sync_state        | async
+   reply_time        | 2023-05-29 09:39:47.031691+00
+....
+
+Như vậy, chúng ta đã biết cascading replication hoạt động như thế nào. Cascading replication có thể hữu ích khi muốn giảm load trên primary machine, chẳng hạn làm nền tảng cho một high availability (HA) system dựa trên ba PostgreSQL server mà không làm tăng load trên primary server.
+
+== Delayed replication
+
+Trong một số trường hợp, có thể hữu ích nếu có một delayed replica; trong PostgreSQL, để đạt được mục tiêu này, chúng ta có thể dùng `recovery_min_apply_delay` trong setting của replica server.
+
+Ví dụ, trên replica server, nếu đặt setting này ở cuối `postgresql.conf`:
+
+[source,text]
+....
+recovery_min_apply_delay = 5000
+....
+
+và reload PostgreSQL service trên replica server:
+
+[source,text]
+....
+root@pg2:~# systemctl reload postgresql
+....
+
+chúng ta có thể thấy replica chậm hơn primary 5 giây vì time unit được dùng cho `recovery_min_apply_delay` là milliseconds.
+
+Dùng delay trên replica server có nghĩa là các WAL file thường xuyên được download từ primary server, nhưng chúng được process với delay được chỉ định trên parameter `recovery_min_apply_delay`.
+
+== Promoting a replica server to a primary
+
+Nếu một primary bị down, trong log của replica server, chúng ta sẽ nhận được loại error sau:
+
+[source,text]
+....
+LOG:   waiting for WAL to become available at 0/4000078
+2023-05-23 07:22:14.813 UTC [1137] FATAL: could not connect to the
+primary server: connection to server at "192.168.122.10", port 5432
+failed: No route to host
+Is the server running on that host and accepting TCP/IP connections?
+....
+
+Điều này có nghĩa là replica server không còn nhận WAL file từ primary; nếu xảy ra scenario này, có thể promote replica node thành primary; để đạt mục tiêu đó, trên replica node, với tư cách postgres user, chúng ta phải thực thi statement sau:
+
+[source,text]
+....
+postgres@pg2:~$ pg_ctl promote -D /var/lib/PostgreSQL/16/main
+....
+
+[source,text]
+....
+waiting for server to promote..... done
+server promoted
+....
+
+Sau khi thực thi statement này, trong log file chúng ta sẽ thấy nội dung tương tự:
+
+[source,text]
+....
+2023-05-23 07:25:33.719 UTC [1078] LOG:            received promote request
+2023-05-23 07:25:34.909 UTC [1211] FATAL: could not connect to the
+primary server: connection to server at "192.168.122.10", port 5432
+failed: No route to host
+                     Is the server running on that host and accepting TCP/IP
+connections?
+2023-05-23 07:25:34.910 UTC [1078] LOG:            waiting for WAL to become
+available at 0/4000078
+2023-05-23 07:25:34.910 UTC [1078] LOG: redo done at 0/4000028 system
+usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 246.25 s
+2023-05-23 07:25:34.928 UTC [1078] LOG:            selected new timeline ID: 2
+2023-05-23 07:25:35.003 UTC [1078] LOG:            archive recovery complete
+2023-05-23 07:25:35.014 UTC [1076] LOG:            checkpoint starting: force
+2023-05-23 07:25:35.015 UTC [1075] LOG:            database system is ready to
+accept connections
+....
+
+Điều này có nghĩa là replica server đã được promoted thành primary, và giờ có thể thực hiện write operation trên node này. Trong section này, chúng ta đã tìm hiểu cách promote một replica server thành primary, nhưng có một vài điều cần ghi nhớ:
+
+* PostgreSQL không tự động hoàn thành procedure này (nếu không có third-party tool).
+* Sau khi promote standby replica thành primary, primary cũ trở nên unrecoverable.
+* Nếu primary bị down, chúng ta có thể bị mất data nếu chưa synchronize tất cả WAL file trước khi server bị down.

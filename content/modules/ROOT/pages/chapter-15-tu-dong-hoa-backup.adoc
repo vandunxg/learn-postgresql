@@ -1,0 +1,50 @@
+= Tự động hóa backup
+
+Bằng cách kết hợp `pg_dump` và `pg_dumpall`, việc tạo automated backup khá dễ dàng, chẳng hạn chạy mỗi đêm hoặc mỗi ngày khi database system không được sử dụng nhiều. Tùy vào operating system bạn sử dụng, có thể schedule các backup như vậy để chúng được thực thi và tự động rotate.
+
+Ví dụ, nếu sử dụng Unix, bạn có thể schedule `pg_dump` thông qua `cron(1)` như sau:
+
+[source,text]
+....
+$ crontab -e
+....
+
+Sau đó, bạn sẽ thêm dòng sau:
+
+[source,text]
+....
+30 23 * * * pg_dump -Fc -f /backup/forumdb.backup -U forum forumdb
+....
+
+Dòng này khởi tạo một full backup ở custom format mỗi ngày lúc 23:30. Tuy nhiên, cách tiếp cận trước đó có một vài nhược điểm, chẳng hạn quản lý các backup đã tồn tại, xử lý các database mới được thêm vào và cần thêm một dòng khác vào `crontab`, v.v.
+
+Nhờ tính linh hoạt của PostgreSQL và catalog của nó, việc phát triển một wrapper script có thể dễ dàng xử lý backup cho tất cả database cũng không phức tạp. Là điểm bắt đầu, script sau thực hiện full backup cho mọi database ngoại trừ `template0`:
+
+[source,sh]
+....
+#!/bin/sh
+
+BACKUP_ROOT=/backup
+
+for database in $( psql -U postgres -A -t -c "SELECT datname FROM pg_database WHERE datname <> 'template0'" postgres )
+do
+     backup_dir=$BACKUP_ROOT/$database/$(date +'%Y-%m-%d')
+     if [ -d $backup_dir ]; then
+          echo "Skipping backup $database, already done today!"
+          continue
+     fi
+
+     mkdir -p $backup_dir
+     pg_dump -U postgres -Fd -f $backup_dir $database
+     echo "Backup $database into $backup_dir done!"
+done
+....
+
+Ý tưởng khá đơn giản: system query PostgreSQL catalog, `pg_database`, cho mỗi database mà cluster phục vụ; với mỗi database, nó tìm một dedicated directory có tên theo database và chứa một directory có tên theo ngày hiện tại. Nếu directory tồn tại, backup đã được thực hiện, nên không còn việc gì phải làm ngoài việc chuyển sang database tiếp theo. Nếu không, backup có thể được thực hiện. Vì vậy, một ngày system sẽ backup database `forumdb` vào directory `/backup/forumdb/2023-07-19`, ngày tiếp theo vào `/backup/forumdb/2023-07-20`, và tiếp tục như vậy. Nhờ đó, bạn có thể thêm script trước đó vào `crontab` rồi không cần bận tâm đến việc thêm các dòng mới cho database mới, cũng như xóa các dòng tương ứng với database đã bị xóa:
+
+[source,text]
+....
+30 23 * * * my_backup_script.sh
+....
+
+Dĩ nhiên, script trước đó không đại diện cho một backup system phức tạp mà chỉ là điểm bắt đầu nếu bạn cần một giải pháp nhanh và linh hoạt để thực hiện automated logical backup, sử dụng các tool mà PostgreSQL cluster và operating system của bạn cung cấp. Như đã nói, nhiều operating system đã tính đến việc backup một PostgreSQL cluster và cung cấp sẵn các script được viết để giúp bạn giải quyết vấn đề này. Một ví dụ rất tốt về loại script này là script `502.pgsql`, được cung cấp trong package PostgreSQL của FreeBSD.

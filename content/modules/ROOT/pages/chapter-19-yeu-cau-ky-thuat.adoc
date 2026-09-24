@@ -1,0 +1,12 @@
+= Yêu cầu kỹ thuật
+
+Section này có một Docker container, bạn có thể tìm thấy container đó tại `learn_postgresql_16/docker-images/chapter19`; sau khi đi đến đúng path, hãy chạy:
+
+[source,text]
+....
+chapter19$ bash run-pg-docker-pg_trgm.sh chapter19-pg_trgm
+
+
+postgres@learn_postgresql:~$ psql -U forum forumdb
+forumdb=>
+....

@@ -1,0 +1,9 @@
+= Tóm tắt
+
+Trong chapter này, bạn đã học cách PostgreSQL quản lý configuration thông qua một file text chính là `postgresql.conf`, file này có thể được chia thành các file nhỏ hơn, bao gồm `postgresql.auto.conf` được load tự động và luôn được load ở cuối quá trình configuration. Mọi configuration option đều có thể được edit trong configuration file và được inspect bên trong database nhờ các system catalog chuyên dụng. Điều này cho phép database administrator không chỉ hiểu rõ configuration hiện đang chạy mà còn tìm kiếm các configuration error và setting được load không chính xác.
+
+PostgreSQL cũng thu thập statistics, tức runtime data được tập hợp trong thời gian cluster hoạt động. Các statistics đó có thể giúp administrator hiểu điều gì đang xảy ra hoặc điều gì đã xảy ra trong thời gian gần đây trên cluster. Nhờ một tập catalog khác được trình bày trong chapter này, bạn đã học cách đào sâu vào chi tiết của toàn bộ thông tin PostgreSQL đã thu thập cho bạn. Khả năng theo dõi và phân tích những gì từng application, user và connection đang thực hiện tại một thời điểm cụ thể đối với cluster cung cấp cho database administrator một cách hữu hiệu để xử lý bottleneck và các vấn đề khác, qua đó giúp cải thiện trải nghiệm trên cluster.
+
+Cuối cùng, bạn đã học về extension `pg_stat_statements`, nhờ đó có thể thu thập historical data về query execution và timing, để áp dụng optimization và phân tích chuyên sâu activity của cluster.
+
+Giờ bạn đã hiểu cách configuration và monitor cluster, đã đến lúc học cách replicate nó. Chapter tiếp theo sẽ cho bạn thấy cách thực hiện physical replication bằng cách cấu hình cluster một cách phù hợp.

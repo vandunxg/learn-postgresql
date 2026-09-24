@@ -1,0 +1,45 @@
+= Kiểm tra kiến thức
+
+* Nếu chạy query này và dữ liệu trên table có tên `mytable` không thay đổi, chúng ta có luôn nhận được cùng một result không?
+
+[source,sql]
+....
+  select * from mytable
+....
+
+  Không, vì thứ tự của dữ liệu có thể khác nhau.
+
+  Xem section *Khám phá statement SELECT* để biết thêm chi tiết.
+
+* Có thể chỉ nhận được 3 record làm result của một query không?
+
+  Có, có thể dùng clause `LIMIT`.
+
+  Xem section *Sử dụng limit và offset* để biết thêm chi tiết.
+
+* Nếu có 2 table: table A có 3 record với một field `id` là primary key, và table B có 2 record với một field `id` là primary key, chúng ta phải dùng loại join nào để match tất cả record có cùng ID trên table A và table B?
+
+  Chúng ta phải sử dụng query inner join:
+
+[source,sql]
+....
+  select tableA.id from tableA inner join tableB using(id)
+....
+
+  Xem section *Sử dụng INNER JOIN* để biết thêm chi tiết.
+
+* Nếu có 2 table: table A có 3 record với một field `id` là primary key, và table B có 2 record với một field `id` là primary key, sử dụng clause `NOT EXISTS`, làm thế nào viết một query hiển thị tất cả record có trong table A nhưng không có trong table B?
+
+[source,sql]
+....
+  select * from tableA where not exists (select 1 from tableB where
+  tableA.id=tableB.id)
+....
+
+  Xem section *Subquery và điều kiện EXISTS/NOT EXISTS* để biết thêm chi tiết.
+
+* PostgreSQL 11 và PostgreSQL 16 có cùng cách sử dụng CTE không?
+
+  Không. PostgreSQL 11 luôn materialize dữ liệu. PostgreSQL 16, nếu không được chỉ định, chỉ materialize dữ liệu khi CTE được gọi từ hai lần trở lên bên trong query.
+
+  Xem section *Subquery và điều kiện EXISTS/NOT EXISTS* và *Khám phá CTE* để biết thêm chi tiết.

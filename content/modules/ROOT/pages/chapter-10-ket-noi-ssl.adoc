@@ -1,0 +1,102 @@
+= Kết nối SSL
+
+Secure Sockets Layer (SSL) cho phép PostgreSQL chấp nhận các network connection được encrypt, nghĩa là mọi phần dữ liệu trong mỗi packet đều được encrypt và do đó được bảo vệ khỏi network spoofing, miễn là bạn xử lý key và certificate đúng cách.
+
+Để enable SSL extension, trước tiên bạn cần configure server, sau đó chấp nhận các SSL connection đến, và cuối cùng configure client để connect ở SSL mode.
+
+== Configure cluster cho SSL
+
+Để SSL thực hiện việc encryption, server phải có private certificate và public certificate. Việc tạo và quản lý certificate nằm ngoài phạm vi cuốn sách này và là một chủ đề phức tạp; bạn có thể xem PostgreSQL official documentation để biết các bước cần thiết nhằm tạo certificate của riêng mình. Khi bạn hoặc tổ chức của bạn đã có certificate, việc duy nhất cần làm là import certificate và key file vào PostgreSQL server.
+
+Giả sử certificate và key file của bạn lần lượt có tên `server.crt` và `server.key`, bạn phải configure các parameter sau trong configuration file `postgresql.conf`:
+
+[source,text]
+....
+   ssl = on
+   ssl_key_file = '/postgres/16/data/ssl/server.key'
+   ssl_cert_file = '/postgres/16/data/ssl/server.crt'
+....
+
+Tất nhiên, việc này được thực hiện với absolute path đến các file của bạn. Dòng đầu tiên bảo PostgreSQL enable SSL, còn hai dòng kia cho server biết nơi tìm các file cần thiết để thiết lập encrypted connection. Tất nhiên, các file đó phải readable bởi user chạy PostgreSQL cluster (thường là operating-system user `postgres`).
+
+Sau khi enable SSL, bạn cần điều chỉnh file `pg_hba.conf` để cho phép host-based access machinery xử lý các connection dựa trên SSL. Cụ thể, nếu không muốn chấp nhận plain connection, bạn cần thay mọi entry `host` bằng `hostssl`, ví dụ:
+
+[source,text]
+....
+   hostssl       all   luca         venkman             scram-sha-256
+   hostssl       all   forum     192.168.222.1/32 scram-sha-256
+....
+
+Nếu muốn chấp nhận cả plain connection lẫn encrypted connection, bạn có thể giữ `host` làm connection method.
+
+== Connect tới cluster qua SSL
+
+Khi connect tới PostgreSQL, client sẽ tự động chuyển sang SSL connection nếu host-based access có entry `hostssl`; nếu không, client sẽ mặc định dùng standard plain connection.
+
+Nếu `pg_hba.conf` có dòng `host`, điều đó có nghĩa là file có thể chấp nhận cả SSL connection và plain connection. Vì vậy, bạn cần buộc connection dùng SSL khi khởi tạo connection. Trong `psql`, điều này chỉ có thể thực hiện bằng cách dùng connection string và chỉ định parameter `sslmode=require` để enable SSL. Nếu server chấp nhận connection, nó sẽ báo protocol SSL đang được sử dụng:
+
+[source,text]
+....
+   $ psql "postgresql://forum@localhost:5432/forumdb?sslmode=require"
+   psql (16.0)
+   SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits:
+   256, compression: off)
+   Type "help" for help.
+
+
+   forumdb=>
+....
+
+Nếu bỏ parameter `sslmode` hoặc dùng các parameter connection chuẩn của `psql`, connection sẽ được chuyển thành SSL nếu file `pg_hba.conf` có một dòng `hostssl` match. Ví dụ, ba connection sau cho cùng một kết quả (một encrypted connection):
+
+[source,text]
+....
+   $ psql -h localhost -U forum forumdb
+   psql (16.0)
+   SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits:
+   256, compression: off)
+   Type "help" for help.
+
+
+   forumdb=> \q
+
+
+   $ psql "postgresql://forum@localhost:5432/forumdb"
+   psql (16.0)
+   SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits:
+   256, compression: off)
+   Type "help" for help.
+
+
+   forumdb=> \q
+
+
+   $ psql "postgresql://forum@localhost:5432/forumdb?sslmode=require"
+   psql (16.0)
+   SSL connection (protocol: TLSv1.3, cipher: TLS_AES_256_GCM_SHA384, bits:
+   256, compression: off)
+   Type "help" for help.
+
+
+   forumdb=>
+....
+
+Tương tự, bạn có thể chỉ định rằng mình hoàn toàn không muốn SSL connection bằng cách đặt `sslmode=disable`. Lần này, nếu `pg_hba.conf` có mode `hostssl`, connection sẽ bị reject, còn nếu file `pg_hba.conf` có dòng `host` thì connection sẽ được phục vụ dưới dạng không encrypted:
+
+[source,text]
+....
+   $ psql "postgresql://forum@localhost:5432/forumdb?sslmode=require"
+   psql: error: could not connect to server: FATAL:  no pg_hba.conf entry for
+   host "127.0.0.1", user "forum", database "forumdb", SSL off
+....
+
+Từ error này, bạn có thể thấy rõ rằng trong file `pg_hba.conf` không có dòng nào chấp nhận plain connection (mode `host`), hoặc ngược lại, file chỉ có các dòng `hostssl`.
+
+Cuối cùng, nếu yêu cầu connection dùng SSL nhưng PostgreSQL server chưa được configure để dùng SSL, một error message về sự không khớp sẽ được báo cáo:
+
+[source,text]
+....
+   $ psql "postgresql://forum@localhost:5432/forumdb?sslmode=disable"
+   psql: error: could not connect to server: server does not support SSL, but
+   SSL was required
+....

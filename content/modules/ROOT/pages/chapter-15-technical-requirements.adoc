@@ -1,0 +1,8 @@
+= Technical requirements
+
+Bạn cần biết những nội dung sau để hoàn thành chapter này:
+
+* Cách tương tác với command-line tool
+* Cách inspect filesystem và directory `PGDATA`
+
+Các ví dụ trong chapter có thể chạy trên Docker image `chapter_15`, có thể tìm thấy trong GitHub repository của cuốn sách: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition. Để biết hướng dẫn install và sử dụng các Docker image có trong cuốn sách, hãy tham khảo phần hướng dẫn ở Chapter 1, *Introduction to PostgreSQL*.

@@ -1,0 +1,536 @@
+{
+  "chapters": [
+    {
+      "number": 1,
+      "pages": [
+        "chapter-01"
+      ],
+      "sections": []
+    },
+    {
+      "number": 2,
+      "pages": [
+        "chapter-02",
+        "chapter-02-yeu-cau-ky-thuat",
+        "chapter-02-quan-ly-cluster",
+        "chapter-02-ket-noi-toi-cluster",
+        "chapter-02-giai-quyet-cac-van-de-connection-thuong-gap",
+        "chapter-02-kham-pha-disk-layout-cua-pgdata",
+        "chapter-02-kham-pha-cac-configuration-file-va-parameter",
+        "chapter-02-tom-tat",
+        "chapter-02-kiem-tra-kien-thuc",
+        "chapter-02-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Quản lý cluster",
+        "Kết nối tới cluster",
+        "Giải quyết các vấn đề connection thường gặp",
+        "Khám phá disk layout của `PGDATA`",
+        "Khám phá các configuration file và parameter",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 3,
+      "pages": [
+        "chapter-03"
+      ],
+      "sections": []
+    },
+    {
+      "number": 4,
+      "pages": [
+        "chapter-04",
+        "chapter-04-technical-requirements",
+        "chapter-04-tao-va-quan-ly-database",
+        "chapter-04-quan-ly-table",
+        "chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban",
+        "chapter-04-tom-tat",
+        "chapter-04-kiem-tra-kien-thuc",
+        "chapter-04-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Technical requirements",
+        "Tạo và quản lý database",
+        "Quản lý table",
+        "Tìm hiểu các statement thao tác table cơ bản",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 5,
+      "pages": [
+        "chapter-05",
+        "chapter-05-yeu-cau-ky-thuat",
+        "chapter-05-kham-pha-statement-select",
+        "chapter-05-su-dung-clause-like",
+        "chapter-05-su-dung-ilike",
+        "chapter-05-su-dung-distinct",
+        "chapter-05-su-dung-limit-va-offset",
+        "chapter-05-su-dung-subquery",
+        "chapter-05-tim-hieu-ve-join",
+        "chapter-05-aggregate-functions",
+        "chapter-05-su-dung-upsert",
+        "chapter-05-tim-hieu-clause-returning-cho-insert",
+        "chapter-05-tim-hieu-cte",
+        "chapter-05-cte-trong-postgresql-tu-version-12",
+        "chapter-05-tom-tat",
+        "chapter-05-kiem-tra-kien-thuc",
+        "chapter-05-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Khám phá statement `SELECT`",
+        "Sử dụng clause like",
+        "Sử dụng `ilike`",
+        "Sử dụng `distinct`",
+        "Sử dụng `limit` và `offset`",
+        "Sử dụng subquery",
+        "Tìm hiểu về join",
+        "Aggregate functions",
+        "Sử dụng UPSERT",
+        "Tìm hiểu clause RETURNING cho INSERT",
+        "Tìm hiểu CTE",
+        "CTE trong PostgreSQL từ version 12",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 6,
+      "pages": [
+        "chapter-06",
+        "chapter-06-technical-requirements",
+        "chapter-06-su-dung-cac-statement-window-function-co-ban",
+        "chapter-06-su-dung-advanced-statement-window-function",
+        "chapter-06-tom-tat",
+        "chapter-06-kiem-tra-kien-thuc",
+        "chapter-06-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Technical requirements",
+        "Sử dụng các statement window function cơ bản",
+        "Sử dụng advanced statement window function",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 7,
+      "pages": [
+        "chapter-07",
+        "chapter-07-yeu-cau-ky-thuat",
+        "chapter-07-kham-pha-data-types",
+        "chapter-07-data-type-nosql",
+        "chapter-07-kham-pha-function-va-language",
+        "chapter-07-tong-ket",
+        "chapter-07-kiem-tra-kien-thuc",
+        "chapter-07-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Khám phá data types",
+        "Data type NoSQL",
+        "Khám phá function và language",
+        "Tổng kết",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 8,
+      "pages": [
+        "chapter-08",
+        "chapter-08-yeu-cau-ky-thuat",
+        "chapter-08-kham-pha-rules-trong-postgresql",
+        "chapter-08-quan-ly-trigger-trong-postgresql",
+        "chapter-08-event-trigger",
+        "chapter-08-tom-tat",
+        "chapter-08-kiem-tra-kien-thuc",
+        "chapter-08-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Khám phá rules trong PostgreSQL",
+        "Quản lý trigger trong PostgreSQL",
+        "Event trigger",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 9,
+      "pages": [
+        "chapter-09",
+        "chapter-09-yeu-cau-ky-thuat",
+        "chapter-09-concept-co-ban",
+        "chapter-09-exploring-declarative-partitioning",
+        "chapter-09-default-partition",
+        "chapter-09-partitioning-va-tablespace",
+        "chapter-09-mot-case-study-don-gian",
+        "chapter-09-tom-tat",
+        "chapter-09-kiem-tra-kien-thuc",
+        "chapter-09-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Concept cơ bản",
+        "Exploring declarative partitioning",
+        "Default partition",
+        "Partitioning và tablespace",
+        "Một case study đơn giản",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 10,
+      "pages": [
+        "chapter-10",
+        "chapter-10-yeu-cau-ky-thuat",
+        "chapter-10-tim-hieu-ve-role",
+        "chapter-10-acls",
+        "chapter-10-cap-va-thu-hoi-permission",
+        "chapter-10-rls",
+        "chapter-10-ma-hoa-password-cua-role",
+        "chapter-10-ket-noi-ssl",
+        "chapter-10-tom-tat",
+        "chapter-10-kiem-tra-kien-thuc",
+        "chapter-10-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Tìm hiểu về role",
+        "ACLs",
+        "Cấp và thu hồi permission",
+        "RLS",
+        "Mã hóa password của role",
+        "Kết nối SSL",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 11,
+      "pages": [
+        "chapter-11",
+        "chapter-11-yeu-cau-ky-thuat",
+        "chapter-11-gioi-thieu-transaction",
+        "chapter-11-cac-isolation-level-cua-transaction",
+        "chapter-11-giai-thich-mvcc",
+        "chapter-11-savepoint",
+        "chapter-11-deadlocks",
+        "chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals",
+        "chapter-11-vacuum",
+        "chapter-11-tom-tat",
+        "chapter-11-kiem-tra-kien-thuc",
+        "chapter-11-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Giới thiệu transaction",
+        "Các isolation level của transaction",
+        "Giải thích MVCC",
+        "Savepoint",
+        "Deadlocks",
+        "PostgreSQL xử lý persistency và consistency như thế nào: WALs",
+        "VACUUM",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 12,
+      "pages": [
+        "chapter-12",
+        "chapter-12-yeu-cau-ky-thuat",
+        "chapter-12-gioi-thieu-extension",
+        "chapter-12-quan-ly-extension",
+        "chapter-12-kham-pha-pgxn-client",
+        "chapter-12-cai-dat-extension",
+        "chapter-12-tao-extension-cua-rieng-ban",
+        "chapter-12-tom-tat",
+        "chapter-12-kiem-tra-kien-thuc",
+        "chapter-12-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Giới thiệu extension",
+        "Quản lý extension",
+        "Khám phá PGXN client",
+        "Cài đặt extension",
+        "Tạo extension của riêng bạn",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 13,
+      "pages": [
+        "chapter-13",
+        "chapter-13-yeu-cau-ky-thuat",
+        "chapter-13-thuc-thi-mot-statement",
+        "chapter-13-indexes",
+        "chapter-13-the-explain-statement",
+        "chapter-13-vi-du-ve-query-tuning",
+        "chapter-13-analyze-va-cach-cap-nhat-statistics",
+        "chapter-13-auto-explain",
+        "chapter-13-tom-tat",
+        "chapter-13-kiem-tra-kien-thuc",
+        "chapter-13-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Thực thi một statement",
+        "Indexes",
+        "The EXPLAIN statement",
+        "Ví dụ về query tuning",
+        "ANALYZE và cách cập nhật statistics",
+        "Auto-explain",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 14,
+      "pages": [
+        "chapter-14",
+        "chapter-14-yeu-cau-ky-thuat",
+        "chapter-14-gioi-thieu-ve-logging",
+        "chapter-14-trich-xuat-thong-tin-tu-log-pgbadger",
+        "chapter-14-trien-khai-auditing",
+        "chapter-14-tom-tat",
+        "chapter-14-kiem-tra-kien-thuc",
+        "chapter-14-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Giới thiệu về logging",
+        "Trích xuất thông tin từ log – pgBadger",
+        "Triển khai auditing",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 15,
+      "pages": [
+        "chapter-15",
+        "chapter-15-technical-requirements",
+        "chapter-15-gioi-thieu-cac-loai-backup-va-restore",
+        "chapter-15-tim-hieu-logical-backup",
+        "chapter-15-thuc-hien-selective-restore",
+        "chapter-15-dump-toan-bo-cluster",
+        "chapter-15-parallel-backups",
+        "chapter-15-tu-dong-hoa-backup",
+        "chapter-15-lenh-copy",
+        "chapter-15-kham-pha-physical-backup",
+        "chapter-15-cac-khai-niem-co-ban-dang-sau-pitr",
+        "chapter-15-tom-tat",
+        "chapter-15-kiem-tra-kien-thuc",
+        "chapter-15-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Technical requirements",
+        "Giới thiệu các loại backup và restore",
+        "Tìm hiểu logical backup",
+        "Thực hiện selective restore",
+        "Dump toàn bộ cluster",
+        "Parallel backups",
+        "Tự động hóa backup",
+        "Lệnh COPY",
+        "Khám phá physical backup",
+        "Các khái niệm cơ bản đằng sau PITR",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 16,
+      "pages": [
+        "chapter-16",
+        "chapter-16-technical-requirements",
+        "chapter-16-cau-hinh-cluster",
+        "chapter-16-monitoring-the-cluster",
+        "chapter-16-thong-ke-nang-cao-voi-pg-stat-statements",
+        "chapter-16-tom-tat",
+        "chapter-16-kiem-tra-kien-thuc",
+        "chapter-16-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Technical requirements",
+        "Cấu hình cluster",
+        "Monitoring the cluster",
+        "Thống kê nâng cao với pg_stat_statements",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 17,
+      "pages": [
+        "chapter-17",
+        "chapter-17-yeu-cau-ky-thuat",
+        "chapter-17-kham-pha-cac-khai-niem-co-ban-ve-replication",
+        "chapter-17-quan-ly-streaming-replication",
+        "chapter-17-tom-tat",
+        "chapter-17-kiem-tra-kien-thuc",
+        "chapter-17-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Khám phá các khái niệm cơ bản về replication",
+        "Quản lý streaming replication",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 18,
+      "pages": [
+        "chapter-18",
+        "chapter-18-technical-requirements",
+        "chapter-18-tim-hieu-cac-concept-co-ban-cua-logical-replication",
+        "chapter-18-so-sanh-logical-replication-va-physical-replication",
+        "chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16",
+        "chapter-18-tom-tat",
+        "chapter-18-kiem-tra-kien-thuc",
+        "chapter-18-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Technical requirements",
+        "Tìm hiểu các concept cơ bản của logical replication",
+        "So sánh logical replication và physical replication",
+        "Khám phá một logical replication setup và các feature logical replication mới trên PostgreSQL 16",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    },
+    {
+      "number": 19,
+      "pages": [
+        "chapter-19",
+        "chapter-19-yeu-cau-ky-thuat",
+        "chapter-19-kham-pha-extension-pg-trgm",
+        "chapter-19-su-dung-foreign-data-wrappers-va-extension-postgres-fdw",
+        "chapter-19-disaster-recovery-voi-pgbackrest",
+        "chapter-19-file-postgresql-conf",
+        "chapter-19-file-pgbackrest-conf",
+        "chapter-19-tao-va-quan-ly-continuous-backup",
+        "chapter-19-migrate-tu-mysql-mariadb-sang-postgresql-bang-pgloader",
+        "chapter-19-tom-tat",
+        "chapter-19-kiem-tra-kien-thuc",
+        "chapter-19-tai-lieu-tham-khao"
+      ],
+      "sections": [
+        "Yêu cầu kỹ thuật",
+        "Khám phá extension `pg_trgm`",
+        "Sử dụng foreign data wrappers và extension `postgres_fdw`",
+        "Disaster recovery với `pgbackrest`",
+        "File postgresql.conf",
+        "File pgbackrest.conf",
+        "Tạo và quản lý continuous backup",
+        "Migrate từ MySQL/MariaDB sang PostgreSQL bằng pgloader",
+        "Tóm tắt",
+        "Kiểm tra kiến thức",
+        "Tài liệu tham khảo"
+      ]
+    }
+  ],
+  "page_count": 173,
+  "boundary_reports": [
+    "translation/reports/boundary-001-002.md",
+    "translation/reports/boundary-002-003.md",
+    "translation/reports/boundary-003-004.md",
+    "translation/reports/boundary-004-005.md",
+    "translation/reports/boundary-005-006.md",
+    "translation/reports/boundary-006-007.md",
+    "translation/reports/boundary-007-008.md",
+    "translation/reports/boundary-008-009.md",
+    "translation/reports/boundary-009-010.md",
+    "translation/reports/boundary-010-011.md",
+    "translation/reports/boundary-011-012.md",
+    "translation/reports/boundary-012-013.md",
+    "translation/reports/boundary-013-014.md",
+    "translation/reports/boundary-014-015.md",
+    "translation/reports/boundary-015-016.md",
+    "translation/reports/boundary-016-017.md",
+    "translation/reports/boundary-017-018.md",
+    "translation/reports/boundary-018-019.md",
+    "translation/reports/boundary-019-020.md",
+    "translation/reports/boundary-020-021.md",
+    "translation/reports/boundary-021-022.md",
+    "translation/reports/boundary-022-023.md",
+    "translation/reports/boundary-023-024.md",
+    "translation/reports/boundary-024-025.md",
+    "translation/reports/boundary-025-026.md",
+    "translation/reports/boundary-026-027.md",
+    "translation/reports/boundary-027-028.md",
+    "translation/reports/boundary-028-029.md",
+    "translation/reports/boundary-029-030.md",
+    "translation/reports/boundary-030-031.md",
+    "translation/reports/boundary-031-032.md",
+    "translation/reports/boundary-032-033.md",
+    "translation/reports/boundary-033-034.md",
+    "translation/reports/boundary-034-035.md",
+    "translation/reports/boundary-035-036.md",
+    "translation/reports/boundary-036-037.md",
+    "translation/reports/boundary-037-038.md",
+    "translation/reports/boundary-038-039.md",
+    "translation/reports/boundary-039-040.md",
+    "translation/reports/boundary-040-041.md",
+    "translation/reports/boundary-041-042.md",
+    "translation/reports/boundary-042-043.md",
+    "translation/reports/boundary-043-044.md",
+    "translation/reports/boundary-044-045.md",
+    "translation/reports/boundary-045-046.md",
+    "translation/reports/boundary-046-047.md",
+    "translation/reports/boundary-047-048.md",
+    "translation/reports/boundary-048-049.md",
+    "translation/reports/boundary-049-050.md",
+    "translation/reports/boundary-050-051.md",
+    "translation/reports/boundary-051-052.md",
+    "translation/reports/boundary-052-053.md",
+    "translation/reports/boundary-053-054.md",
+    "translation/reports/boundary-054-055.md",
+    "translation/reports/boundary-055-056.md",
+    "translation/reports/boundary-056-057.md",
+    "translation/reports/boundary-057-058.md",
+    "translation/reports/boundary-058-059.md",
+    "translation/reports/boundary-059-060.md",
+    "translation/reports/boundary-060-061.md",
+    "translation/reports/boundary-061-062.md",
+    "translation/reports/boundary-062-063.md",
+    "translation/reports/boundary-063-064.md",
+    "translation/reports/boundary-064-065.md",
+    "translation/reports/boundary-065-066.md",
+    "translation/reports/boundary-066-067.md",
+    "translation/reports/boundary-067-068.md",
+    "translation/reports/boundary-068-069.md",
+    "translation/reports/boundary-069-070.md",
+    "translation/reports/boundary-070-071.md",
+    "translation/reports/boundary-071-072.md",
+    "translation/reports/boundary-072-073.md",
+    "translation/reports/boundary-073-074.md",
+    "translation/reports/boundary-074-075.md"
+  ],
+  "unresolved_boundaries": []
+}

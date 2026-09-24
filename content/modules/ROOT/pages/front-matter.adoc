@@ -1,0 +1,796 @@
+= Learn PostgreSQL
+
+[quote]
+____
+EXPERT INSIGHT
+
+____
+*Learn PostgreSQL*
+
+*Ấn bản thứ hai*
+
+Sử dụng, quản lý và xây dựng các database an toàn, có khả năng mở rộng với PostgreSQL 16
+
+Luca Ferrari  
+Enrico Pirozzi
+
+*Learn PostgreSQL*
+
+*Ấn bản thứ hai*
+
+Sử dụng, quản lý và xây dựng các database an toàn, có khả năng mở rộng với PostgreSQL 16
+
+Luca Ferrari  
+Enrico Pirozzi
+
+BIRMINGHAM—MUMBAI
+
+== Bản quyền
+
+© 2023 Packt Publishing
+
+Mọi quyền được bảo lưu. Không phần nào của cuốn sách này được phép sao chép, lưu trữ trong hệ thống truy xuất hoặc truyền đi dưới bất kỳ hình thức hay bằng bất kỳ phương tiện nào, nếu không có sự cho phép trước bằng văn bản của nhà xuất bản, ngoại trừ các trích dẫn ngắn được đưa vào các bài viết phê bình hoặc bài đánh giá.
+
+Trong quá trình chuẩn bị cuốn sách này, mọi nỗ lực đã được thực hiện để đảm bảo tính chính xác của thông tin được trình bày. Tuy nhiên, thông tin trong cuốn sách này được bán mà không có bất kỳ bảo đảm nào, dù rõ ràng hay ngụ ý. Các tác giả, Packt Publishing, cũng như các đại lý và nhà phân phối của họ sẽ không chịu trách nhiệm về bất kỳ thiệt hại nào do cuốn sách này trực tiếp hoặc gián tiếp gây ra, hoặc bị cáo buộc là do cuốn sách này gây ra.
+
+Packt Publishing đã cố gắng cung cấp thông tin nhãn hiệu về tất cả các công ty và sản phẩm được đề cập bằng cách viết hoa phù hợp. Tuy nhiên, Packt Publishing không thể đảm bảo tính chính xác của thông tin này.
+
+Quản lý sản phẩm xuất bản cấp cao: Gebin George  
+Biên tập viên phụ trách tuyển chọn – Peer Reviews: Gaurav Gavas  
+Biên tập viên dự án: Meenakshi Vijay  
+Biên tập viên phát triển nội dung: Elliot Dallow  
+Biên tập viên hiệu đính: Safis Editing  
+Biên tập viên kỹ thuật: Kushal Sharma  
+Proofreader: Safis Editing  
+Indexer: Pratik Shirodkar  
+Nhà thiết kế trình bày: Rajesh Shirsath  
+Developer Relations Marketing Executive: Vignesh Raju
+
+Xuất bản lần đầu: tháng 10 năm 2020  
+Ấn bản thứ hai: tháng 10 năm 2023  
+Mã tham chiếu sản xuất: 1251023
+
+Xuất bản bởi Packt Publishing Ltd.  
+Grosvenor House  
+11 St Paul’s Square  
+Birmingham  
+B3 1RB, UK.
+
+ISBN 978-1-83763-564-1
+
+www.packt.com
+
+Xin dành tặng người vợ xinh đẹp của tôi, Emanuela; tôi yêu cô ấy như Santa yêu những chú tuần lộc của mình.
+
+Xin dành tặng cậu con trai tuyệt vời của tôi, Diego, người đã thay đổi cuộc đời chúng tôi vào 1283788200.
+
+Xin dành tặng cha mẹ tôi, Miriam và Anselmo: những người hâm mộ lớn nhất của tôi ngay từ ngày đầu tiên.
+
+– Luca Ferrari
+
+Để tưởng nhớ cha tôi, Ilario.
+
+– Enrico Pirozzi
+
+== Những người đóng góp
+
+== Về các tác giả
+
+Luca Ferrari đã say mê computer science từ thời Commodore 64, và hiện có bằng thạc sĩ (loại xuất sắc) cùng bằng Ph.D. từ University of Modena and Reggio Emilia. Ông đã viết một số bài báo nghiên cứu, bài viết kỹ thuật và chương sách. Năm 2011, ông được Nipissing University bổ nhiệm làm adjunct professor. Là một người dùng Unix nhiệt thành, ông là người ủng hộ mạnh mẽ open-source, và trong thời gian rảnh, ông cộng tác cho một vài dự án. Ông lần đầu biết đến PostgreSQL vào thời release 7.3; ông là người sáng lập và cựu chủ tịch của Italian PostgreSQL Users’ Group (ITPUG). Ông cũng thường xuyên nói chuyện tại các hội nghị và sự kiện kỹ thuật, đồng thời thực hiện hoạt động đào tạo chuyên môn.
+
+Enrico Pirozzi đã say mê computer science từ khi mới 13 tuổi. Chiếc máy tính đầu tiên của ông là Commodore 64, và hiện ông có bằng thạc sĩ từ University of Bologna. Ông đã tham gia với tư cách diễn giả tại các hội nghị PostgreSQL trong nước và quốc tế. Ông lần đầu biết đến PostgreSQL từ release 7.2; ông là đồng sáng lập mailing list PostgreSQL đầu tiên của Ý và website PostgreSQL đầu tiên của Ý, đồng thời thường xuyên nói chuyện tại các hội nghị và sự kiện kỹ thuật cũng như thực hiện hoạt động đào tạo chuyên môn. Hiện tại, ông làm PostgreSQL database administrator tại Zucchetti Hospitality (Zucchetti Group S.p.a).
+
+== Về các reviewer
+
+Chris Mair có bằng thạc sĩ từ University of Trento, Italy, và làm việc freelance từ năm 2003. Portfolio của ông gồm các đóng góp cho hơn 25 công ty, trong đó có công việc tư vấn về database programming, performance optimization và seamless migration. Chris có chuyên môn về system programming và network programming, data processing, ML và nhiều lĩnh vực khác. Ông đặc biệt yêu thích PostgreSQL. Ông đã giảng dạy hơn 200 khóa học về nhiều chủ đề IT và đam mê open-source software.
+
+Silvio Trancanella là software engineer với khoảng 12 năm kinh nghiệm phát triển backend, chủ yếu sử dụng Java Enterprise và PostgreSQL. Ông luôn bị cuốn hút bởi database management và ngay từ đầu sự nghiệp đã lập tức bị PostgreSQL thu hút. Ông đã làm việc khoảng 10 năm với phần mềm trong ngành du lịch, phát triển và duy trì các service quan trọng dựa trên PostgreSQL DBMS.
+
+== Tìm hiểu thêm trên Discord
+
+Để tham gia cộng đồng Discord dành cho cuốn sách này – nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới – hãy quét mã QR bên dưới:
+
+https://discord.gg/jYWCjF6Tku
+
+== Mục lục
+
+* Lời nói đầu • xxv
+* Chương 1: Giới thiệu về PostgreSQL • 1
+** Yêu cầu kỹ thuật • 2
+** Tổng quan về PostgreSQL • 2
+*** Lược sử PostgreSQL • 4
+*** Có gì mới trong PostgreSQL 16? • 5
+*** Chính sách release, version number và life cycle của PostgreSQL • 5
+** Khám phá thuật ngữ PostgreSQL • 6
+** Cài đặt PostgreSQL • 10
+*** Cần cài đặt gì • 11
+*** Cài đặt PostgreSQL từ binary package • 12
+**** Sử dụng Docker image của cuốn sách • 13
+**** Cài đặt PostgreSQL trên GNU/Linux Debian, Ubuntu và các bản phân phối phái sinh • 14
+**** Cài đặt PostgreSQL trên Fedora Linux • 15
+**** Cài đặt PostgreSQL trên FreeBSD • 16
+*** Cài đặt PostgreSQL từ source • 17
+*** Cài đặt PostgreSQL qua pgenv • 18
+** Tóm tắt • 19
+** Tài liệu tham khảo • 20
+* Chương 2: Làm quen với cluster của bạn • 21
+** Yêu cầu kỹ thuật • 22
+** Quản lý cluster của bạn • 22
+*** pg_ctl • 22
+*** PostgreSQL processes • 28
+** Kết nối tới cluster • 31
+**** Các template database • 31
+*** Client command-line psql • 33
+**** Nhập SQL statement qua psql • 35
+**** Tổng quan về các command của psql • 38
+*** Giới thiệu connection string • 39
+** Giải quyết các vấn đề connection thường gặp • 40
+*** Database “foo” không tồn tại • 40
+*** Connection bị từ chối • 40
+*** Không có entry trong pg_hba.conf • 41
+** Khám phá disk layout của PGDATA • 42
+*** Các object trong thư mục PGDATA • 43
+**** Các tablespace • 45
+** Khám phá các configuration file và parameter • 46
+** Tóm tắt • 48
+** Kiểm tra kiến thức của bạn • 49
+** Tài liệu tham khảo • 49
+* Chương 3: Quản lý user và connection • 51
+** Yêu cầu kỹ thuật • 52
+** Giới thiệu về user và group • 52
+** Quản lý role • 53
+*** Tạo role mới • 53
+**** Password, connection và availability của role • 54
+*** Dùng role như một group • 55
+*** Xóa role hiện có • 57
+*** Kiểm tra role hiện có • 58
+** Quản lý incoming connection ở cấp role • 61
+*** Cú pháp của pg_hba.conf • 62
+*** Thứ tự các rule trong pg_hba.conf • 64
+*** Gộp nhiều rule thành một rule duy nhất • 64
+*** Dùng group thay cho các role đơn lẻ • 65
+*** Dùng file thay cho các role đơn lẻ • 66
+*** Kiểm tra các rule của pg_hba.conf • 67
+*** Include các file khác trong pg_hba.conf • 68
+** Tóm tắt • 68
+** Kiểm tra kiến thức của bạn • 69
+** Tài liệu tham khảo • 69
+* Chương 4: Các statement cơ bản • 71
+** Yêu cầu kỹ thuật • 72
+*** Sử dụng Docker image • 72
+*** Kết nối database • 72
+** Tạo và quản lý database • 73
+*** Tạo database • 73
+*** Quản lý database • 74
+*** Giới thiệu schema • 74
+*** PostgreSQL và schema public • 74
+*** Biến search_path • 75
+*** Cách bắt đầu làm việc đúng • 75
+*** Liệt kê tất cả table • 76
+*** Tạo database mới từ template đã sửa đổi • 77
+*** Xóa table và database • 78
+*** Xóa table • 78
+*** Xóa database • 79
+*** Tạo bản sao database • 79
+*** Xác nhận kích thước database • 80
+*** Phương thức `psql` • 80
+*** Phương thức SQL • 81
+*** Cơ chế phía sau việc tạo database • 81
+* *Quản lý table* • 84
+** Tùy chọn `EXISTS` • 85
+** Quản lý temporary table • 86
+** Quản lý unlogged table • 88
+** Tạo table • 89
+* *Tìm hiểu các statement thao tác table cơ bản* • 90
+** INSERT và SELECT data • 90
+** Giá trị `NULL` • 94
+** Sắp xếp với giá trị `NULL` • 96
+** Tạo table bắt đầu từ một table khác • 97
+** UPDATE data • 98
+** DELETE data • 99
+* *Tóm tắt* • 101
+* *Kiểm tra kiến thức* • 101
+* *Tài liệu tham khảo* • 102
+
+* *Chương 5: Các statement nâng cao* • 105
+** Yêu cầu kỹ thuật • 105
+** Khám phá statement `SELECT` • 105
+** Sử dụng clause `like` • 106
+** Sử dụng `ilike` • 108
+** Sử dụng `distinct` • 108
+** Sử dụng `limit` và `offset` • 111
+** Sử dụng subquery • 112
+*** Subquery và điều kiện `IN/NOT IN` • 113
+*** Subquery và điều kiện `EXISTS/NOT EXISTS` • 116
+** Tìm hiểu về join • 117
+*** Sử dụng `INNER JOIN` • 119
+*** `INNER JOIN` so với `EXISTS/IN` • 120
+*** Sử dụng `LEFT JOINS` • 121
+*** Sử dụng `RIGHT JOIN` • 125
+*** Sử dụng `FULL OUTER JOIN` • 127
+*** Sử dụng `LATERAL JOIN` • 129
+** Aggregate functions • 130
+*** `UNION/UNION ALL` • 133
+*** `EXCEPT/INTERSECT` • 135
+** Sử dụng `UPSERT` • 137
+*** UPSERT – cách của PostgreSQL • 137
+** Tìm hiểu clause `RETURNING` cho `INSERT` • 140
+*** Trả về tuple từ query • 141
+*** `UPDATE` liên quan đến nhiều record • 141
+*** `MERGE` • 142
+*** Khám phá `UPDATE ... RETURNING` • 144
+*** Khám phá `DELETE ... RETURNING` • 145
+** Khám phá CTE • 145
+*** Khái niệm CTE • 145
+** CTE trong PostgreSQL từ version 12 • 146
+*** CTE – các use case • 147
+*** Đệ quy query • 149
+*** Recursive CTEs • 150
+** Tóm tắt • 151
+** Kiểm tra kiến thức • 152
+** Tài liệu tham khảo • 153
+
+* *Chương 6: Window Functions* • 155
+** Yêu cầu kỹ thuật • 155
+** Sử dụng các statement window function cơ bản • 156
+*** Sử dụng function `PARTITION BY` và clause `WINDOW` • 157
+*** Giới thiệu một số function hữu ích • 158
+**** Function `ROW_NUMBER` • 159
+**** Clause `ORDER BY` • 159
+**** `FIRST_VALUE` • 160
+**** `LAST_VALUE` • 161
+**** `RANK` • 161
+**** `DENSE_RANK` • 162
+**** Function `LAG` và `LEAD` • 163
+**** Function `CUME_DIST` • 165
+**** Function `NTILE` • 165
+** Sử dụng các statement window function nâng cao • 167
+*** Frame clause • 167
+**** `ROWS BETWEEN start_point and end_point` • 168
+**** `RANGE BETWEEN start_point and end_point` • 174
+** Tóm tắt • 178
+** Kiểm tra kiến thức • 179
+** Tài liệu tham khảo • 180
+
+* *Chương 7: Lập trình phía server* • 181
+** Yêu cầu kỹ thuật • 182
+** Khám phá data types • 182
+*** Khái niệm extensibility • 182
+*** Standard data types • 182
+*** Boolean data type • 183
+*** Numeric data type • 184
+**** Integer types • 185
+**** Data type number với precision cố định • 186
+**** Data type number với precision tùy ý • 186
+*** Character data type • 188
+**** Data types char fixed-length • 188
+**** Data types char variable-length có giới hạn • 190
+**** Data types char variable-length không giới hạn • 191
+*** Date/timestamp data type • 192
+**** Date data type • 192
+**** Timestamp data type • 195
+** Data type NoSQL • 197
+*** Data type hstore • 198
+*** Data type JSON • 201
+** Khám phá functions và languages • 205
+*** Functions • 205
+*** SQL functions • 206
+*** Basic functions • 206
+*** SQL functions trả về một set phần tử • 207
+*** SQL functions trả về một table • 208
+*** Polymorphic SQL functions • 210
+*** PL/pgSQL functions • 211
+*** Tổng quan ban đầu • 211
+*** Xóa function • 213
+*** Khai báo parameter của function • 213
+**** Parameter `IN/OUT` • 214
+**** Các category volatility của function • 216
+*** Control structure • 219
+*** Conditional statement • 220
+**** Statement `IF` • 220
+**** Statement `CASE` • 222
+*** Loop statement • 225
+**** Data type record • 226
+*** Statement xử lý exception • 228
+*** Security definer • 229
+** Tóm tắt • 231
+** Kiểm tra kiến thức • 231
+** Tài liệu tham khảo • 232
+
+* *Chương 8: Triggers và Rules* • 233
+** Yêu cầu kỹ thuật • 234
+** Khám phá rules trong PostgreSQL • 234
+*** Tìm hiểu variables `OLD` và `NEW` • 234
+*** Rule trên `INSERT` • 235
+**** Tùy chọn `ALSO` • 236
+**** Tùy chọn `INSTEAD OF` • 237
+*** Rule trên `DELETE/UPDATE` • 239
+**** Tạo table `new_tags` • 240
+**** Tạo hai table • 241
+*** Quản lý rule trên các event `INSERT`, `DELETE` và `UPDATE` • 242
+**** Rule `INSERT` • 243
+**** Rule `DELETE` • 245
+**** Rule `UPDATE` • 247
+** Quản lý triggers trong PostgreSQL • 249
+*** Cú pháp trigger • 250
+*** Triggers trên `INSERT` • 252
+*** Variable `TG_OP` • 257
+*** Trigger trên `UPDATE` / `DELETE` • 257
+** Event triggers • 264
+*** Một ví dụ về event trigger • 265
+** Tóm tắt • 267
+** Kiểm tra kiến thức • 268
+** Tài liệu tham khảo • 269
+
+* *Chương 9: Partitioning* • 271
+** Yêu cầu kỹ thuật • 271
+** Các khái niệm cơ bản • 271
+*** Range partitioning • 273
+*** List partitioning • 274
+*** Hash partitioning • 275
+*** Table inheritance • 276
+**** Xóa tables • 280
+** Khám phá declarative partitioning • 280
+*** List partitioning • 281
+*** Range partitioning • 284
+*** Partition maintenance • 288
+**** Attach partition mới • 288
+**** Detach partition hiện có • 289
+**** Attach table hiện có vào parent table • 290
+** Default partition • 291
+** Partitioning và tablespaces • 292
+** Một case study đơn giản • 295
+** Tóm tắt • 303
+** Kiểm tra kiến thức • 303
+** Tài liệu tham khảo • 305
+
+* *Chương 10: Users, Roles và Database Security* • 307
+** Yêu cầu kỹ thuật • 308
+** Tìm hiểu roles • 308
+*** Properties liên quan đến objects mới • 308
+*** Properties liên quan đến superusers • 309
+*** Properties liên quan đến replication • 309
+*** Properties liên quan đến RLS • 309
+*** Thay đổi properties của role hiện có: statement `ALTER ROLE` • 310
+**** Đổi tên role hiện có • 310
+**** `SESSION_USER` so với `CURRENT_USER` • 311
+**** Configuration parameter theo role • 312
+*** Kiểm tra roles • 313
+*** Roles kế thừa từ roles khác • 316
+**** Tìm hiểu cách privilege được resolve • 319
+**** Tổng quan về role inheritance • 323
+** ACLs • 323
+*** ACLs mặc định • 327
+**** Tìm hiểu ACL mặc định • 330
+** Cấp và thu hồi permissions • 331
+*** Permissions liên quan đến table • 332
+*** Permissions theo column • 333
+*** Permissions liên quan đến sequence • 337
+*** Permissions liên quan đến schema • 339
+**** Tất cả object trong schema • 341
+*** Permissions liên quan đến programming language • 342
+*** Permissions liên quan đến routine • 342
+*** Permissions liên quan đến database • 343
+*** Các statements `GRANT` và `REVOKE` khác • 344
+*** Gán owner cho object • 344
+*** Kiểm tra ACL • 345
+** RLS • 346
+** Mã hóa password của role • 352
+** SSL connections • 353
+*** Cấu hình cluster cho SSL • 353
+*** Kết nối đến cluster qua SSL • 354
+** Tóm tắt • 355
+** Kiểm tra kiến thức • 356
+** Tài liệu tham khảo • 356
+
+* *Chương 11: Transactions, MVCC, WALs và Checkpoints* • 359
+** Yêu cầu kỹ thuật • 360
+** Giới thiệu transactions • 360
+*** So sánh transactions implicit và explicit • 362
+**** Thời gian bên trong transaction • 368
+*** Thông tin thêm về transaction identifier – vấn đề XID wraparound • 369
+**** Transaction identifier virtual và real • 371
+*** Multi-version concurrency control • 373
+** Các isolation level của transaction • 379
+*** `READ UNCOMMITTED` • 381
+*** `READ COMMITTED` • 381
+*** `REPEATABLE READ` • 381
+*** `SERIALIZABLE` • 382
+** Giải thích MVCC • 384
+** Savepoints • 387
+** Deadlocks • 390
+** PostgreSQL xử lý persistency và consistency như thế nào: WALs • 393
+*** WALs • 393
+**** WALs như một phương thức cứu hộ khi xảy ra crash • 397
+**** Checkpoints • 398
+*** Configuration parameters của checkpoint • 399
+**** `checkpoint_timeout` và `max_wal_size` • 400
+*** Checkpoint throttling • 402
+*** Phát hành checkpoint thủ công • 403
+** `VACUUM` • 403
+*** `VACUUM` thủ công • 404
+*** `VACUUM` tự động • 410
+** Tóm tắt • 412
+** Kiểm tra kiến thức • 413
+** Tài liệu tham khảo • 414
+
+* *Chương 12: Mở rộng Database – Extension Ecosystem* • 415
+** Yêu cầu kỹ thuật • 415
+** Giới thiệu extensions • 416
+*** Extension ecosystem • 417
+*** Các thành phần của extension • 418
+**** Control file • 419
+*** Script file • 420
+** Quản lý extensions • 421
+*** Tạo extension • 421
+*** Xem extension đã cài đặt • 422
+*** Tìm các version extensions khả dụng • 423
+*** Thay đổi extension hiện có • 424
+*** Gỡ extension hiện có • 427
+** Khám phá PGXN client • 428
+*** Cài đặt pgxnclient trên Debian GNU/Linux và các derivatives • 429
+*** Cài đặt pgxnclient trên Fedora Linux và các distributions dựa trên Red Hat • 429
+*** Cài đặt pgxnclient trên FreeBSD • 429
+*** Cài đặt pgxnclient từ sources • 429
+*** Command-line interface của pgxnclient • 430
+** Cài đặt extensions • 432
+*** Cài đặt extension qua pgxnclient • 432
+*** Cài đặt extension thủ công • 433
+*** Sử dụng extension đã cài đặt • 436
+*** Gỡ extension đã cài đặt • 437
+**** Gỡ extension qua pgxnclient • 439
+**** Gỡ extension được compile thủ công • 439
+** Tạo extension của riêng bạn • 439
+*** Định nghĩa một extension mẫu • 439
+*** Tạo các file extension • 440
+*** Cài đặt extension • 442
+*** Tạo bản upgrade cho extension • 443
+*** Thực hiện upgrade extension • 445
+** Tóm tắt • 446
+** Kiểm tra kiến thức • 446
+** Tài liệu tham khảo • 447
+
+* *Chương 13: Query Tuning, Indexes và Performance Optimization* • 449
+** Yêu cầu kỹ thuật • 450
+** Thực thi một statement • 450
+*** Các giai đoạn thực thi • 451
+*** Optimizer • 452
+*** Các nodes được optimizer sử dụng • 454
+**** Sequential nodes • 454
+**** Parallel nodes • 457
+**** Khi nào optimizer chọn parallel plan? • 458
+**** Utility nodes • 459
+*** Cost của nodes • 460
+** Indexes • 462
+*** Loại index • 462
+*** Tạo index • 463
+*** Kiểm tra index • 465
+*** Xóa index • 468
+*** Invalidate index • 469
+*** Rebuild index • 470
+** Statement `EXPLAIN` • 470
+*** Formats output của `EXPLAIN` • 473
+*** `EXPLAIN ANALYZE` • 474
+*** Tùy chọn `EXPLAIN` • 476
+** Ví dụ về query tuning • 480
+** `ANALYZE` và cách cập nhật statistics • 491
+** Auto-explain • 494
+** Tóm tắt • 498
+** Kiểm tra kiến thức • 499
+** Tài liệu tham khảo • 500
+* Chương 14: Logging và Auditing — 503
+
+* Yêu cầu kỹ thuật — 503
+* Giới thiệu về logging — 504
+** Ghi log ở đâu — 505
+** Khi nào ghi log — 508
+** Ghi log gì — 512
+* Trích xuất thông tin từ log – pgBadger — 514
+** Cài đặt pgBadger — 514
+** Cấu hình logging của PostgreSQL để sử dụng pgBadger — 515
+** Sử dụng pgBadger — 516
+** Lập lịch cho pgBadger — 521
+* Triển khai auditing — 524
+** Cài đặt PgAudit — 525
+** Cấu hình PostgreSQL để khai thác PgAudit — 526
+** Cấu hình PgAudit — 527
+** Auditing theo session — 528
+** Auditing theo role — 530
+* Tóm tắt — 532
+* Kiểm tra kiến thức — 532
+* Tài liệu tham khảo — 533
+
+* Chương 15: Backup và Restore — 535
+
+* Yêu cầu kỹ thuật — 536
+* Giới thiệu các loại backup và restore — 536
+* Tìm hiểu logical backup — 537
+** Dump một database — 539
+** Restore một database — 543
+** Giới hạn lượng dữ liệu cần backup — 547
+** Compression — 548
+** Các định dạng dump và pg_restore — 549
+* Thực hiện selective restore — 552
+* Dump toàn bộ cluster — 555
+* Backup song song — 556
+* Tự động hóa backup — 558
+* Lệnh COPY — 559
+* Tìm hiểu physical backup — 563
+** Thực hiện physical backup thủ công — 564
+*** pg_verifybackup — 566
+** Khởi động cluster đã clone — 567
+** Restore từ physical backup — 568
+* Các khái niệm cơ bản phía sau PITR — 569
+* Tóm tắt — 570
+* Kiểm tra kiến thức — 570
+* Tài liệu tham khảo — 571
+
+* Chương 16: Configuration và Monitoring — 573
+
+* Yêu cầu kỹ thuật — 574
+* Cấu hình cluster — 574
+** Kiểm tra tất cả configuration parameter — 576
+** Tìm configuration error — 578
+** Lồng các configuration file — 579
+** Configuration context — 580
+** Main configuration setting — 581
+*** WAL setting — 582
+*** Setting liên quan đến memory — 584
+*** Setting thông tin process — 585
+*** Setting liên quan đến networking — 585
+*** Setting archive và replication — 586
+*** Setting liên quan đến VACUUM và autovacuum — 587
+*** Setting optimizer — 587
+*** Statistics collector — 587
+** Sửa configuration từ live system — 588
+** Configuration generator — 589
+* Monitoring cluster — 592
+** Thông tin về query và session đang chạy — 593
+** Kiểm tra lock — 594
+** Kiểm tra database — 596
+** Kiểm tra table và index — 597
+** Các statistics khác — 599
+* Statistics nâng cao với extension pg_stat_statements — 600
+** Cài đặt extension pg_stat_statements — 600
+** Sử dụng pg_stat_statements — 601
+** Reset dữ liệu được thu thập từ pg_stat_statements — 602
+** Tuning pg_stat_statements — 602
+* Tóm tắt — 603
+* Kiểm tra kiến thức — 603
+* Tài liệu tham khảo — 604
+
+* Chương 17: Physical Replication — 607
+
+* Yêu cầu kỹ thuật — 608
+* Tìm hiểu các khái niệm replication cơ bản — 609
+** Physical replication và WAL — 609
+*** Directive wal_level — 610
+** Chuẩn bị môi trường cho streaming replication — 610
+* Quản lý streaming replication — 612
+** Các khái niệm cơ bản của streaming replication — 612
+** Môi trường asynchronous replication — 614
+** Tùy chọn wal_keep_segments — 615
+** Cách dùng slot — 616
+** Lệnh pg_basebackup — 616
+** Asynchronous replication — 617
+*** Monitoring replica — 619
+** Synchronous replication — 620
+*** PostgreSQL setting — 621
+*** Cascading replication — 623
+*** Delayed replication — 626
+** Promote replica server thành primary — 626
+* Tóm tắt — 627
+* Kiểm tra kiến thức — 628
+* Tài liệu tham khảo — 628
+
+* Chương 18: Logical Replication — 631
+
+* Yêu cầu kỹ thuật — 631
+* Tìm hiểu các khái niệm cơ bản của logical replication — 632
+* So sánh logical replication và physical replication — 635
+* Tìm hiểu thiết lập logical replication và các tính năng logical replication mới trên PostgreSQL 16 — 636
+** Setting môi trường logical replication — 636
+*** Replica role — 637
+*** Primary server – postgresql.conf — 637
+*** Replica server – postgresql.conf — 638
+*** File pg_hba.conf — 639
+** Thiết lập logical replication — 639
+** Monitoring logical replication — 641
+*** Read-only so với write-allowed — 643
+** DDL command — 649
+** Vô hiệu hóa logical replication — 651
+** Tạo logical replication bằng một physical replication instance — 652
+* Tóm tắt — 657
+* Kiểm tra kiến thức — 658
+* Tài liệu tham khảo — 658
+
+* Chương 19: Các công cụ và extension hữu ích — 661
+
+* Yêu cầu kỹ thuật — 662
+* Tìm hiểu extension pg_trgm — 662
+* Sử dụng foreign data wrapper và extension postgres_fdw — 665
+* Disaster recovery với pgbackrest — 667
+** Các khái niệm cơ bản — 668
+** Thiết lập môi trường — 669
+*** Trao đổi public key — 669
+** Cài đặt pgbackrest — 671
+** Cấu hình pgbackrest — 672
+*** Cấu hình repository — 672
+*** Sử dụng pgbackrest với object store support — 675
+*** Cấu hình PostgreSQL server — 675
+* File postgresql.conf — 675
+* File pgbackrest.conf — 676
+* Tạo và quản lý continuous backup — 677
+** Tạo stanza — 677
+** Kiểm tra stanza — 677
+** Quản lý base backup — 678
+** Quản lý PITR — 681
+* Di chuyển từ MySQL/MariaDB sang PostgreSQL bằng pgloader — 684
+* Tóm tắt — 688
+* Kiểm tra kiến thức — 688
+* Tài liệu tham khảo — 689
+
+* Các sách khác bạn có thể quan tâm — 691
+
+* Mục lục tra cứu — 697
+
+== Lời nói đầu
+
+PostgreSQL là một trong những hệ quản trị database object-relational mã nguồn mở phát triển nhanh nhất thế giới (Database Management Systems, DBMS). PostgreSQL cung cấp các tính năng cấp enterprise; có khả năng mở rộng, bảo mật và hiệu năng cao; dễ sử dụng; đồng thời có một ecosystem rất phong phú, bao gồm application driver và tool. Trong cuốn sách này, bạn sẽ tìm hiểu PostgreSQL 16, bản stable release mới nhất, và học cách xây dựng các database solution an toàn, đáng tin cậy và có khả năng mở rộng bằng PostgreSQL. Với các tutorial thực hành và một bộ Docker image để bạn làm theo từng ví dụ từng bước, cuốn sách sẽ dạy bạn cách đạt được database design phù hợp cho một môi trường đáng tin cậy.
+
+Bạn sẽ học cách cài đặt, cấu hình và quản lý PostgreSQL server; quản lý user và connection; đồng thời kiểm tra activity của server để tối ưu hiệu năng. Với các phần hỏi và đáp trong mỗi chương, bạn có thể kiểm tra kiến thức mới tiếp thu trong quá trình học.
+
+Cuốn sách bắt đầu bằng việc giới thiệu các khái niệm chính liên quan đến PostgreSQL, cũng như cách cài đặt và kết nối đến database, sau đó chuyển sang quản lý user, permission và các object cơ bản như table. Bạn sẽ được học về Data Definition Language và các statement, command phổ biến và hữu ích nhất, cũng như tất cả khái niệm relational database thiết yếu, chẳng hạn foreign key, trigger và function. Tiếp theo, bạn sẽ tìm hiểu cách cấu hình và tuning cluster để khai thác PostgreSQL service hiệu quả nhất, cách tạo và quản lý index để truy xuất dữ liệu nhanh, cũng như cách tạo và restore bản backup dữ liệu. Cuối cùng, bạn sẽ học cách tạo solution high availability của riêng mình bằng physical hoặc logical replication, đồng thời làm quen với một số tool và extension phổ biến, hữu ích nhất mà bạn có thể áp dụng cho cluster.
+
+Đến cuối cuốn sách, bạn sẽ nắm vững database PostgreSQL và có thể thiết lập PostgreSQL instance của riêng mình để xây dựng các solution hướng dữ liệu vững chắc cho những vấn đề thực tế.
+
+== Cuốn sách này dành cho ai
+
+Cuốn sách này dành cho bất kỳ ai muốn học về database PostgreSQL từ đầu, hoặc bất kỳ ai muốn xây dựng các database application vững chắc, có khả năng mở rộng và high availability. Tất cả tính năng mới nhất và thú vị nhất của PostgreSQL sẽ được trình bày, cùng với mọi khái niệm mà database administrator hoặc application developer cần để khai thác PostgreSQL instance hiệu quả nhất.
+
+Mặc dù không yêu cầu có kiến thức trước về PostgreSQL, bạn cần quen thuộc với database và ngôn ngữ SQL.
+
+== Cuốn sách này bao quát những gì
+
+*Chương 1, Giới thiệu về PostgreSQL* giải thích database PostgreSQL là gì, cộng đồng và quá trình phát triển phía sau database relational cấp enterprise mạnh mẽ này, cũng như cách nhận trợ giúp và nhận biết các version PostgreSQL khác nhau cùng các dependency. Bạn cũng sẽ học cách lấy và cài đặt PostgreSQL thông qua binary package hoặc bằng cách compile từ source. Bạn sẽ thấy cách quản lý cluster bằng các tool của operating system (systemd và rc script).
+
+*Chương 2, Tìm hiểu Cluster của bạn* trình bày cấu trúc của PostgreSQL cluster bằng cách mô tả những gì có trên file system, vị trí của các configuration file chính và cách chúng được sử dụng. Command-line utility psql được mô tả để giúp bạn kết nối đến database cluster và tương tác với cluster.
+
+*Chương 3, Quản lý User và Connection* cung cấp mô tả đầy đủ về cách user và connection được quản lý bởi một instance đang chạy, cũng như cách ngăn hoặc giới hạn user kết nối. Khái niệm “role” được mô tả, và bạn sẽ học cách tạo các user account riêng lẻ cũng như các group gồm những user có liên quan.
+
+*Chương 4, Các Statement cơ bản* trình bày cách tạo và hủy các database object chính, chẳng hạn database, table và schema. Chương này cũng đề cập đến các statement cơ bản như SELECT, INSERT, UPDATE và DELETE. Chương này chỉ ra cách quản lý public schema trên PostgreSQL 16.
+
+*Chương 5, Các Statement nâng cao* giới thiệu các statement nâng cao mà PostgreSQL cung cấp, chẳng hạn common table expression, MERGE, UPSERT và query sử dụng RETURNING để trả về các row. Chương này cung cấp các ví dụ thực tế về thời điểm và cách sử dụng chúng.
+
+*Chương 6, Window Function* giới thiệu một tập function mạnh mẽ, cho phép aggregate mà không cần gộp result thành một row duy nhất. Nói cách khác, nhờ window function, bạn có thể thực hiện aggregate trên nhiều row (window) mà vẫn trình bày tất cả tuple trong output. Window function cho phép triển khai business intelligence và giúp việc lập report trở nên dễ dàng.
+
+*Chương 7, Lập trình Server-Side* đề cập đến thực tế rằng mặc dù SQL phù hợp với phần lớn công việc hằng ngày trên database, bạn có thể gặp một vấn đề cụ thể đòi hỏi cách tiếp cận imperative. Chương này chỉ ra cách triển khai code của riêng bạn bên trong database, cách viết function và procedure bằng các ngôn ngữ khác nhau, cũng như cách làm cho chúng tương tác với transaction boundary.
+
+*Chương 8, Trigger và Rule* trình bày cả trigger và rule bằng các ví dụ thực tế, cho thấy ưu điểm và hạn chế của chúng. Chương kết thúc bằng các ví dụ về event trigger.
+
+*Chương 9, Partitioning* tìm hiểu partitioning – việc chia một table thành các phần nhỏ hơn. PostgreSQL đã hỗ trợ partitioning từ lâu, nhưng ở version 10, PostgreSQL giới thiệu cái gọi là “declarative partitioning”. Chương này tập trung vào tất cả tính năng liên quan đến declarative partitioning, tuning parameter của nó và cách partition một table bằng các tablespace khác nhau.
+
+*Chương 10, User, Role và Database Security* trước hết xem xét user management: role, group và password. Bạn sẽ học cách giới hạn user chỉ được truy cập các database cụ thể và từ các máy cụ thể, cũng như cách quản lý permission gắn với user và database object. Sau đó, bạn sẽ thấy row-level security có thể tăng cường bảo vệ nội dung table và ngăn user truy xuất hoặc sửa các tuple không thuộc về họ như thế nào.
+
+*Chương 11, Transaction, MVCC, WAL và Checkpoint* trình bày các khái niệm nền tảng trong PostgreSQL: Write-Ahead Log (WAL) và cơ chế cho phép database chạy các transaction đồng thời rồi hợp nhất dữ liệu trong storage. Chương này cũng trình bày khái niệm transaction isolation, các quy tắc ACID và cách database có thể triển khai chúng. Sau đó, bạn sẽ khám phá cách WAL tăng tốc công việc database, đồng thời bảo vệ database khỏi crash. Bạn sẽ hiểu MVCC là gì và tại sao nó quan trọng. Cuối cùng, chương cung cấp thông tin chuyên sâu về checkpoint và các tunable liên quan.
+
+*Chương 12, Mở rộng Database – Extension Ecosystem* giới thiệu một cách thuận tiện để cắm functionality mới vào cluster bằng cách sử dụng cái gọi là “extension”. Chương này sẽ cho bạn biết extension là gì; cách tìm kiếm, lấy và cài đặt extension bên thứ ba; cũng như cách phát triển extension của riêng bạn.
+
+*Chương 13, Query Tuning, Index và Tối ưu Performance* đề cập đến một chủ đề quan trọng đối với mọi database administrator: performance. Index là cách nhanh để giúp database truy cập dữ liệu được sử dụng phổ biến nhất, nhưng không thể xây dựng index trên mọi thứ vì chi phí maintenance của chúng. Chương này trình bày các loại index hiện có, sau đó giải thích cách nhận biết table và query có thể hưởng lợi từ index, cũng như cách triển khai chúng. Nhờ các tool như explain và autoexplain, bạn sẽ kiểm soát được query của mình.
+
+*Chương 14, Logging và Auditing* giải quyết các câu hỏi như “Điều gì đang xảy ra trong database cluster?” và “Hôm qua đã xảy ra chuyện gì?”. Có một ruleset logging và auditing tốt là điểm then chốt trong việc quản trị database cluster. Chương này giới thiệu các option chính cho logging, cách kiểm tra log bằng các utility bên ngoài như pgBadger và cách audit cluster (theo cách có thể giúp bạn tuân thủ các chính sách về quy định dữ liệu, ví dụ GDPR).
+
+*Chương 15, Backup và Restore* giải thích tại sao việc có backup lại quan trọng, cách backup toàn bộ hoặc một phần cluster của bạn và cách restore từ một backup hợp lệ. Chương này trình bày những cách cơ bản và phổ biến nhất để backup một database hoặc toàn bộ cluster, cũng như cách thực hiện archiving và point-in-time recovery.
+
+*Chương 16, Configuration và Monitoring* trình bày các tùy chọn configuration của cluster và các PostgreSQL catalog dùng để kiểm tra hệ thống từ bên trong. Nhiều cách tuning configuration khác nhau sẽ được trình bày. Nhờ các extension đặc biệt như pg_stat_activity, bạn có thể monitoring theo thời gian thực những gì user đang thực hiện trên database.
+
+*Chương 17, Physical Replication* trình bày replication tích hợp sẵn, một cơ chế cho phép bạn giữ nhiều instance hoạt động và đồng bộ với một master node duy nhất, được PostgreSQL hỗ trợ từ version 9. Replication cho phép scalability và redundancy, cũng như nhiều kịch bản khác như test và so sánh database. Chương này trình bày cái gọi là “physical replication”, một cách replicate toàn bộ cluster sang một instance khác, instance này sẽ liên tục theo leader của nó. Cả asynchronous và synchronous replication, cũng như replication slot và delayed replication, đều sẽ được trình bày.
+
+*Chương 18, Logical Replication* trình bày logical replication, cho phép replication rất chi tiết bằng cách chỉ định table nào phải được replicate và table nào không phải, một tính năng được PostgreSQL hỗ trợ từ version 10. Điều này dĩ nhiên tạo ra một kịch bản chia sẻ dữ liệu mới mẻ và phong phú giữa các database instance khác nhau. Chương này trình bày cách logical replication hoạt động, cách thiết lập và cách monitoring replication.
+
+*Chương 19, Tool và Extension hữu ích* nên được xem như một phần phụ lục của cuốn sách. Trong chương này, chúng ta sẽ nói về một số tool và extension cho phép database administrator tối đa hóa khối lượng công việc hoàn thành trong khi giảm thiểu nỗ lực.
+
+== Khai thác tối đa cuốn sách
+
+Để cuốn sách hữu ích, bạn cần có kiến thức cơ bản về operating system Linux (hoặc một operating system tương tự Unix). Tất cả ví dụ SQL có thể chạy bằng command-line program psql hoặc bất kỳ GUI tool nào có sẵn (không được trình bày trong sách), chẳng hạn pgAdmin4 dành riêng cho PostgreSQL. Shell script sẽ được thực thi bằng ngôn ngữ GNU Bash.
+
+[cols="2*", options="header"]
+|===
+| Software/hardware được đề cập trong sách | Yêu cầu OS
+| PostgreSQL 16 | Linux OS/Unix-like OS (ví dụ: FreeBSD, OpenBSD)
+|===
+
+Cuốn sách cung cấp một bộ Docker image để người đọc có thể làm theo và kiểm thử tất cả code example. Việc chạy Docker image không bắt buộc, nhưng khi làm vậy, bạn không cần có PostgreSQL installation tùy chỉnh của riêng mình. Để chạy Docker image, bạn cần cài đặt application Docker trên operating system của mình.
+
+Nếu đang sử dụng phiên bản digital của cuốn sách, chúng tôi khuyên bạn nên tự gõ code hoặc truy cập code thông qua GitHub repository (link có sẵn trong section tiếp theo). Làm như vậy sẽ giúp bạn tránh các lỗi tiềm ẩn liên quan đến việc copy và paste code.
+
+== Tải file code example
+
+Code bundle của cuốn sách được lưu trữ trên GitHub tại https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition. Chúng tôi cũng có các code bundle khác từ danh mục phong phú gồm sách và video tại https://github.com/PacktPublishing/. Hãy ghé xem!
+
+== Tải ảnh màu
+
+Chúng tôi cũng cung cấp một file PDF chứa ảnh màu của các screenshot/diagram được sử dụng trong cuốn sách. Bạn có thể tải file tại đây: https://packt.link/gbp/9781837635641.
+== Các quy ước được sử dụng
+
+Có một số quy ước về văn bản được sử dụng xuyên suốt cuốn sách này.
+
+CodeInText: Dùng để chỉ các từ mã trong văn bản, tên table trong database, tên folder, filename, phần mở rộng file, pathname, dummy URL, user input và Twitter handle. Ví dụ: “Mount file disk image `WebStorm-10*.dmg` đã tải xuống thành một disk khác trong hệ thống của bạn.”
+
+Một block code được trình bày như sau:
+
+[source,sql]
+....
+   SELECT rolname, rolcanlogin,
+                  rolconnlimit, rolpassword
+                  FROM pg_roles
+                  WHERE rolname = 'luca';
+....
+
+Khi muốn thu hút sự chú ý của bạn đến một phần cụ thể trong code block, các dòng hoặc mục liên quan sẽ được in đậm:
+
+[source,sql]
+....
+   SELECT line_number, type,
+                           database, user_name,
+                           address, auth_method
+                           FROM pg_hba_file_rules;
+....
+
+Mọi input hoặc output trên command line được viết như sau:
+
+[source,bash]
+....
+$ sudo cat $PGDATA/rejected_users.txt
+....
+
+*Bold:* Dùng để chỉ một thuật ngữ mới, một từ quan trọng hoặc các từ xuất hiện trên màn hình. Chẳng hạn, các từ trong menu hoặc hộp thoại sẽ xuất hiện trong văn bản theo cách này. Ví dụ: “Chọn *System info* từ panel *Administration*.”
+
+[quote]
+____
+*Cảnh báo hoặc ghi chú quan trọng* được hiển thị như thế này.
+
+*Mẹo và thủ thuật* được hiển thị như thế này.
+
+____
+== Liên hệ
+
+Chúng tôi luôn hoan nghênh feedback từ độc giả.
+
+*General feedback:* Gửi email đến `feedback@packtpub.com` và ghi tên sách trong subject của email. Nếu có câu hỏi về bất kỳ khía cạnh nào của cuốn sách, vui lòng email cho chúng tôi tại `questions@packtpub.com`.
+
+*Errata:* Mặc dù chúng tôi đã cố gắng hết sức để bảo đảm nội dung chính xác, sai sót vẫn có thể xảy ra. Nếu phát hiện một lỗi trong cuốn sách này, chúng tôi sẽ rất biết ơn nếu bạn báo cho chúng tôi. Vui lòng truy cập http://www.packtpub.com/submit-errata, nhấp vào *Submit Errata* và điền vào biểu mẫu.
+
+*Piracy:* Nếu bắt gặp các bản sao bất hợp pháp của bất kỳ tác phẩm nào của chúng tôi dưới bất kỳ hình thức nào trên Internet, chúng tôi sẽ rất biết ơn nếu bạn cung cấp địa chỉ hoặc tên website nơi bạn tìm thấy chúng. Vui lòng liên hệ `copyright@packtpub.com` và gửi kèm link đến tài liệu.
+
+*Nếu bạn quan tâm đến việc trở thành author:* Nếu có một chủ đề mà bạn am hiểu và muốn viết hoặc đóng góp cho một cuốn sách, vui lòng truy cập http://authors.packtpub.com.
+
+== Chia sẻ suy nghĩ của bạn
+
+Sau khi đọc *Learn PostgreSQL*, chúng tôi rất muốn biết suy nghĩ của bạn! Vui lòng nhấp vào đây để đi thẳng đến trang review trên Amazon của cuốn sách này và chia sẻ feedback.
+
+Review của bạn rất quan trọng đối với cộng đồng công nghệ và sẽ giúp chúng tôi bảo đảm rằng mình đang cung cấp nội dung chất lượng cao.
+
+== Tải bản PDF miễn phí của cuốn sách này
+
+Cảm ơn bạn đã mua cuốn sách này!
+
+Bạn thích đọc khi di chuyển nhưng không thể mang theo sách in ở mọi nơi?
+
+Sách điện tử bạn mua không tương thích với thiết bị mà bạn lựa chọn?
+
+Đừng lo, giờ đây với mỗi cuốn sách Packt, bạn sẽ nhận được một phiên bản PDF không DRM của cuốn sách đó miễn phí.
+
+Đọc ở bất kỳ đâu, bất kỳ nơi nào, trên bất kỳ thiết bị nào. Tìm kiếm, sao chép và dán code từ những cuốn sách kỹ thuật yêu thích trực tiếp vào ứng dụng của bạn.
+
+Các quyền lợi không dừng ở đó; bạn còn có thể nhận quyền truy cập độc quyền vào các chương trình giảm giá, newsletter và nội dung miễn phí hấp dẫn trong inbox hằng ngày.
+
+Hãy làm theo các bước đơn giản sau để nhận các quyền lợi:
+
+. Quét QR code hoặc truy cập link bên dưới:
+
+   https://packt.link/free-ebook/9781837635641
+
+[%start=2]
+. Gửi proof of purchase của bạn.
+. Vậy là xong! Chúng tôi sẽ gửi bản PDF miễn phí và các quyền lợi khác trực tiếp đến email của bạn.

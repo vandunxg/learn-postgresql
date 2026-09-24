@@ -1,0 +1,5 @@
+= Tóm tắt
+
+Trong chapter này, chúng ta đã giới thiệu chủ đề table partitioning trong PostgreSQL. Partitioning table hữu ích khi table ngày càng lớn, khiến query ngày càng chậm. Chúng ta bắt đầu bằng việc giới thiệu các khái niệm cơ bản của partitioning. Chúng ta đã nói về range partitioning, list partitioning và hash partitioning. Chúng ta cũng đã xem qua một số ví dụ về list partitioning và range partitioning sử dụng tablespace.
+
+Chúng ta sẽ quay lại chủ đề partitioning trong Chapter 13, Indexes and Performance Optimization. Trong chapter tiếp theo, chúng ta sẽ nói về cách PostgreSQL quản lý user, role và nói chung là security của database.

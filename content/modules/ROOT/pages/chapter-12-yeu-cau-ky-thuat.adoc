@@ -1,0 +1,3 @@
+= Yêu cầu kỹ thuật
+
+Các example của chapter có thể chạy trên Docker image `chapter_12`, có thể tìm thấy trong GitHub repository của cuốn sách: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition. Để biết hướng dẫn cài đặt và sử dụng Docker image cho cuốn sách này, hãy xem Chapter 1, *Giới thiệu PostgreSQL*.

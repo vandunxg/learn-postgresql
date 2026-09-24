@@ -1,0 +1,31 @@
+= Kiểm tra kiến thức
+
+* Tôi có phải configure file `pg_hba.conf` trước khi bắt đầu physical replication không?
+
+  Có.
+
+  Xem section *Managing streaming replication* để biết thêm chi tiết.
+
+* PostgreSQL có cho phép thực hiện asynchronous replication không?
+
+  Có, đây là configuration mặc định.
+
+  Xem section *Managing streaming replication* để biết thêm chi tiết.
+
+* PostgreSQL có cho phép thực hiện synchronous replication không?
+
+  Có, bằng cách sửa `postgresql.conf` trên primary server và `postgresql.auto.conf` trên replica server.
+
+  Xem section *Synchronous replication* để biết thêm chi tiết.
+
+* PostgreSQL có cho phép thực hiện cascading replication không?
+
+  Có, bằng cách sử dụng command `pg_basebackup` lấy data từ replica server.
+
+  Xem section *Cascading replication* để biết thêm chi tiết.
+
+* Có thể promote một replica node thành primary node không?
+
+  Có, bằng cách sử dụng command `pg_ctl promote`.
+
+  Xem section *Promoting a replica server to a primary* để biết thêm chi tiết.

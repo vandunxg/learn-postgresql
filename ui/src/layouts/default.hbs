@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="{{or page.attributes.lang 'en'}}" data-theme="light">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="page-key" content="{{page.url}}">
+    <title>{{page.title}} | {{site.title}}</title>
+    <link rel="stylesheet" href="{{uiRootPath}}/css/site.css">
+    <script src="{{uiRootPath}}/js/theme.js"></script>
+  </head>
+  <body class="docs-page">
+    {{> header}}
+    {{> reader-tools}}
+    <div class="docs-shell" data-page-key="{{page.url}}">
+      {{> sidebar}}
+      <main id="main-content" class="docs-main" tabindex="-1">
+        {{> article}}
+      </main>
+      {{> toc}}
+    </div>
+    <div class="sidebar-scrim" data-sidebar-scrim hidden></div>
+    <script defer src="{{uiRootPath}}/js/sidebar.js"></script>
+    <script defer src="{{uiRootPath}}/js/toc.js"></script>
+    <script defer src="{{uiRootPath}}/js/syntax-highlight.js"></script>
+    <script defer src="{{uiRootPath}}/js/copy-code.js"></script>
+    <script defer src="{{uiRootPath}}/js/reading-progress.js"></script>
+  </body>
+</html>

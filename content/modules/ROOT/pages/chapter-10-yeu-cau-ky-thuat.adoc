@@ -1,0 +1,3 @@
+= Yêu cầu kỹ thuật
+
+Các ví dụ trong chapter có thể chạy trên Docker image `chapter_10` có trong GitHub repository của sách: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition.

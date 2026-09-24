@@ -1,0 +1,13 @@
+= Tóm tắt
+
+PostgreSQL có một query planner và optimizer dựa trên cost rất phức tạp, luôn cố gắng cung cấp access nhanh nhất tới underlying data.
+
+Nhờ command `EXPLAIN`, database administrator có thể monitor query để theo dõi cost và thời gian thực thi, rồi quyết định cách cải thiện chúng để có kết quả nhanh hơn. Thông thường, tạo index là lựa chọn ít can thiệp nhất trong query tuning, và PostgreSQL có một index interface rất phong phú, expressive, cho phép tạo single-column, multi-column và partial index thuộc nhiều type và technology khác nhau. Khi index không đủ, query rewriting có thể là một giải pháp khả dĩ để thực hiện query tuning.
+
+Cost mà planner sử dụng dựa trên statistical data cần được giữ cho up to date nhiều nhất có thể. Dù daemon auto-analyze hướng tới việc này, DBA luôn có thể dựa vào command `ANALYZE` thủ công để cập nhật statistics.
+
+Hiểu một query plan, biết những node nào tham gia và chúng tác động thế nào đến query execution, hiểu khi nào statistics đã out of date, cũng như có khả năng thử nghiệm các query access method khác nhau là những công việc phức tạp mà mọi DBA đều nên học.
+
+Chúng ta cũng đã tìm hiểu extension auto-explain, có thể dùng để tự động hóa việc thu thập thông tin về các plan do optimizer chọn, nhờ đó DBA dễ dàng kiểm tra query nào đang chạy kém.
+
+Điều quan trọng cần nhấn mạnh là performance tuning là một trong những công việc phức tạp nhất trong database administration và không có silver bullet hay giải pháp one-size-fits-all, vì vậy cần có kinh nghiệm và rất nhiều thực hành. Trong chapter tiếp theo, chúng ta sẽ bắt đầu tích lũy kinh nghiệm đó bằng cách thử thực hiện logging và auditing.

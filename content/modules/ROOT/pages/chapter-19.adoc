@@ -1,0 +1,26 @@
+= 19. Các công cụ và extension hữu ích
+
+Chapter này được xem là một appendix của cuốn sách. Trong chapter này, chúng ta sẽ nói về một số tool và extension giúp Database Administrator (DBA) tối đa hóa hiệu quả công việc bằng cách giảm thiểu effort cần thiết để hoàn thành công việc.
+
+Chúng ta sẽ nói về các extension sau:
+
+* `pg_trgm`
+* Foreign data wrappers và extension `postgres_fdw`
+
+Đây là hai extension chính thức của PostgreSQL. Một website có thể rất hữu ích để tìm các extension hiện có cho PostgreSQL là https://pgxn.org/.
+
+Ngoài extension, chúng ta cũng sẽ nói về các tool hữu ích khác dành cho PostgreSQL DBA. Có hàng chục tool dành cho PostgreSQL, nhưng trong chapter này, chúng ta sẽ nói về:
+
+* `pgbackrest`: một tool mạnh dùng để quản lý disaster recovery và point-in-time recovery (PITR);
+* `pgloader`: một tool hữu ích để dễ dàng migrate từ MySQL, SQLite và MS SQL sang PostgreSQL; trong section này, chúng ta sẽ trình bày một ví dụ migrate từ MySQL sang PostgreSQL theo cách rất đơn giản.
+
+Chapter này nhằm cung cấp một overview nhanh về một số PostgreSQL extension và tool hữu ích nhất.
+
+Các chủ đề sau sẽ được đề cập:
+
+* Khám phá extension `pg_trgm`
+* Sử dụng foreign data wrappers và extension `postgres_fdw`
+* Quản lý tool `pgbackrest`
+* Khám phá tool `pgloader`
+
+Trong chapter này, Docker container chỉ được sử dụng ở một số section.

@@ -1,0 +1,6 @@
+name: learn-postgresql
+title: Learn PostgreSQL
+version: 'main'
+display_version: Vietnamese
+nav:
+  - modules/ROOT/nav.adoc

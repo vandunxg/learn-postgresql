@@ -1,0 +1,650 @@
+= Cấp và thu hồi permission
+
+Như đã thấy trong Chapter 3, Managing Users and Connections, một role gắn với một tập permission, được cung cấp bằng statement `GRANT` và bị xóa bằng statement `REVOKE`. Permission được lưu nội bộ dưới dạng ACL, như đã thấy trong section trước.
+
+Section này xem lại statement `GRANT` và `REVOKE` để giúp bạn hiểu rõ hơn cách sử dụng chúng với những database object khác nhau.
+
+Statement `GRANT` có synopsis sau:
+
+[source,text]
+....
+GRANT <permission, permission, ...> ON <database-object> TO <role>;
+....
+
+Ở đây, bạn liệt kê tất cả permission muốn gắn với target role cho database object được chỉ định. Cũng có thể mở rộng statement `GRANT` bằng clause `WITH GRANT OPTION`, khiến target role có thể cấp cùng các permission mà nó đã nhận cho một role khác.
+
+Statement `REVOKE` có synopsis tương tự:
+
+[source,text]
+....
+REVOKE <permission, permission, ..> ON <database-object> FROM <role>;
+....
+
+Có một role đặc biệt tên là `PUBLIC`, có thể được sử dụng khi quản lý permission. Đây không phải một role cụ thể, mà là một marker để chỉ “tất cả role khả dụng”. Nói cách khác, nếu bạn cấp một permission cho `PUBLIC`, bạn đang ngầm cấp permission đó cho mọi role khả dụng.
+
+Nhưng “tất cả role khả dụng” nghĩa là gì? Nó có nghĩa là tất cả role hiện có và sẽ tồn tại trong tương lai. Role `PUBLIC` đại diện cho bất kỳ role nào từng hiện diện trong system, tại thời điểm permission được quản lý và cả trong tương lai.
+
+Theo đó, để ngăn mọi user truy cập object của bạn, bạn nên luôn xóa toàn bộ permission khỏi role đặc biệt `PUBLIC`, sau đó chọn lọc cấp những permission cần thiết cho các role cụ thể.
+
+Trong các section sau, chúng ta sẽ trình bày chi tiết những permission khác nhau để gán và xóa grouping, đồng thời phân loại chúng tùy theo database object. Theo nguyên tắc chung, danh sách permission phụ thuộc vào action bạn có thể thực hiện trên database object.
+
+Trong nhiều trường hợp, keyword đặc biệt `ALL` là cách thay thế cho mọi permission liên quan đến database object.
+
+== Permission liên quan đến table
+
+Chúng ta đã thấy những permission chính liên quan đến một database table. Chúng tương ứng với các statement chính có thể chạy trên một table object, chẳng hạn `SELECT`, `INSERT`, `UPDATE`, `DELETE` và `TRUNCATE`. Ngoài ra, có thể sử dụng các keyword đặc biệt `TRIGGER` và `REFERENCES` để tạo trigger và foreign key trong một table.
+
+Dĩ nhiên, keyword đặc biệt `ALL` bao gồm tất cả permission vừa nêu.
+
+Ví dụ, để cấp cho role `forum_stats` permission đọc, update và insert data vào table `categories`, mà không cấp permission thực hiện các action khác, bạn có thể làm như sau sau khi kết nối với tư cách user `forum`:
+
+[source,text]
+....
+      forumdb=> REVOKE ALL
+                ON forum.categories FROM forum_stats;
+      REVOKE
+
+
+        forumdb=> GRANT SELECT, INSERT, UPDATE
+                  ON forum.categories TO forum_stats;
+    GRANT
+
+
+   forumdb=> \dp categories
+                                        Access privileges
+   Schema |         Name    | Type    |    Access privileges       | Column privileges |
+   Policies
+   --------+------------+-------+-----------------------+-------------------
+   +----------
+   forum     | categories | table | forum=arwdDxt/forum           +|                        |
+             |              |         | forum_stats=arw/forum |                             |
+   (1 row)
+....
+
+Statement `REVOKE` đầu tiên không bắt buộc, nhưng là một practice tốt. Vì chúng ta muốn bảo đảm role có chính xác những permission sắp cấp chứ không có thêm gì khác, việc xóa toàn bộ permission khỏi role bảo đảm rằng mọi statement `GRANT` trước đó sẽ không còn hiệu lực.
+
+Như bạn có thể thấy, ACL của user `forum_stats` phản ánh các permission chúng ta đã cấp.
+
+== Permission theo column
+
+Vì một số statement liên quan đến table object có thể trực tiếp nhắm đến column, chẳng hạn `SELECT` và `UPDATE`, nên cũng có thể cấp hoặc revoke permission theo column. Synopsis vẫn giống vậy, nhưng bạn có thể liệt kê các column mà permission áp dụng.
+
+Column privilege chỉ có thể được áp dụng cho các permission `SELECT`, `UPDATE`, `INSERT` và `REFERENCES` vì đó là những permission có thể tham chiếu rõ ràng đến column; keyword đặc biệt `ALL` bao hàm toàn bộ danh sách permission.
+
+Ví dụ, hãy xét tình huống user `forum_stats` chỉ có thể tương tác với table `users` thông qua các column `gecos` và `username`, có thể đọc cả hai nhưng chỉ update column đầu tiên. User `forum` có thể gán permission như sau:
+
+[source,text]
+....
+   forumdb=> REVOKE ALL ON forum.users
+                  FROM forum_stats;
+   REVOKE
+
+
+   forumdb=> GRANT SELECT (username, gecos),
+                        UPDATE (gecos)
+                 ON forum.users TO forum_stats;
+   GRANT
+....
+
+Như đã nhấn mạnh, nên đưa statement `REVOKE` đầu tiên vào để bảo đảm permission của role được reset trước khi gán các permission mong muốn. Sau đó, chúng ta cấp permission `SELECT` và `UPDATE`, chỉ rõ các column mà mỗi statement có thể tương tác.
+
+Side effect của statement `GRANT` trước đó là role `forum_stats` không còn có thể thực hiện `SELECT` hoặc `UPDATE` với column list rộng hơn list được chỉ định trong `GRANT`:
+
+[source,text]
+....
+   forumdb=> SELECT current_role;
+   current_role
+   --------------
+   luca
+   (1 row)
+
+
+   -- denied, not all the columns can be read!
+   forumdb=> SELECT * FROM forum.users;
+   ERROR:    permission denied for table users
+
+
+   -- allowed
+   forumdb=> SELECT gecos, username FROM forum.users;
+          gecos        | username
+   ----------------+-----------
+      LUCA FERRARI     | fluca1978
+      ENRICO PIROZZI | sscotty71
+   (2 rows)
+
+
+   -- denied, the 'username' column cannot be updated!
+   forumdb=> UPDATE users SET username = upper( username );
+   ERROR:    permission denied for table users
+
+
+   -- allowed
+   forumdb=> UPDATE forum.users SET gecos = lower( gecos );
+   UPDATE 2
+....
+
+Bây giờ hãy inspect permission của table `users`:
+
+[source,text]
+....
+   forumdb=> \dp forum.users
+                                        Access privileges
+   Schema | Name      | Type   |   Access privileges     |    Column privileges         |
+   Policies
+   --------+-------+-------+---------------------+------------------------+--
+   --------
+   forum     | users | table | forum=arwdDxt/forum | username:                         +|
+            |        |        |                         |    forum_stats=r/forum +|
+            |        |        |                         | gecos:                      +|
+            |        |        |                         |    forum_stats=rw/forum |
+            |        |        |                                  | email:
+   +|
+            |        |        |                                  | forum_emails=r/forum
+   |
+
+
+   (1 row)
+....
+
+Có hai điểm quan trọng ở đây khác với tất cả ví dụ trước. Thứ nhất, column `Access privileges` không bao gồm entry nào liên quan đến role `forum_stats`, dù chúng ta đã cấp permission rõ ràng. Thứ hai, column `Column privileges` giờ có đầy các row liên quan đến role `forum_stats`.
+
+Mỗi row trong `Column privileges` tham chiếu chính xác đến một column của table và chứa một ACL cho mỗi role được phép. Ví dụ, column `username` có ACL `forum_stats=r/forum`, nghĩa là role `forum_stats` có read permission (tức `SELECT`) trên column đó. Column `gecos` có ACL `forum_stats=rw/forum`, được hiểu là role `forum_stats` có thể vừa đọc vừa ghi trên column (tức `SELECT` và `UPDATE`).
+
+Tóm lại, nếu role được cấp một hoặc nhiều permission trên toàn bộ column, ACL được đặt trong column `Access privileges`; còn nếu permission liên quan đến các column cụ thể, ACL được hiển thị trong column `Column privileges`.
+
+Bạn phải cẩn thận để không làm các permission xung đột với nhau. Ví dụ, giả sử chúng ta cấp nhầm permission `SELECT` cho role `forum_stats`:
+
+[source,text]
+....
+   forumdb=> GRANT SELECT
+                 ON forum.users TO forum_stats;
+   GRANT
+....
+
+Nếu inspect permission sau statement như vậy, chúng ta có thể thấy ACL đã được chèn thành một access privilege:
+
+[source,text]
+....
+   forumdb=> \dp users
+                                        Access privileges
+   Schema | Name      | Type   |   Access privileges     |    Column privileges          |
+   Policies
+   --------+-------+-------+---------------------+------------------------+--
+   --------
+   forum     | users | table | forum=arwdDxt/forum+| username:                            +|
+            |         |         | forum_stats=r/forum |        forum_stats=r/forum +|
+            |         |         |                         | gecos:                       +|
+            |         |         |                         |    forum_stats=rw/forum |
+   (1 row)
+....
+
+Permission nào sẽ được xét trong trường hợp có statement `SELECT`?
+
+Có thể dễ dàng kiểm tra và thấy rằng PostgreSQL coi permission được cấp sau cùng là rộng hơn permission được cấp cho column. Vì vậy, role đã được cấp khả năng select mọi column trên table:
+
+[source,text]
+....
+   forumdb=> SELECT * FROM users;
+      pk | username    |       gecos       |          email
+   ----+-----------+----------------+---------------------
+       1 | fluca1978 | luca ferrari        | fluca1978@gmail.com
+       2 | sscotty71 | enrico pirozzi | sscotty71@gmail.com
+   (2 rows)
+....
+
+Sửa vấn đề có thể không đơn giản như bạn nghĩ. Revoke read permission trên các column mà bạn không muốn role truy cập có thể không cho kết quả như mong đợi, ngay cả khi được thực hiện bởi table owner (user `forum`):
+
+[source,text]
+....
+   forumdb=> REVOKE SELECT (pk, email)
+                ON users FROM forum_stats;
+   REVOKE
+....
+
+Nếu bạn nhớ, `REVOKE` không lưu ACL mà sửa đổi các ACL hiện có. Trong trường hợp cụ thể này, vì không có gì liên quan đến các column `pk` và `email` nói trên, statement `REVOKE` không thay đổi gì:
+
+[source,text]
+....
+   forumdb=> \dp users
+....
+
+[source,text]
+....
+   forumdb=> \dp users
+                                        Access privileges
+   Schema | Name      | Type   |   Access privileges       |    Column privileges         |
+   Policies
+   --------+-------+-------+---------------------+------------------------+--
+   --------
+   forum     | users | table | forum=arwdDxt/forum+| username:                           +|
+            |        |        | forum_stats=r/forum |          forum_stats=r/forum +|
+            |        |        |                           | gecos:                      +|
+            |        |        |                           |    forum_stats=rw/forum |
+   (1 row)
+....
+
+Nguyên tắc chung là mọi statement `GRANT` cụ thể đều bị hủy bởi statement đối ứng `REVOKE`. Trong ví dụ này, vì statement `GRANT` cuối cùng được phát hành mà không có danh sách column cụ thể, chúng ta cần phát hành statement `REVOKE` từ user `forum` mà không có danh sách column:
+
+[source,text]
+....
+   forumdb=> REVOKE SELECT
+                 ON users FROM forum_stats;
+   REVOKE
+....
+
+Tuy nhiên, việc này cũng xóa các grant permission theo column, vì vậy sau `REVOKE`, role `forum_stats` sẽ không còn có thể thực hiện `SELECT` trên các column `username` và `gecos`. Để cấp lại cho role, bạn phải phát hành lại statement `GRANT` cho các column đích.
+
+Ví dụ trước cho thấy việc áp dụng permission ở mức fine-grain đòi hỏi sự chú ý và cẩn thận, vì một statement `GRANT` hoặc `REVOKE` quá rộng có thể tạo ra kết quả mà thoạt nhìn bạn không mong đợi.
+
+== Permission liên quan đến sequence
+
+Sequence là một object giống table, tạo ra một stream các value mới an toàn với transaction, thường được dùng cho các key tự sinh (synthetic).
+
+Có ba permission chính gắn với một sequence: `USAGE` cho phép query value mới từ sequence; privilege `SELECT` cho phép query value cuối cùng hoặc hiện tại từ sequence (nhưng không lấy value mới); và cuối cùng, privilege `UPDATE` là một extension đặc thù của PostgreSQL cho phép set và/hoặc reset value của sequence.
+
+Vì privilege `USAGE` là privilege duy nhất được SQL standard công nhận, nếu bạn cấp nó cho một role thì role đó sẽ tự động có thể thực hiện các action yêu cầu privilege `SELECT` và `UPDATE`.
+Hai permission sau chỉ nhằm cho phép bạn cấu hình permission chi tiết hơn đối với một sequence.
+
+Synopsis tổng quát của các command `GRANT` và `REVOKE` như sau:
+
+[source,text]
+....
+   GRANT <permission> ON SEQUENCE <sequence> TO <role>;
+   REVOKE <permission> ON SEQUENCE <sequence> FROM <role>;
+....
+
+Keyword đặc biệt `ALL` bao hàm tất cả permission áp dụng được cho một sequence.
+
+Để hiểu privilege hoạt động như thế nào đối với một sequence, hãy xem xét sequence được dùng để sinh primary key của table `categories`: `categories_pk_seq`.
+
+Trước hết, hãy xóa tất cả privilege khỏi role `luca` để role này không còn có thể tương tác với sequence:
+
+[source,text]
+....
+   forumdb=> REVOKE ALL
+                 ON SEQUENCE categories_pk_seq
+                 FROM luca;
+   REVOKE
+....
+
+Bây giờ, nếu role `luca` cố lấy một value mới từ sequence, nó sẽ nhận được lỗi `permission denied`:
+
+[source,text]
+....
+   forumdb=> SELECT nextval( 'categories_pk_seq' );
+   ERROR:      permission denied for sequence categories_pk_seq
+....
+
+Cấp privilege `USAGE` cho sequence cho phép role `luca` query sequence lần nữa:
+
+[source,text]
+....
+   forumdb=> GRANT USAGE ON SEQUENCE categories_pk_seq TO luca;
+   GRANT
+....
+
+Bây giờ role này có thể áp dụng thành công function `setval`:
+
+[source,text]
+....
+   forumdb=> SELECT setval( 'categories_pk_seq', 10 );
+      setval
+   --------
+          10
+   (1 row)
+
+
+   forumdb=> SELECT nextval( 'categories_pk_seq' );
+      nextval
+   ---------
+              11
+   (1 row)
+....
+
+Hãy nhớ rằng privilege `USAGE` bao hàm cả privilege `SELECT` và `UPDATE`, vì vậy sau khi cấp `USAGE` cho một role, sequence có thể được query và set về một value cụ thể.
+
+== Permission liên quan đến schema
+
+Một schema là namespace cho nhiều object khác nhau, chủ yếu là table và view, nhưng cũng gồm function, routine và các database object khác. Có hai permission chính có thể áp dụng cho một schema: `CREATE`, cho phép tạo object bên trong schema, và `USAGE`, cho phép role "sử dụng" object trong schema (với điều kiện role có permission phù hợp đối với object đó).
+
+Thoạt đầu điều này có thể hơi khó hiểu, bởi nếu role không có permission `USAGE`, role sẽ không thể truy cập object ngay cả khi nó là owner.
+
+Synopsis tổng quát khi dùng `GRANT` và `REVOKE` ở đây có `ON SCHEMA` clause tường minh (để phân biệt với permission nhắm tới một table):
+
+[source,text]
+....
+   GRANT <permission> ON SCHEMA <schema> TO <role>;
+   REVOKE <permission> ON SCHEMA <schema> FROM <role>;
+....
+
+Cũng như các statement tương tự khác, keyword `ALL` bao hàm tất cả permission. Để hiểu rõ hơn hai permission khác nhau này, hãy tạo một schema `configuration` và xem cách bật quyền truy cập vào nó:
+
+[source,text]
+....
+   -- as user forum
+   forumdb=> CREATE SCHEMA configuration;
+   CREATE SCHEMA
+....
+
+Schema được user `forum` tạo, vì vậy user `luca` không có privilege nào trong đó và không thể tạo table:
+
+[source,text]
+....
+   -- as user 'luca'
+   forumdb=> CREATE TABLE configuration.conf( param text,
+                                                          value text,
+                                                          UNIQUE (param) );
+   ERROR:    permission denied for schema configuration
+   LINE 1: CREATE TABLE configuration.conf( param text, value text, UNI...
+....
+
+Để cho phép user `luca` tạo object mới bên trong schema, phải cấp permission `CREATE`. Tuy nhiên, nếu không có permission `USAGE`, role sẽ không thể truy cập bất cứ thứ gì trong schema, vì vậy cần cung cấp cả hai permission cùng lúc:
+
+[source,text]
+....
+   -- as user 'forum'
+   forumdb=> GRANT CREATE ON SCHEMA configuration TO luca;
+   GRANT
+
+
+   forumdb=> GRANT USAGE ON SCHEMA configuration TO luca;
+   GRANT
+....
+
+Do đó, role `luca` giờ có thể tạo một object mới bên trong schema:
+
+[source,text]
+....
+   -- as user 'luca'
+   forumdb=> CREATE TABLE configuration.conf( param text,
+                                                       value text,
+                                                       UNIQUE (param) );
+   CREATE TABLE
+
+
+   forumdb=> INSERT INTO configuration.conf
+               VALUES( 'posts_per_page', '10' );
+   INSERT 0 1
+....
+
+Nếu không có permission `USAGE`, role sẽ không còn có thể truy cập bất kỳ object nào bên trong schema, ngay cả khi nó là owner của object:
+
+[source,text]
+....
+   -- as role 'forum'
+   forumdb=> REVOKE USAGE ON SCHEMA configuration FROM luca;
+   REVOKE
+....
+
+Thực tế, user sẽ không còn có thể đọc data của chính mình:
+
+[source,text]
+....
+   -- as role 'luca'
+   forumdb=> SELECT * FROM configuration.conf;
+   ERROR:    permission denied for schema configuration
+   LINE 1: SELECT * FROM configuration.conf;
+....
+
+Mặt khác, việc cho phép một role thao tác với data nằm trong một schema cụ thể nhưng không cấp cho role khả năng tạo database object mới như table là điều thường gặp.
+
+Đây là một scenario phổ biến trong đó database administrator thiết lập một schema cùng các object của nó, để user cuối xử lý data bên trong schema nhưng không cho phép user sửa đổi chính cấu trúc đó. Có thể đạt được điều này bằng các thiết lập permission chi tiết như sau:
+
+[source,text]
+....
+   -- as user 'forum'
+   forumdb=> GRANT USAGE ON SCHEMA configuration TO luca;
+   GRANT
+
+
+   forumdb=> REVOKE CREATE ON SCHEMA configuration FROM luca;
+   REVOKE
+....
+
+Bạn có thể hình dung schema như một container chứa các database object khác. Để truy cập container, bạn phải có permission `USAGE`, còn để tạo object mới, bạn phải có permission `CREATE`. Tuy nhiên, `USAGE` không cung cấp quyền truy cập không giới hạn vào mọi object trong schema. Thay vào đó, nó cung cấp quyền truy cập vào các object tùy theo permission bạn có đối với từng object đó.
+
+== Tất cả object trong schema
+
+Vì schema là các container có tên chứa database object, chúng có thể được dùng như một shortcut để áp dụng các privilege khác nhau cho mọi object nằm trong schema, thông qua clause `ALL <objects> IN SCHEMA`.
+
+Ví dụ, để áp dụng một tập permission giống nhau cho tất cả table trong một schema, bạn có thể làm như sau:
+
+[source,text]
+....
+   -- as user 'forum'
+   forumdb=> REVOKE ALL
+               ON ALL TABLES IN SCHEMA configuration
+               FROM luca;
+   REVOKE
+
+
+   forumdb=> GRANT SELECT, INSERT, UPDATE
+               ON ALL TABLES IN SCHEMA configuration
+               TO luca;
+   GRANT
+....
+
+Điều này có thể đơn giản hóa đáng kể việc quản lý các schema lớn.
+
+Hiện tại, bạn có thể dùng clause này cho các đối tượng sau:
+
+* Tables, như trong `ON ALL TABLES IN SCHEMA`
+* Sequences, như trong `ON ALL SEQUENCES IN SCHEMA`
+* Routines, như trong `ON ALL ROUTINES IN SCHEMA` (với các biến thể `ON ALL PROCEDURES IN SCHEMA` và `ON ALL FUNCTIONS IN SCHEMA`)
+
+== Permission liên quan đến programming language
+
+Chỉ có một permission áp dụng cho language: `USAGE`. Permission này cho phép một role sử dụng language. Keyword đặc biệt `ALL`, tồn tại để tương thích với các statement `GRANT` và `REVOKE` khác, đơn giản chỉ áp dụng permission duy nhất đó.
+
+Một thói quen bảo mật tốt là cấp ít permission nhất có thể để ngăn user không đáng tin cậy chạy code bên trong database. Ví dụ, để ngăn mọi role có khả năng thực thi bất kỳ đoạn code PL/Perl nào, bạn cần revoke permission khỏi group đặc biệt `PUBLIC`:
+
+[quote]
+____
+*Lưu ý:* Đây chỉ là một ví dụ. Nếu language này chưa được cài đặt trên system của bạn, bạn có thể gặp lỗi.
+
+____
+[source,text]
+....
+   forumdb=# REVOKE USAGE ON LANGUAGE plperl FROM PUBLIC;
+   REVOKE
+....
+
+Theo cách này, ngay cả một user đáng tin cậy như `luca` cũng không thể thực thi một đoạn PL/Perl:
+
+[source,text]
+....
+   forumdb=> DO LANGUAGE plperl $$ elog( INFO, "Hello World" ); $$;
+   ERROR:    permission denied for language plperl
+....
+
+Nếu muốn chỉ cho phép role `luca` thực thi code PL/Perl, bạn cần cấp permission này một cách tường minh:
+
+[source,text]
+....
+   forumdb=# GRANT USAGE ON LANGUAGE plperl TO luca;
+   GRANT
+....
+
+== Permission liên quan đến routine
+
+Keyword đặc biệt `ROUTINES` bao gồm cả `FUNCTIONS` và `PROCEDURES`. `ROUTINES` có một permission duy nhất, đó là permission `EXECUTE`, để có thể chạy (execute) code trong routine.
+
+Để minh họa permission này, hãy tạo một routine rất đơn giản, `get_max`, trả về giá trị lớn hơn giữa hai số nguyên:
+
+[source,text]
+....
+   forumdb=> CREATE FUNCTION get_max( a int, b int )
+   RETURNS int AS $$
+   BEGIN
+      IF a > b THEN
+        RETURN a;
+      ELSE
+        RETURN b;
+      END IF;
+   END $$ LANGUAGE plpgsql;
+....
+
+Bây giờ, hãy ngăn mọi role ngoài `luca` thực thi routine này:
+
+[source,text]
+....
+   forumdb=> REVOKE EXECUTE ON ROUTINE get_max FROM PUBLIC;
+   REVOKE
+   forumdb=> GRANT EXECUTE ON ROUTINE get_max TO luca;
+   GRANT
+....
+
+Bất kỳ role nào ngoài `luca` sẽ nhận được lỗi `permission denied` nếu gọi function:
+
+[source,text]
+....
+   -- executing as enrico
+   forumdb=> SELECT forum.get_max( 10, 20 );
+   ERROR:    permission denied for function get_max
+....
+
+Vì `get_max` là một function, ta có thể viết permission `GRANT` và `REVOKE` bằng keyword `FUNCTION` thay cho `ROUTINE` bao quát. Đây là vấn đề lựa chọn.
+
+Cụ thể, keyword `ROUTINE` trở nên tiện dụng khi bạn muốn áp dụng permission cho tất cả function và procedure bên trong một schema cùng lúc bằng một statement duy nhất, chẳng hạn như sau:
+
+[source,text]
+....
+   - as user forum
+   forumdb=> GRANT EXECUTE ON ALL ROUTINES IN SCHEMA forum;
+....
+
+== Permission liên quan đến database
+
+Có nhiều permission liên quan đến database: `CONNECT` cho phép hoặc từ chối connection đến mà không liên quan gì đến host-based access control; `TEMP` cho phép tạo temporary object (ví dụ table) trong database; và `CREATE` cho phép tạo object mới bên trong database.
+
+Synopsis tổng quát như sau:
+
+[source,text]
+....
+   GRANT <permission> ON DATABASE <database> TO <role>;
+   REVOKE <permission> ON DATABASE <database> FROM <role>;
+....
+
+Ví dụ, nếu cần khóa mọi user khỏi một database, chẳng hạn vì phải thực hiện maintenance, bạn có thể phát hành command `REVOKE` sau:
+
+[source,text]
+....
+   forumdb=# REVOKE CONNECT ON DATABASE forumdb FROM PUBLIC;
+   REVOKE
+....
+
+Các connection đến mới sẽ bị từ chối với lỗi `permission denied`:
+
+[source,text]
+....
+   $ psql -U luca forumdb
+   psql: error: could not connect to server: FATAL:              permission denied for
+   database "forumdb"
+   DETAIL:    User does not have CONNECT privilege.
+....
+
+Bây giờ, nếu muốn role `luca` là role duy nhất có thể connect tới database và tạo object nhưng không tạo temporary object, bạn cần phát hành command sau:
+
+[source,text]
+....
+   forumdb=# REVOKE ALL ON DATABASE forumdb FROM public;
+   REVOKE
+
+
+   forumdb=# GRANT CONNECT, CREATE ON DATABASE forumdb TO luca;
+   GRANT
+....
+
+== Các statement `GRANT` và `REVOKE` khác
+
+Có những nhóm `GRANT` và `REVOKE` khác kiểm soát permission cho tablespace, type và foreign data wrapper. Chúng sẽ không được thảo luận ở đây, nhưng có thể tìm thấy trong tài liệu PostgreSQL chính thức; và giờ đây, khi đã có workflow khá rõ ràng để áp dụng permission cho các object khác nhau, chúng sẽ đủ dễ hiểu.
+
+== Gán object owner
+
+Bạn đã thấy owner của một object có tất cả permission khả dụng trên object đó. Đôi khi, bạn có thể muốn thay đổi ownership của một object sang một role khác, và role đó sẽ nhận tất cả permission. Thông thường, thay đổi ownership được thực hiện bằng một statement `ALTER` đặc biệt như sau:
+
+[source,text]
+....
+   ALTER <object> OWNER TO <role>;
+....
+
+Ví dụ, để thay đổi ownership của một table, bạn có thể phát hành command sau:
+
+[source,text]
+....
+   forumdb=# ALTER TABLE forum.categories OWNER TO luca;
+   ALTER TABLE
+....
+
+Để thay đổi ownership của một function, bạn có thể phát hành command sau:
+
+[source,text]
+....
+   -- equivalent to: ALTER FUNCTION get_max OWNER TO luca;
+   forumdb=# ALTER ROUTINE forum.get_max OWNER TO luca;
+   ALTER ROUTINE
+....
+
+Các statement tương tự tồn tại cho mọi loại object khác.
+
+Superuser có thể thay đổi owner của mọi database object bằng cách đặt owner thành bất kỳ user hiện có nào, còn user thông thường chỉ có thể thay đổi ownership thành các role mà họ thuộc về.
+
+== Kiểm tra ACL
+
+Để xem permission nào đã được cấp cho role và object, bạn có thể dùng special `psql` command `\dp` (describe permissions) đã đề cập, command này báo cáo các ACL được cấu hình cho một object cụ thể (chẳng hạn một table). Command thực hiện query trên catalog đặc biệt `pg_class`, trong đó có một field cụ thể tên là `relacl` - một array các ACL. Bạn có thể thấy điều này như sau:
+
+[source,text]
+....
+   forumdb=> \dp users
+                                          Access privileges
+   Schema | Name      | Type    |   Access privileges      |   Column privileges       |
+   Policies
+   --------+-------+-------+---------------------+-----------------------+---
+   -------
+   forum     | users | table | forum=arwdDxt/forum | gecos:                          +|
+             |        |         |                          |   forum_stats=w/forum |
+   (1 row)
+
+
+   forumdb=> SELECT relname, relacl
+                 FROM pg_class WHERE relname = 'users';
+   relname |              relacl
+   ---------+-----------------------
+   users      | {forum=arwdDxt/forum}
+....
+
+Như bạn có thể thấy, output từ command `\dp` và query giống nhau, ngoại trừ cách format output.
+
+Bạn cũng có thể dùng special function `aclexplode` để lấy thông tin mô tả chi tiết hơn về ý nghĩa của ACL. Function trả về một set record, mỗi record có OID của grantor và grantee, cùng mô tả dạng text về permission đã cấp. Do đó, có thể xây dựng một query như sau:
+
+[source,text]
+....
+   forumdb=> WITH acl AS (
+                   SELECT relname,
+                           (aclexplode(relacl)).grantor,
+                           (aclexplode(relacl)).grantee,
+                           (aclexplode(relacl)).privilege_type
+                  FROM pg_class )
+              SELECT g.rolname AS grantee,
+                      acl.privilege_type AS permission,
+                      gg.rolname AS grantor
+              FROM acl
+              JOIN pg_roles g ON g.oid = acl.grantee
+              JOIN pg_roles gg ON gg.oid = acl.grantor
+              WHERE acl.relname = 'users';
+....
+
+Lệnh này trả về tất cả permission riêng lẻ được gán cho table `categories`, như sau:
+
+[source,text]
+....
+   grantee | permission | grantor
+   --------+------------+---------
+   forum     | INSERT        | forum
+   forum     | SELECT        | forum
+   forum     | UPDATE        | forum
+   forum     | DELETE        | forum
+   forum     | TRUNCATE      | forum
+   forum     | REFERENCES | forum
+   forum     | TRIGGER       | forum
+....

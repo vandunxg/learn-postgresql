@@ -1,0 +1,71 @@
+= Giải quyết các vấn đề connection thường gặp
+
+Có một số vấn đề thường gặp khi làm việc với database connection; phần này giải thích chúng để giúp bạn kết nối tới cluster dễ dàng hơn.
+
+Xin lưu ý rằng các giải pháp được cung cấp chỉ dành cho mục đích testing, không dành cho production usage. Tất cả security setting sẽ được giải thích trong các chapter sau, nên mục tiêu của subsection dưới đây chỉ là giúp bạn làm cho test environment có thể sử dụng được.
+
+== Database “foo” không tồn tại
+
+Điều này có nghĩa là bạn đã viết sai tên database trong connection string hoặc đang cố kết nối mà không chỉ định database name.
+
+Chẳng hạn, connection sau sẽ thất bại khi được thực thi bởi operating system user có tên `luca`, bởi theo default nó giả định rằng user `luca` đang cố kết nối tới database có cùng tên (tức là `luca`) vì chưa có tên nào được set rõ ràng:
+
+[source,text]
+....
+     $ psql
+     psql: error: could not connect to server: FATAL:            database "luca" does not
+     exist
+....
+
+Giải pháp là cung cấp một database name đang tồn tại thông qua option `-d`, hoặc tạo một database có cùng tên với user.
+
+== Connection refused
+
+Điều này thường có nghĩa là có vấn đề về network connection: hoặc host mà bạn đang cố kết nối tới không thể reach được, hoặc cluster không listen trên network.
+
+Ví dụ, hãy hình dung PostgreSQL đang chạy trên một machine có tên `venkman` và ta đang cố kết nối từ một host khác trên cùng network:
+
+[source,text]
+....
+     $ psql -h venkman -U luca template1
+     psql: error: could not connect to server: could not connect to server:
+     Connection refused
+             Is the server running on host "venkman" (192.168.222.123) and
+     accepting
+              TCP/IP connections on port 5432?
+....
+
+Trong trường hợp này, database cluster đang chạy trên remote host nhưng không accept connection từ bên ngoài. Thông thường, bạn phải sửa server configuration hoặc kết nối tới remote machine (chẳng hạn qua SSH) rồi mở một local connection từ đó.
+
+Để nhanh chóng giải quyết vấn đề, bạn phải edit file `postgresql.conf` (thường nằm trong directory `PGDATA`) và bảo đảm option `listen_address` có giá trị dấu hoa thị (hoặc tên external network card của bạn), để server listen trên mọi network address hiện có:
+
+[source,text]
+....
+   listen_addresses = '*'
+....
+
+Sau khi restart service bằng command `restart` được phát hành tới `pg_ctl`, client sẽ có thể kết nối. Xin lưu ý rằng việc cho phép server listen trên mọi network address hiện có có thể không phải là giải pháp tối ưu và có thể khiến server gặp rủi ro trong production environment. Về sau trong cuốn sách, bạn sẽ học cách cấu hình cụ thể các connection property cho server.
+
+== No `pg_hba.conf` entry
+
+Lỗi này có nghĩa là server đang hoạt động và có thể accept request của bạn, nhưng cơ chế kiểm soát Host-Based Access (HBA) tích hợp trong PostgreSQL không cho phép bạn truy cập.
+
+Lỗi này không bao giờ nên xảy ra trong Docker container được dùng cho chapter này, vì configuration của container đã cho phép trusted connection. Tuy nhiên, các PostgreSQL installation khác có thể strict hơn; do đó, biết về loại error message này có thể giúp bạn nhanh chóng xác định vấn đề nằm ở đâu trong configuration.
+
+Ví dụ, connection sau bị từ chối:
+
+[source,text]
+....
+   $   psql -h localhost -U luca template1
+   psql: error: could not connect to server: FATAL: no pg_hba.conf entry for
+   host "127.0.0.1", user "luca", database "template1", SSL off
+....
+
+Lý do là khi kiểm tra file `pg_hba.conf`, không có rule nào cho phép user `luca` truy cập qua localhost interface. Vì vậy, chẳng hạn, thêm một line như sau vào file `pg_hba.conf` có thể khắc phục vấn đề:
+
+[source,text]
+....
+   host all luca 127.0.0.1/32 trust
+....
+
+Bạn cần reload configuration để áp dụng thay đổi. Format của từng line trong file `pg_hba.conf` sẽ được thảo luận ở phần sau, nhưng hiện tại, hãy giả định rằng line trên chỉ dẫn cho cluster accept mọi connection đi vào từ localhost bằng user `luca`.

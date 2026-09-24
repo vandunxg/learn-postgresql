@@ -1,0 +1,9 @@
+= Yêu cầu kỹ thuật
+
+Để tiếp tục, bạn cần biết những nội dung sau:
+
+* Cách phát hành SQL statement qua `psql`
+* Cách connect tới cluster và một database
+* Cách kiểm tra và sửa đổi configuration của cluster
+
+Các example trong chapter có sẵn trong code repository của cuốn sách và có thể chạy trên standalone Docker image trong GitHub repository của cuốn sách: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition.

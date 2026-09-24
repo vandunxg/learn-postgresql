@@ -1,0 +1,21 @@
+<header class="topbar" data-reader-ui>
+  <div class="brand-group">
+    <button class="icon-button mobile-nav-button" type="button" data-menu-button aria-expanded="false" aria-controls="docs-sidebar" aria-label="Open documentation navigation">
+      <span aria-hidden="true">&#9776;</span>
+    </button>
+    <a class="brand" href="{{{relativize page.componentVersion.url}}}">
+      <span class="brand-mark" aria-hidden="true">DB</span>
+      <span class="brand-title">{{or site.title page.component.title}}</span>
+    </a>
+  </div>
+  <form class="search-form" role="search" data-search-form>
+    <label class="sr-only" for="site-search">Search documentation</label>
+    <span class="search-icon" aria-hidden="true">&#8981;</span>
+    <input id="site-search" type="search" name="q" placeholder="Search documentation" autocomplete="off" data-search-input>
+  </form>
+  <div class="top-actions">
+    <button class="icon-button" type="button" data-theme-button aria-label="Switch to dark mode" title="Theme">
+      <span aria-hidden="true">&#9790;</span>
+    </button>
+  </div>
+</header>

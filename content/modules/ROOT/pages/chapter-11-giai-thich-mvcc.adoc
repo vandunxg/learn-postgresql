@@ -1,0 +1,123 @@
+= Giải thích MVCC
+
+`xmin` chỉ là một phần trong câu chuyện quản lý MVCC. PostgreSQL gắn nhãn cho mọi tuple trong database bằng bốn field khác nhau có tên `xmin` (đã mô tả), `xmax`, `cmin` và `cmax`. Tương tự như những gì bạn đã học về `xmin`, để làm cho các field đó xuất hiện trong query result, bạn cần reference chúng một cách rõ ràng, chẳng hạn:
+
+[source,text]
+....
+forumdb=> SELECT xmin, xmax, cmin, cmax, * FROM tags ORDER BY tag;
+   xmin | xmax | cmin | cmax | pk | tag         | parent
+    ------+------+------+------+----+------+--------
+   4854 |    0 |      0 |      0 | 24 | c++     |
+   4853 |    0 |      0 |      0 | 23 | java |
+   4852 |    0 |      0 |      0 | 22 | perl |
+   4855 |    0 |      0 |      0 | 25 | unix |
+(4 rows)
+....
+
+Ý nghĩa của `xmin` đã được mô tả trong section trước: nó chỉ transaction identifier của transaction đã tạo tuple. Mặt khác, field `xmax` chỉ xid của transaction đã invalidate tuple, chẳng hạn vì transaction đó đã xóa data. Các field `cmin` và `cmax` lần lượt chỉ command identifier đã tạo và invalidate tuple trong cùng transaction (PostgreSQL đánh số mọi statement trong một transaction, bắt đầu từ 0).
+
+Tại sao việc theo dõi statement identifier (`cmin`, `cmax`) lại quan trọng? Vì isolation level thấp nhất mà PostgreSQL áp dụng là `READ COMMITTED`, mọi statement (tức command) trong một transaction phải thấy snapshot của data đã được consolidate tại thời điểm command bắt đầu.
+
+Bạn có thể thấy cách sử dụng `cmin` và `cmax` trong cùng một transaction ở ví dụ sau. Trước hết, chúng ta bắt đầu một explicit transaction, sau đó insert một vài tuple bằng hai statement `INSERT` khác nhau; điều này có nghĩa các tuple được tạo sẽ có `cmin` khác nhau:
+
+[source,text]
+....
+   forumdb=> BEGIN;
+   BEGIN
+
+
+   forumdb=> SELECT xmin, xmax, cmin, cmax, tag, txid_current()
+               FROM tags ORDER BY tag;
+
+
+      xmin | xmax | cmin | cmax | tag        | txid_current
+   ------+------+------+------+------+--------------
+     4854 |     0 |     0 |     0 | c++   |           4856
+     4853 |     0 |     0 |     0 | java |            4856
+     4852 |     0 |     0 |     0 | perl |            4856
+     4855 |     0 |     0 |     0 | unix |            4856
+   (4 rows)
+
+
+   -- first writing command (number 0)
+   forumdb=> INSERT INTO tags( tag ) values( 'raku' );
+   INSERT 0 1
+
+
+   -- second writing command (number 1)
+   forumdb=> INSERT INTO tags( tag ) values( 'lua' );
+   INSERT 0 1
+
+
+   -- fourth command within transaction (number 3)
+   forumdb=> SELECT xmin, xmax, cmin, cmax, tag, txid_current()
+              FROM tags ORDER BY tag;
+
+
+     xmin | xmax | cmin | cmax | tag      | txid_current
+   ------+------+------+------+------+--------------
+     4854 |     0 |     0 |     0 | c++   |           4856
+     4853 |     0 |     0 |     0 | java |            4856
+     4856 |     0 |     1 |     1 | lua   |           4856
+     4852 |     0 |     0 |     0 | perl |             4856
+     4856 |     0 |     0 |     0 | raku |             4856
+     4855 |     0 |     0 |     0 | unix |             4856
+   (6 rows)
+....
+
+Cho đến đây, trong cùng một transaction, hai tuple mới được insert có `xmin` giống `txid_current()`; hiển nhiên, các tuple đó được tạo bởi cùng một transaction. Tuy nhiên, hãy lưu ý rằng tuple thứ hai, vì nằm trong writing command thứ hai, có `cmin` chứa 1 (việc đếm command bắt đầu từ 0).
+
+Vì vậy, PostgreSQL biết thời điểm mọi tuple được tạo bằng cách dựa trên một transaction và một command bên trong transaction đó.
+
+Hãy tiếp tục với transaction của chúng ta: khai báo một cursor chứa query trên table `tags`, rồi xóa tất cả tuple trừ hai tuple. Session của transaction tiếp tục như sau:
+
+[source,text]
+....
+   forumdb=> DECLARE tag_cursor CURSOR FOR SELECT xmin, xmax, cmin, cmax,
+   tag, txid_current() FROM tags ORDER BY tag;
+   DECLARE CURSOR
+
+
+   forumdb=> DELETE FROM tags WHERE tag NOT IN ( 'perl', 'raku' );
+   DELETE 4
+
+
+   forumdb=> SELECT xmin, xmax, cmin, cmax, tag, txid_current()
+               FROM tags ORDER BY tag;
+      xmin | xmax | cmin | cmax | tag        | txid_current
+   ------+------+------+------+------+--------------
+      4852 |    0 |      0 |      0 | perl |             4856
+      4856 |    0 |      0 |      0 | raku |             4856
+   (2 rows)
+....
+
+Như bạn thấy, table hiện chỉ còn hai tuple, đây vốn là behavior được mong đợi sau thao tác trên.
+
+Tuy nhiên, cursor đã được khởi động trước statement `DELETE`, nên nó phải thấy data như trước statement `DELETE`. Thực tế, nếu hỏi cursor xem nó có thể lấy data nào, chúng ta thấy nó trả về toàn bộ tuple như trước statement `DELETE`:
+
+[source,text]
+....
+   forumdb=> FETCH ALL FROM tag_cursor;
+      xmin | xmax | cmin | cmax | tag        | txid_current
+   ------+------+------+------+------+--------------
+      4854 | 4856 |      2 |      2 | c++    |             4856
+      4853 | 4856 |      2 |      2 | java |             4856
+      4856 | 4856 |      0 |      0 | lua    |             4856
+      4852 |    0 |      0 |      0 | perl |             4856
+      4856 |    0 |      0 |      0 | raku |             4856
+      4855 | 4856 |      2 |      2 | unix |             4856
+   (6 rows)
+....
+
+Có một điểm quan trọng cần lưu ý: mọi tuple đã bị delete đều có value trong `xmax` chứa transaction identifier hiện tại (4856), nghĩa là chính transaction này đã delete các tuple đó. Tuy nhiên, transaction vẫn chưa commit; vì vậy, các tuple vẫn còn đó nhưng được đánh dấu là gắn với snapshot kết thúc ở 4856.
+
+Hơn nữa, các tuple đã bị delete có `cmax` chứa value 2, nghĩa là các tuple đã bị delete bởi writing command thứ ba trong transaction.
+
+Vì cursor được define trước statement, nó có thể "thấy" các tuple như trước đó, ngay cả khi PostgreSQL biết chính xác chúng đã biến mất từ thời điểm nào.
+
+[quote]
+____
+Người đọc có thể đã nhận thấy `cmin` và `cmax` chứa cùng một value; đó là vì các field này overlap cùng một storage.
+
+____
+Trong section tiếp theo, bạn sẽ thấy cách disassemble một transaction thành các phần nhỏ hơn bằng savepoint.

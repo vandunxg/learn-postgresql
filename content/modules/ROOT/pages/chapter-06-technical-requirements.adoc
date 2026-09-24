@@ -1,0 +1,8 @@
+= Technical requirements
+
+Trước khi bắt đầu, hãy nhớ khởi động Docker container có tên `chapter_06` như dưới đây:
+
+[source,bash]
+....
+$ bash run-pg-docker.sh chapter_06
+....

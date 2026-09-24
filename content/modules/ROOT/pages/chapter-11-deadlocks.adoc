@@ -1,0 +1,98 @@
+= Deadlocks
+
+Deadlock là một event xảy ra khi các transaction khác nhau phụ thuộc lẫn nhau theo cách vòng tròn. Ở một mức độ nào đó, deadlock là event bình thường trong một môi trường database concurrent và không phải là điều administrator cần lo lắng, trừ khi chúng xảy ra cực kỳ thường xuyên, nghĩa là có lỗi dependency trong application và transaction.
+
+Khi deadlock xảy ra, không còn lựa chọn nào khác ngoài việc terminate các transaction đang bị lock. PostgreSQL có một deadlock detection engine rất mạnh thực hiện chính xác công việc này: tìm các transaction bị đình trệ và, trong trường hợp có deadlock, terminate chúng (tạo ra một `ROLLBACK`).
+
+Để tạo ra một deadlock, hãy hình dung hai transaction concurrent áp dụng các thay đổi lên chính những tuple đó theo cách xung đột. Ví dụ, transaction thứ nhất có thể làm như sau:
+
+[source,text]
+....
+   -- session 1
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> SELECT txid_current();
+      txid_current
+   --------------
+              4875
+   (1 row)
+
+
+   forumdb=> UPDATE tags SET tag = 'Perl 5'
+             WHERE tag = 'perl';
+   UPDATE 1
+....
+
+Trong lúc đó, transaction còn lại thực hiện như sau:
+
+[source,text]
+....
+   -- session 2
+   forumdb=> BEGIN;
+   BEGIN
+   forumdb=> SELECT txid_current();
+
+     txid_current
+   --------------
+              4876
+   (1 row)
+
+
+   forumdb=> UPDATE tags SET tag = 'Java and Groovy'
+                WHERE tag = 'java';
+   UPDATE 1
+....
+
+Cho đến lúc này, cả hai transaction đều đã update một tuple mà không xung đột với nhau. Bây giờ, hãy hình dung transaction thứ nhất cố sửa tuple mà transaction kia đã thay đổi; như chúng ta đã thấy trong các example trước, transaction sẽ tiếp tục bị lock và chờ acquire lock trên tuple:
+
+[source,text]
+....
+   -- session 1
+   forumdb=> UPDATE tags SET tag = 'The Java Language'
+                WHERE tag = 'java';
+   -- locked
+....
+
+Mặt khác, nếu transaction thứ hai cố sửa một tuple đã được transaction thứ nhất chạm tới, nó sẽ bị lock và chờ acquire lock:
+
+[source,text]
+....
+   -- session 2
+   forumdb=> UPDATE tags SET tag = 'Perl and Raku'
+                WHERE tag = 'perl';
+   ERROR:     deadlock detected
+   DETAIL: Process 78918 waits for ShareLock on transaction 4875; blocked by
+   process 80105.
+   Process 80105 waits for ShareLock on transaction 4876; blocked by process
+   78918.
+   HINT:     See server log for query details.
+   CONTEXT:     while updating tuple (0,1) in relation "tags"
+....
+
+Tuy nhiên, lần này PostgreSQL nhận ra rằng hai transaction không thể tự giải quyết vấn đề vì chúng đang chờ một circular dependency, và do đó quyết định kill transaction thứ hai để transaction thứ nhất có cơ hội hoàn tất. Như bạn có thể thấy từ error message, PostgreSQL biết transaction 4875 đang chờ một lock do transaction 4876 giữ và ngược lại; vì vậy, để tiếp tục, không có giải pháp nào khác ngoài việc kill một trong hai transaction.
+
+Vì là event tự nhiên trong một transactional system concurrent, deadlock là điều bạn phải xử lý, và application của bạn phải sẵn sàng replay một transaction trong trường hợp chúng bị buộc phải `ROLLBACK` bởi deadlock detection.
+
+Deadlock detection là một process phức tạp và tốn nhiều resource; vì vậy, PostgreSQL thực hiện nó theo lịch. Cụ thể, configuration parameter `deadlock_timeout` biểu thị tần suất PostgreSQL nên tìm kiếm dependency giữa các transaction đang bị đình trệ. Mặc định, giá trị này được đặt là 1 second và được biểu diễn bằng milliseconds:
+
+[source,text]
+....
+   forumdb=> SELECT name, setting, unit
+                FROM pg_settings
+                WHERE name like '%deadlock%';
+          name          | setting | unit
+   ------------------+---------+------
+   deadlock_timeout | 1000           | ms
+   (1 row)
+
+
+   forumdb=> SHOW deadlock_timeout;
+   deadlock_timeout
+   ------------------
+   1s
+   (1 row)
+....
+
+Giảm giá trị này thường là một ý tưởng tồi: application và transaction của bạn sẽ fail sớm hơn (nếu ở trong deadlock condition), nhưng cluster sẽ bị buộc phải tiêu tốn thêm resource cho việc phân tích dependency.
+
+Trong phần tiếp theo, bạn sẽ tìm hiểu cách PostgreSQL bảo đảm data được làm persistent trên storage, ngay cả khi cluster bị crash.

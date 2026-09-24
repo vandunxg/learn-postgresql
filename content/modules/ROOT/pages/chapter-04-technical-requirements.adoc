@@ -1,0 +1,65 @@
+= Technical requirements
+
+Đến thời điểm này trong sách, chúng ta đã học cách install PostgreSQL và configure user, nhưng nếu bạn chưa đọc các chapter trước, bạn vẫn có thể dễ dàng làm theo các bước tiếp theo bằng Docker image được mô tả dưới đây.
+
+== Dùng Docker image
+
+Nếu muốn làm theo các bước tiếp theo mà không install và configure PostgreSQL, bạn có thể dễ dàng thực hiện bằng Docker image trong GitHub repository (chi tiết về cách setup được trình bày trong Chapter 1, *Introduction to PostgreSQL*). Vì vậy, hãy start standalone container như được mô tả trong Chapter 1, *Introduction to PostgreSQL*, sau đó execute lệnh sau:
+
+[source,text]
+....
+$ sudo docker exec -it standalone_learn_postgresql_1 /bin/bash
+....
+
+Sau khi execute instruction này, chúng ta sẽ ở bên trong container `standalone_learn_postgresql_1` trong một root shell:
+
+[source,text]
+....
+root@learn_postgresql:/#
+....
+
+== Connect đến database
+
+Ngay cả khi không dùng Docker container mà dùng native PostgreSQL installation như được mô tả trong Chapter 1, *Introduction to PostgreSQL*, chúng ta cũng sẽ đạt được kết quả giống như trên, bằng statement tương tự được execute với tư cách postgres user:
+
+[source,text]
+....
+root@learn_postgresql:/# su - postgres
+postgres@learn_postgresql:~$ psql
+postgres=#
+....
+
+Bây giờ hãy bật expanded mode bằng command `\x`:
+
+[source,text]
+....
+postgres=# \x
+Expanded display is on.
+....
+
+Sau đó hãy list tất cả database hiện có trong cluster:
+
+[source,text]
+....
+postgres=# \l
+List of databases
+-[ RECORD 1 ]-----+--------------
+Name                 | forumdb
+Owner                  | forum
+Encoding               | UTF8
+Collate                | en_US.utf8
+Ctype                  | en_US.utf8
+ICU Locale             |
+Locale Provider        | libc
+Access privileges |
+....
+
+Vì lý do không gian, chúng ta chỉ báo cáo database `forumdb` được import từ Docker script, nhưng cũng có các database `template0`, `template1` và `postgres` như đã thấy trong Chapter 2, *Getting to know your cluster*. Cuối cùng, hãy connect đến database `forumdb`:
+
+[source,text]
+....
+postgres=# \c forumdb
+You are now connected to database "forumdb" as user "postgres".
+....
+
+Bây giờ chúng ta đã hoàn thành việc setup development environment, có thể chuyển sang tạo database trong đó.

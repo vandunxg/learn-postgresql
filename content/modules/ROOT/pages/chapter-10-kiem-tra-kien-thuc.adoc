@@ -1,0 +1,21 @@
+= Kiểm tra kiến thức
+
+* *Role là gì?*
+
+  Một role có thể là một user đơn lẻ hoặc một group user có quyền truy cập cluster và các database của cluster. Role là unit cơ bản để grant access và định nghĩa permission. Xem section *Understanding roles* để biết thêm chi tiết.
+
+* *Clause `INHERITS` làm gì?*
+
+  Clause `INHERITS` khiến một role inherit, tức là nhận được ngay lập tức và một cách dynamic toàn bộ permission được grant cho role mà nó inherit. Không có clause `INHERITS`, role vẫn có permission của role mà nó thuộc về, nhưng cần `SET ROLE` tường minh để sử dụng các permission đó. Xem section *Roles that inherit from other roles* để biết thêm chi tiết.
+
+* *Access Control List (ACL) là gì?*
+
+  ACL là specification của một tập permission gắn với một database object, và là cách PostgreSQL implement và lưu trữ permission. Xem section *ACLs* để biết thêm chi tiết.
+
+* *Các statement để thêm permission cho một role hoặc xóa permission khỏi một role là gì?*
+
+  Statement `GRANT` thêm permission cho một role, còn statement `REVOKE` xóa permission khỏi một role. Keyword đặc biệt `ALL` có thể được dùng để grant hoặc revoke tất cả permission có sẵn cho object, trong khi có thể chỉ định nhiều permission cùng lúc ở cả hai command. Xem section *Granting and revoking permissions* để biết thêm chi tiết.
+
+* *Row-Level Security (RLS) là gì?*
+
+  RLS là cách hạn chế result set của một query tùy thuộc vào role đang execute query đó. RLS có thể được áp dụng cho cả read query và write query. Xem section *RLS* để biết thêm chi tiết.

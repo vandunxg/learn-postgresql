@@ -1,0 +1,16 @@
+= So sánh logical replication và physical replication
+
+Bây giờ hãy xem logical replica khác physical replica như thế nào:
+
+* Một đặc điểm tích cực của physical replica là tốc độ. Tuy nhiên, một bất lợi đáng kể là chúng ta phải replicate tất cả database trong cluster. Khi sử dụng physical replica, không thể replicate một database riêng lẻ thuộc về một PostgreSQL instance, và cũng không thể chỉ replicate một số table của một database. Logical replication chậm hơn physical replication một chút, nhưng khi dùng logical replication, chúng ta có thể quyết định muốn replicate database nào trong một cluster và/hoặc muốn replicate table nào trong một database riêng lẻ.
+* Physical replication chỉ khả thi nếu hai server có cùng PostgreSQL version. Với logical replication, vì logical instruction cần execute được chuyển tới replica server, cũng có thể thực hiện replication giữa các PostgreSQL version khác nhau.
+* Trong physical replication, ngoại trừ các operation trên temporary và unlogged table, mọi operation đều được replicate. Trong logical replication, chỉ các operation thuộc data manipulation language (DML) được replicate; các operation thuộc data definition language (DDL), chẳng hạn operation `ALTER` và `TABLE`, thì không được replicate.
+* Physical replication, theo định nghĩa, tạo ra một bản copy physical; nó replicate dưới dạng binary toàn bộ content của primary server đi qua WAL tới replica. Ngược lại, logical replication chỉ replicate các instruction, tức các statement mà chúng ta gửi cho replica server.
+* Physical replication, ngoại trừ unlogged table, tạo ra trên replica server một bản copy giống hệt primary. Physical replication copy tuyệt đối mọi thứ; do bản copy là physical ở page level, chúng ta không chỉ copy data mà còn copy mọi bloat đi kèm. Đôi khi điều này hữu ích, chẳng hạn khi muốn mô phỏng behavior chính xác của production server trong test environment.
+* Tuy nhiên, thông qua một reverse engineering mechanism, logical replication chuyển các query cần execute trực tiếp tới query executor của replica machine. Ví dụ, nếu muốn có một bản copy database bắt đầu với tỷ lệ bloat thấp, chúng ta có thể thực hiện logical replica trên machine thứ hai, và machine thứ hai sẽ bắt đầu từ một starting point rất sạch. Điều này xảy ra vì toàn bộ data được chuyển tới server thứ hai theo cách không physical mà là logical. Ngoài ra, theo cách này có thể replicate data giữa các PostgreSQL server khác version.
+
+[quote]
+____
+*Lưu ý:* Vì có thể thực hiện replication giữa các version khác nhau của PostgreSQL, logical replication là một tool có thể dùng để thực hiện PostgreSQL hot upgrade.
+
+____

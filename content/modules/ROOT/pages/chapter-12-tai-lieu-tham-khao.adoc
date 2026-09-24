@@ -1,0 +1,13 @@
+= Tài liệu tham khảo
+
+* Tài liệu chính thức của PostgreSQL về extension: https://www.postgresql.org/docs/current/extend-extensions.html
+* Tài liệu chính thức của PostgreSQL về extension build system (PGXS): https://www.postgresql.org/docs/current/extend-pgxs.html
+* Repository chính thức của pgxnclient: https://pypi.org/project/pgxnclient/
+* Tài liệu chính thức của pgxnclient: https://pgxn.github.io/pgxnclient/
+* *PostgreSQL 11 Server Side Programming – Quick Start Guide*, Packt Publishing
+
+== Tìm hiểu thêm trên Discord
+
+Để tham gia cộng đồng Discord của cuốn sách, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy quét QR code bên dưới:
+
+https://discord.gg/jYWCjF6Tku

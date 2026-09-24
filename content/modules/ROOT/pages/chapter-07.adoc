@@ -1,0 +1,11 @@
+= 7. Lập trình phía server
+
+Trong các chapter trước, chúng ta đã học cách thực thi SQL query. Chúng ta bắt đầu bằng việc viết các query đơn giản, sau đó chuyển sang viết các query phức tạp hơn; chúng ta đã học cách sử dụng aggregate theo cách truyền thống, và trong Chapter 5, Advanced Statements, chúng ta đã nói về window function, một cách khác để viết aggregate. Trong chapter này, chúng ta sẽ bổ sung server-side programming vào danh sách các kỹ năng đó. Server-side programming có thể hữu ích trong nhiều trường hợp vì nó chuyển logic programming từ phía client sang phía database. Ví dụ, chúng ta có thể lấy một function đã được viết nhiều lần ở các vị trí khác nhau trong application program và chuyển nó vào server để chỉ viết một lần, nghĩa là khi cần sửa đổi, chúng ta chỉ phải sửa một function. Trong chapter này, chúng ta cũng sẽ xem PostgreSQL có thể quản lý các server-side programming language khác nhau như thế nào, và sẽ thấy server-side programming rất hữu ích nếu cần xử lý một lượng lớn dữ liệu đã được extract từ các table. Chúng ta sẽ đề cập đến việc mọi function chúng ta viết đều có thể được gọi trong bất kỳ SQL statement nào. Chúng ta cũng sẽ thấy rằng trong một số trường hợp, với một số loại function nhất định, có thể tạo index trên các function đó.
+
+Một tính năng khác của server-side programming là khả năng định nghĩa data tùy chỉnh. Trong chapter này, chúng ta sẽ xem một số ví dụ về việc đó.
+
+Nói một cách đơn giản, chapter này sẽ thảo luận các nội dung sau:
+
+* Khám phá data type
+* Khám phá function và language
+* Data type NoSQL

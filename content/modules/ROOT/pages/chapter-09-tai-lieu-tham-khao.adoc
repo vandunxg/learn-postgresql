@@ -1,0 +1,15 @@
+= Tài liệu tham khảo
+
+* Tài liệu chính thức của PostgreSQL về table partitioning: https://www.postgresql.org/docs/current/ddl-partitioning.html
+* Tài liệu chính thức của PostgreSQL về inheritance: https://www.postgresql.org/docs/current/tutorial-inheritance.html
+* PostgreSQL tuning: https://pgtune.leopard.in.ua
+* Tài liệu chính thức của PostgreSQL về CONSTRAINT EXCLUSION: https://www.postgresql.org/docs/current/runtime-config-query.html#GUC-CONSTRAINT-EXCLUSION
+* Tài liệu chính thức của PostgreSQL về trigrams: https://www.postgresql.org/docs/current/pgtrgm.html
+
+== Tìm hiểu thêm trên Discord
+
+Để tham gia cộng đồng Discord dành cho cuốn sách này, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy quét QR code bên dưới:
+
+https://discord.gg/jYWCjF6Tku
+
+image::chapter-10-qr-discord.png[QR code Discord]

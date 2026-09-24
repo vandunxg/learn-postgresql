@@ -1,0 +1,239 @@
+= Trích xuất thông tin từ log – pgBadger
+
+Nhờ tập thông tin phong phú có thể được đưa vào log, có thể tự động hóa việc phân tích và trích xuất thông tin từ log. Có một số tool phục vụ mục đích này, và một trong những tool phổ biến và đầy đủ nhất là pgBadger.
+
+pgBadger là một application Perl 5 self-contained, đọc và trích xuất cẩn thận thông tin từ PostgreSQL log, rồi tạo một web dashboard tóm tắt toàn bộ thông tin tìm thấy trong log. Mục đích của application này là cung cấp cho bạn insight hữu ích hơn về log mà không cần tự tìm kiếm thủ công những thông tin cụ thể.
+
+Việc sử dụng pgBadger không bắt buộc; cluster của bạn vẫn hoạt động bình thường khi không có nó và bạn vẫn có thể tìm thông tin cũng như vấn đề trong log. Tuy nhiên, sử dụng pgBadger cung cấp cho bạn các gợi ý hữu ích hơn về những gì server đã thực hiện.
+
+Điều quan trọng cần lưu ý là sử dụng pgBadger, cũng như thực hiện bất kỳ việc phân tích log tự động hoặc thủ công nào, không cung cấp thông tin real-time mà chỉ cho thấy hoạt động của server trong quá khứ.
+
+Trong các subsection sau, bạn sẽ học cách cài đặt và sử dụng pgBadger.
+
+== Cài đặt pgBadger
+
+pgBadger yêu cầu Perl 5 được cài đặt trên system nơi nó sẽ chạy, và đó là dependency duy nhất của nó. Bạn có thể chạy pgBadger trên cùng host với PostgreSQL cluster hoặc trên một remote system (như sẽ trình bày ở một subsection sau). Trong section này, chúng ta giả định pgBadger sẽ được cài đặt và thực thi trên chính machine nơi PostgreSQL cluster đang chạy.
+
+Cách dễ nhất để cài đặt pgBadger là dùng package manager của operating system, chẳng hạn trên các system dựa trên GNU/Debian và Ubuntu:
+
+[source,text]
+....
+      $ sudo apt install pgbadger
+....
+
+Cũng có thể cài đặt pgBadger từ source bằng các bước sau:
+
+[source,text]
+....
+   $ wget https://github.com/darold/pgbadger/archive/v12.0.tar.gz
+   $ tar xzvf v12.0.tar.gz
+   $ cd pgbadger-12.0
+   $ perl Makefile.PL
+   $ make
+   $ sudo make install
+....
+
+Sau khi cài đặt pgBadger, bạn có thể test xem nó hoạt động hay không bằng cách nhập:
+
+[source,text]
+....
+   $ pgbadger --version
+   pgBadger version 12.0
+....
+
+Nếu program trả về version number, mọi thứ sẽ ổn và sẵn sàng để sử dụng.
+
+== Cấu hình logging của PostgreSQL để sử dụng pgBadger
+
+pgBadger đủ thông minh để hiểu PostgreSQL log trong nhiều trường hợp, nhưng có một số tình huống bạn cần chỉ định một vài configuration option để PostgreSQL tạo ra log dễ hiểu hơn.
+
+Trước hết, pgBadger cần có quyền truy cập vào PostgreSQL log, nghĩa là bạn nên sử dụng `logging_collector` để tạo log. Nếu thay đổi `log_line_prefix`, bạn nên truyền cùng configuration setting đó cho pgBadger để nó có thể parse chính xác log prefix. Cuối cùng, bạn nên bật càng nhiều logging context càng tốt.
+
+Sau đây là một ví dụ về các configuration parameter khiến PostgreSQL tạo log mà pgBadger có thể hiểu chính xác:
+
+[source,text]
+....
+   logging_collector = on
+   log_destination       = 'stderr,csvlog,jsonlog'
+   log_directory         = 'log'
+   log_filename          = 'postgresql-%Y-%m-%d.log'
+   log_rotation_age      = '1d'
+   log_rotation_size = '50MB'
+
+       log_min_duration_statement = 500
+       log_min_duration_sample = 100
+       log_statement_sample_rate = 0.8
+       log_transaction_sample_rate = 0.5
+
+       log_min_duration_statement = 0
+....
+
+[quote]
+____
+pgBadger đã được cài đặt sẵn trong Docker image của chapter này.
+
+____
+Sau khi server được cấu hình để nhận logging configuration mới, bạn có thể bắt đầu sử dụng pgBadger.
+
+== Sử dụng pgBadger
+
+Khi PostgreSQL bắt đầu tạo log, bạn có thể phân tích kết quả bằng pgBadger. Trước khi chạy pgBadger, đặc biệt trên test system, bạn nên tạo (hoặc chờ) một lượng traffic và statement (cũng như transaction), nếu không dashboard được tạo sẽ rỗng.
+
+Trước khi bắt đầu sử dụng pgBadger, nên tạo một location để lưu các report và mọi thứ liên quan. Việc này không bắt buộc, nhưng đơn giản hóa việc maintenance và archiving report về sau khi bạn cần giữ chúng. Hãy tạo một directory và gán ownership của directory cho cùng Postgres user đang chạy cluster (một lần nữa, việc này không bắt buộc nhưng giúp workflow đơn giản hơn một chút):
+
+[source,text]
+....
+      $ sudo mkdir /data/html
+      $ sudo chown postgres:www-data /data/html
+....
+
+Đã đến lúc khởi chạy pgBadger lần đầu:
+
+[source,text]
+....
+   $ pgbadger -o /data/html/first_report.html \
+                   /postgres/16/data/log/postgresql
+   -2023-07-19.log
+   [========================>] Parsed 261891612 bytes of 261891612 (100.00%),
+   queries: 1428472, events: 2
+   7
+   LOG: Ok, generating html report...
+....
+
+Argument đầu tiên, `-o`, chỉ định tên file nơi report sẽ được lưu. pgBadger tạo đúng một file cho mỗi lần chạy, vì vậy bạn cần đổi filename nếu muốn tạo report khác mà không ghi đè report hiện có.
+
+Argument thứ hai là PostgreSQL log file cần phân tích; bạn cũng có thể chỉ định file JSON hoặc CSV và pgBadger sẽ parse chúng tương ứng.
+
+Program chạy trong vài giây hoặc vài phút tùy thuộc vào kích thước log file, đồng thời báo cáo một số thông tin thống kê về những gì nó tìm thấy trong log file (trong ví dụ này là 1,4 triệu statement). Bạn có thể kiểm tra generated report file khá dễ dàng:
+
+[quote]
+____
+Nếu bạn định phân tích các log file lớn hoặc nhiều log file, bạn có thể sử dụng parallel mode của pgBadger với option `-j`, theo sau là số parallel process cần spawn. Ví dụ, truyền `-j 4` có nghĩa là mọi log file sẽ được chia thành bốn phần, mỗi phần do một process phân tích. Nhờ parallelism, bạn có thể tận dụng tất cả core của machine và nhận kết quả nhanh hơn khi có lượng log lớn.
+
+____
+[source,text]
+....
+   $ ls -1s /data/html/first_report.html
+   1172 /data/html/first_report.html
+....
+Cho dù cluster của bạn đã thực hiện bao nhiêu activity và các file pgBadger tạo ra có kích thước bao nhiêu, một khi đã có report, bạn có thể trỏ web browser tới các file local (hoặc serve kết quả qua web server). Bạn sẽ thấy report như bên dưới. Report cung cấp một cái nhìn nhanh về activity của cluster, bao gồm số statement, thời gian dùng để phục vụ các statement đó, và các graph thể hiện traffic của statement theo khoảng thời gian:
+
+image::chapter-14-figure-14-1-000.jpg[Hình 14.1: Trang đầu của dashboard pgBadger]
+
+*Hình 14.1: Trang đầu của dashboard pgBadger*
+
+Nếu đang dùng Docker image cho chapter này, bạn có thể trỏ web browser tới URL `http://localhost:8080/first_report.html` và xem report.
+
+Ở đầu web page có một menu bar gồm nhiều menu, cho phép bạn xem các graph và dashboard khác nhau.
+
+Ví dụ, menu Connections cho phép bạn lấy thông tin về số connection concurrent mà bạn có, như trong ví dụ sau:
+
+image::chapter-14-figure-14-2-000.jpg[Hình 14.2: Ví dụ về dashboard Connections]
+
+*Hình 14.2: Ví dụ về dashboard Connections*
+
+Menu Queries cho phép bạn xem overview về type và frequency của các statement, như trong screenshot sau, trong đó phần lớn query là type `SELECT`:
+
+image::chapter-14-figure-14-3-000.jpg[Hình 14.3: Ví dụ về dashboard Queries]
+
+*Hình 14.3: Ví dụ về dashboard Queries*
+
+Menu Top cho phép chúng ta xem “top event”, chẳng hạn các query chậm nhất và các query tốn nhiều thời gian nhất, lần lượt được thể hiện trong screenshot sau:
+
+image::chapter-14-figure-14-4-000.jpg[Hình 14.4: Trích đoạn dashboard Top Queries]
+
+*Hình 14.4: Trích đoạn dashboard Top Queries*
+
+pgBadger cũng hiển thị một phiên bản chi tiết hơn trên cùng page, như trong hình sau:
+
+image::chapter-14-figure-14-5-000.jpg[Hình 14.5: Chi tiết về các query tốn nhiều thời gian nhất]
+
+*Hình 14.5: Chi tiết về các query tốn nhiều thời gian nhất*
+
+Thảo luận về tất cả feature và dashboard của pgBadger nằm ngoài scope của cuốn sách này, nhưng bạn có thể xem tài liệu chính thức để biết thêm chi tiết và có lời giải thích rõ ràng, chính xác về từng option.
+
+== Lập lịch pgBadger
+
+pgBadger có thể được sử dụng theo lịch để liên tục tạo ra các report chính xác trong một khoảng thời gian xác định. Điều này khả thi vì pgBadger có feature incremental; nhờ đó report không bị overwrite mỗi lần, mà thay vào đó chương trình có thể tạo report theo từng giờ và một report summary theo từng tuần.
+
+Điều này hữu ích vì bạn có thể lập lịch chạy pgbadger bằng, chẳng hạn, `cron(1)` rồi không phải bận tâm thêm. Trước tiên, hãy xem cách chạy pgBadger ở incremental mode:
+
+[source,text]
+....
+      $ pgbadger -I --outdir /data/html -f stderr            /postgres/16/data/log/
+      postgresql-2023-*.log
+      [========================>] Parsed 22008130 bytes of 22008130 (100.00%),
+      queries: 120569, events: 1
+      LOG: Ok, generating HTML daily report into /data/html/2023/07/19/...
+      LOG: Ok, generating HTML weekly report into /data/html/2023/week-30/...
+      LOG: Ok, generating global index to access incremental reports...
+....
+
+Argument `-I` chỉ định incremental mode, vì vậy pgBadger sẽ tạo các file riêng cho report theo giờ và theo tuần. Lưu ý rằng thay vì chỉ định output file, option `--outdir` được dùng để chỉ định directory chứa các file. Option `-f` cho pgBadger biết loại log mà nó đang quản lý; trong ví dụ này là các text file thông thường. Cuối cùng, như thường lệ, log file cần phân tích được biểu diễn dưới dạng shell glob (`postgresql-2023-*.log`).
+
+Kết quả cuối cùng, như bạn có thể đoán từ output của chương trình, là một directory tree tương tự như sau:
+
+[source,text]
+....
+       $ ls -R /data/html/
+      /data/html/:
+      2023   LAST_PARSED   index.html
+
+
+      /data/html/2023:
+      07   week-30
+
+
+      /data/html/2023/07:
+      19
+
+
+      /data/html/2023/07/19:
+      2023-07-19-65.bin    index.html
+
+      /data/html/2023/week-30:
+      index.html
+....
+
+File `index.html` chính là entry point cho toàn bộ incremental report. Sau đó là một tree gồm directory cho year (2023), month (07), day (19), và một file `index.html` cho day đó.
+
+Ngoài ra còn có một phần của tree dùng để tập hợp data cho week hiện tại; trong trường hợp này là week number 30. Vì vậy tree sẽ được mở rộng khi có thêm các day mới. File đặc biệt `LAST_PARSED` được pgBadger dùng để nhớ nó đã dừng parse ở đâu, cho phép nó bắt đầu từ vị trí đó trong lần gọi incremental tiếp theo.
+
+Nếu trỏ web browser tới main index file, bạn sẽ thấy một calendar như screenshot sau, nơi bạn có thể chọn month và day để xem report theo từng day.
+
+image::chapter-14-figure-14-6-000.jpg[Hình 14.6: Global dashboard của pgBadger trong một khoảng ngày]
+
+*Hình 14.6: Global dashboard của pgBadger trong một khoảng ngày*
+
+Khi click vào một day cụ thể, bạn sẽ được chuyển tới daily report, nơi hiển thị đúng các dashboard đã thảo luận trước đó. Rõ ràng, bạn không thể click vào những day mà report chưa được tạo hoặc không có activity tương ứng trong PostgreSQL log.
+
+Nhờ incremental approach, giờ bạn có thể lập lịch chạy bằng scheduler của riêng mình; ví dụ, trong `cron(1)`, bạn có thể thêm một line như sau:
+
+[source,text]
+....
+   59 23 * * * pgbadger -I --outdir /data/html/ -f stderr /postgres/16/data/
+   log/postgresql-'date +'%Y-%m-%d''.log
+....
+
+Về cơ bản, đây là cùng command line với command trước đó, chỉ khác là current date được tự động tính. Line trước đó sẽ tạo report cho current day vào cuối mỗi day, rồi dùng report đó để populate report tree.
+
+[quote]
+____
+Entry trong crontab trước đó chỉ là một ví dụ. Hãy cân nhắc bọc mọi thứ trong một script robust và kiểm tra tính đúng đắn của việc thực thi script.
+
+____
+Cuối cùng, có thể chạy pgBadger từ một remote host, nhờ đó bạn có thể dành riêng một machine để thu thập tất cả report và information tại một nơi. Thực tế, pgBadger chấp nhận một URI parameter là remote location của log directory (hoặc file), và có thể truy cập qua FTP hoặc SSH, trong đó SSH an toàn hơn và được khuyến nghị.
+
+Ví dụ sau biểu diễn cùng command line như trước, nhưng ở đây nó pull log ở incremental mode từ một remote PostgreSQL host có tên `miguel`:
+
+[source,text]
+....
+   $ pgbadger -I --outdir /data/html ssh://postgres@miguel//postgres/16/
+   data/log/postgresql-'date +'%Y-%m-%d''.pgbadger.log
+   [========================>] Parsed 313252 bytes of 313252 (100.00%),
+   queries: 841, events: 34
+....
+
+Lưu ý rằng log file được chỉ định thông qua SSH URL. Bạn được khuyến nghị mạnh mẽ sử dụng một remote user có quyền truy cập log và thực hiện SSH key exchange để tự động hóa việc login giữa các host.
+
+Bây giờ chúng ta đã biết cách sử dụng log, hãy chuyển sang một cách khác để xem xét task: auditing.

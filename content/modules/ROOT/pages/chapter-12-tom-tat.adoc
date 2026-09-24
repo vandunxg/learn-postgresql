@@ -1,0 +1,9 @@
+= Tóm tắt
+
+Chapter này đã giới thiệu extension ecosystem, một system rất phong phú và mạnh mẽ để package các object liên quan và quản lý chúng như một unit duy nhất. Extension cung cấp cách thêm feature mới vào cluster và database, và đáng chú ý nhất là cung cấp một cách rõ ràng, súc tích để xây dựng update và các installation có thể lặp lại, nhờ đó việc phân phối feature tới các cluster và database khác trở nên dễ dàng hơn.
+
+PostgreSQL đi kèm các extension hữu ích được cung cấp trong contrib package; các extension này được chính các PostgreSQL developer phát triển nên tích hợp rất tốt với version PostgreSQL hiện tại. Mặt khác, PGXN network cung cấp các extension bên thứ ba có thể bổ sung functionality mới cho cluster của bạn.
+
+Nhờ PGXS build infrastructure, việc tạo extension từ đầu khá toàn diện và tương đối dễ, còn nhờ các tool như pgxnclient, việc quản lý nhiều extension có thể được tự động hóa.
+
+Trong chapter tiếp theo, bạn sẽ học cách quản lý status và performance của cluster, còn *Chapter 19* sẽ giới thiệu một số extension hữu ích khác.

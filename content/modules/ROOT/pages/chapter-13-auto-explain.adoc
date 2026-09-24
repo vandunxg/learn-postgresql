@@ -1,0 +1,140 @@
+= Auto-explain
+
+Auto-explain là một extension giúp DBA có được ý tưởng về các query chậm và execution plan của chúng. Về cơ bản, auto-explain được trigger khi một query đang chạy chậm hơn threshold được chỉ định, sau đó dump execution plan của query vào PostgreSQL logs (xem *Chapter 14, Logging and Auditing* để biết thêm chi tiết).
+
+[quote]
+____
+*Lưu ý:* Docker image cho chapter này đã được cấu hình sẵn auto-explain và log machinery.
+
+____
+Bằng cách này, DBA có thể nắm được các query chậm và execution plan của chúng mà không cần chạy lại các query đó. Nhờ vậy, DBA có thể inspect execution plan và quyết định có áp dụng index hay không, áp dụng ở đâu, hoặc thực hiện phân tích sâu hơn.
+
+Module auto-explain được cấu hình thông qua một tập option parameter `auto_explain` có thể được thêm vào PostgreSQL configuration (file `postgresql.conf`), nhưng cần nhớ rằng để activate module, bạn cần restart cluster.
+
+Module auto-explain có thể thực hiện gần như những việc mà một command `EXPLAIN` thủ công có thể làm, bao gồm `EXPLAIN ANALYZE`, nhưng nó phải được cấu hình đúng.
+
+Tất cả setting của auto-explain đều nằm trong namespace `auto_explain`, do đó mọi parameter đều có prefix bắt đầu bằng `auto_explain.`; các setting chính như sau:
+
+* `auto_explain.log_min_duration` là threshold thời gian mà một statement phải mất trước khi được log. Bất kỳ statement nào cần nhiều thời gian hơn setting này sẽ xuất hiện trong cluster logs cùng output `EXPLAIN` của nó.
+* `auto_explain.log_format` và `auto_explain.log_level` kiểm soát format của output, dưới dạng text, JSON, YAML, XML, và level mà output đó sẽ được log (ví dụ: INFO).
+* `auto_explain.log_verbose`, nếu được bật, cung cấp thông tin chi tiết hơn trong output.
+* `auto_explain.sample_rate` là một value từ 0 đến 1 cho biết sampling rate của một session. Ví dụ, 0.5 nghĩa là cứ hai statement thì một statement được log.
+* `auto_explain.log_nested_statements` là một boolean value quyết định liệu các statement “inner” có phải được log riêng hay không. Ví dụ, nếu option này được bật khi log một function call, các statement cũng xảy ra bên trong function sẽ được log và explain.
+* `auto_explain.log_analyze` là một boolean value cho biết statement được log có phải đồng thời report các value của `EXPLAIN ANALYZE`, chủ yếu là timing thực tế, hay không. Hãy lưu ý rằng việc lấy thông tin timing theo từng node có thể yêu cầu nhiều resource và vì vậy có thể làm chậm toàn bộ query. Khi parameter này được bật, có thể bật các setting khác để cung cấp cùng thông tin mà `EXPLAIN ANALYZE` cung cấp:
+* `auto_explain.log_buffers`, khi được bật, cung cấp thông tin về việc sử dụng buffer.
+* `auto_explain.log_wal`, khi được bật, cung cấp thông tin về WAL do một query tạo ra.
+* `auto_explain.log_timing`, khi được bật, cung cấp thông tin timing theo từng node.
+* `auto_explain.log_triggers`, khi được bật, cung cấp thông tin về các lần thực thi trigger bên trong một statement.
+* `auto_explain.log_settings`, khi được bật, report các setting khác với cluster-wide configuration.
+
+Để install và configure module, hãy bắt đầu đơn giản bằng cách thêm hai setting sau vào cluster configuration trong `postgresql.conf`:
+
+[source,text]
+....
+   session_preload_libraries = 'auto_explain'
+   auto_explain.log_min_duration = '100ms'
+....
+
+Dòng đầu tiên bảo PostgreSQL load library liên quan đến module auto-explain, trong khi dòng thứ hai instrument module để trigger bất cứ khi nào một query mất hơn 100 millisecond mới hoàn tất. Tất nhiên, bạn có thể tăng hoặc giảm query duration, tùy nhu cầu.
+
+Với configuration đó, giờ có thể thực thi một query khá dài như sau (giả sử bạn đã drop/disable các index được tạo trong section trước):
+
+[source,text]
+....
+   forumdb=> \timing
+   forumdb=> SELECT count(*)
+   FROM posts p
+   JOIN users u ON u.pk = p.author
+   WHERE u.username = 'fluca1978'
+   AND      daterange( CURRENT_DATE - 20, CURRENT_DATE ) @> p.created_on::date;
+       count
+   -------
+          20
+   (1 row)
+
+   Time: 142.629 ms
+....
+
+Query mất 142 millisecond, đủ lâu để trigger auto-explain, và thực tế trong PostgreSQL logs, bạn có thể thấy như sau:
+
+[source,text]
+....
+   $ tail /postgres/16/data/log/postgresql.log
+   INFO:       duration: 139.933 ms    plan:
+   Query Text: SELECT count(*)
+   FROM forum.posts p
+   JOIN forum.users u ON u.pk = p.author
+   WHERE u.username = 'fluca1978'
+   AND        daterange( CURRENT_DATE - 20, CURRENT_DATE ) @> p.created_on::date;
+   Aggregate        (cost=13803.59..13803.60 rows=1 width=8)
+    Output: count(*)
+    ->       Gather   (cost=1008.30..13803.58 rows=2 width=0)
+               Workers Planned: 2
+               ->   Hash Join   (cost=8.30..12803.38 rows=1 width=0)
+                      Inner Unique: true
+                      Hash Cond: (p.author = u.pk)
+                -> Parallel Seq Scan on forum.posts p                 (cost=0.00..12792.33
+   rows=1042 width=4)
+
+
+
+   ...
+....
+
+Đó chính xác là output mà một command `EXPLAIN` thông thường sẽ tạo ra cho cùng query.
+
+Điểm hay của cách tiếp cận này là bạn không phải lo lắng hoặc nhớ thực thi `EXPLAIN` trên các query hay các query đã thu thập; bạn chỉ cần inspect logs để tìm execution plan của những query chậm. Sau khi đã sửa các query như query trước đó, chẳng hạn bằng cách tạo index, bạn có thể tăng threshold của auto-explain để bắt các query chậm hơn và lặp lại quy trình.
+
+Để minh họa sự khác biệt trong output khi chạy query với `auto_explain.log_analyze` được bật, sau đây là output được tạo ra cho chính query đó:
+
+[source,text]
+....
+   INFO:       duration: 139.730 ms     plan:
+   Query Text: SELECT count(*)
+   FROM forum.posts p
+   JOIN forum.users u ON u.pk = p.author
+   WHERE u.username = 'fluca1978'
+   AND        daterange( CURRENT_DATE - 20, CURRENT_DATE ) @> p.created_on::date;
+   Aggregate (cost=13803.59..13803.60 rows=1 width=8) (actual
+   time=138.110..139.720 rows=1 loops=1)
+    Output: count(*)
+    Buffers: shared hit=487 read=7264
+    -> Gather (cost=1008.30..13803.58 rows=2 width=0) (actual
+   time=0.397..139.703 rows=20 loops=1)
+                 Workers Planned: 2
+....
+[source,text]
+....
+           Workers Launched: 2
+          Buffers: shared hit=487 read=7264
+         -> Hash Join (cost=8.30..12803.38 rows=1 width=0) (actual
+  time=44.493..134.889 rows=7 loops=3)
+                 Inner Unique: true
+                 Hash Cond: (p.author = u.pk)
+                 Buffers: shared hit=487 read=7264
+                 Worker 0:    actual time=132.750..132.751 rows=0 loops=1
+                    Buffers: shared hit=238 read=3192
+                 Worker 1:    actual time=0.667..134.246 rows=4 loops=1
+                    Buffers: shared hit=162 read=2120
+               -> Parallel Seq Scan on forum.posts p (cost=0.00..12792.33
+  rows=1042 width=4) (actual time=0.132..133.575 rows=6667 loops=3)
+                     Output: p.pk, p.title, p.content, p.author, p.category,
+  p.reply_to, p.created_on, p.last_edited_on, p.editable, p.likes
+
+
+
+           ;
+          Finalize Aggregate (cost=114848.33..114848.34 rows=1 width=8)
+  (actual time=5190.322..5190.323 rows=1 loops=1)
+            -> Gather (cost=114848.12..114848.33 rows=2 width=8) (actual
+  time=5189.678..5193.226 rows=3 loops=1)
+                       Workers Planned: 2
+                       Workers Launched: 2
+                    -> Partial Aggregate (cost=113848.12..113848.13 rows=1
+  width=8) (actual time=4861.705..4861.712 rows=1 loops=3)
+                          -> Hash Join (cost=8.30..113848.09 rows=10
+  width=0) (actual time=2477.949..4861.639 rows=27 loops=3)
+  ...
+....
+
+Như bạn có thể thấy, output giờ đây bao gồm cùng thông tin mà `EXPLAIN ANALYZE` sẽ report.

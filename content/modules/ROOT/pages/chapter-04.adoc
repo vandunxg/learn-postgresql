@@ -1,0 +1,12 @@
+= 4. Basic Statements
+
+Trong chapter này, chúng ta sẽ thảo luận về các PostgreSQL basic SQL command; đây là các Data Definition Language (DDL) command và Data Manipulation Language (DML) command. Nói một cách cơ bản, DDL command được dùng để quản lý database và table, còn DML command được dùng để insert, delete, update và select data bên trong database. Trong chapter này, chúng ta cũng sẽ đi sâu vào môi trường `psql`. Như đã học trong Chapter 2, *Getting to know your cluster*, `psql` có thể được mô tả là shell environment của PostgreSQL; đây là cánh cổng chúng ta phải đi qua để bắt đầu viết command native trong PostgreSQL. Chúng ta cần nhớ rằng `psql` luôn có mặt trong mọi PostgreSQL installation mà chúng ta làm việc cùng, và đáng để học vì đây là một environment mạnh để quản lý data và database.
+
+Basic statement và `psql` do đó là nền tảng để chúng ta xây dựng kiến thức về PostgreSQL. Vì vậy, đọc và hiểu chapter này là điều thiết yếu để hiểu một số chủ đề phức tạp hơn được đề cập về sau.
+
+Hãy bắt đầu bằng danh sách những gì chúng ta sẽ học trong chapter này:
+
+* Thiết lập development environment
+* Tạo và quản lý database
+* Quản lý table
+* Tìm hiểu các basic table manipulation statement

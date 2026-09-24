@@ -1,0 +1,21 @@
+= Kiểm tra kiến thức
+
+* *Transaction là gì?*
+
+  Transaction là một unit công việc được xác nhận hoặc loại bỏ toàn bộ. Một transaction có thể được tạo bởi một statement hoặc nhiều statement, và có thể là implicit hoặc explicit. Xem section *Giới thiệu transaction* để biết thêm chi tiết.
+
+* *`xid` là gì và nó gặp vấn đề nào?*
+
+  `xid` là transaction identifier, một number đại diện duy nhất cho một transaction trong toàn bộ cluster. Vì được lưu dưới dạng counter, value này gặp vấn đề gọi là xid wraparound, vấn đề được giải quyết bằng freezing của VACUUM và autovacuum. Xem section *Thông tin thêm về transaction identifier – vấn đề XID wraparound* để biết thêm chi tiết.
+
+* *MVCC là gì?*
+
+  MVCC là một technique theo đó, tại một thời điểm nhất định, nhiều version của một tuple có thể tồn tại trong một database. Tùy thuộc vào các transaction đang chạy và commit status của chúng, một version khác nhau sẽ được sử dụng. Xem section *Giải thích MVCC* để biết thêm chi tiết.
+
+* *WAL là gì và tại sao nó quan trọng?*
+
+  WAL là intent log của một database; trước khi thực hiện bất kỳ modification nào lên storage, PostgreSQL ghi các thay đổi vào WAL. Nhờ vậy, write sẽ nhanh hơn và không có data nào bị mất trong trường hợp crash. Xem section *Cách PostgreSQL xử lý persistency và consistency: WAL* để biết thêm chi tiết.
+
+* *Checkpoint là gì?*
+
+  Checkpoint là một thời điểm tại đó cluster đồng bộ data trong memory với data trên disk, bảo đảm storage phản ánh các thay đổi mới nhất. Sau khi checkpoint hoàn tất, các WAL segment cũ có thể được recycle. Xem section *Checkpoint* để biết thêm chi tiết.

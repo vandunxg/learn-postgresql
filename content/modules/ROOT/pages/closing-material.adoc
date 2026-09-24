@@ -1,0 +1,925 @@
+= packt.com
+
+Đăng ký thư viện số trực tuyến của chúng tôi để được truy cập đầy đủ hơn 7.000 sách và video, cùng các tool hàng đầu trong ngành giúp bạn lập kế hoạch phát triển cá nhân và thăng tiến sự nghiệp. Để biết thêm thông tin, vui lòng truy cập website của chúng tôi.
+
+== Tại sao nên đăng ký?
+
+* Dành ít thời gian hơn cho việc học và nhiều thời gian hơn cho việc coding với các eBook và video thực tiễn từ hơn 4.000 chuyên gia trong ngành.
+* Cải thiện việc học với Skill Plan được xây dựng riêng cho bạn.
+* Nhận miễn phí một eBook hoặc video mỗi tháng.
+* Có thể tìm kiếm đầy đủ để dễ dàng truy cập thông tin quan trọng.
+* Copy và paste, in và bookmark nội dung.
+
+Tại www.packt.com, bạn cũng có thể đọc một bộ sưu tập các bài viết kỹ thuật miễn phí, đăng ký nhiều newsletter miễn phí, và nhận các ưu đãi cùng chương trình giảm giá độc quyền cho sách và eBook của Packt.
+
+== Những cuốn sách khác bạn có thể thích
+
+Nếu bạn thích cuốn sách này, có thể bạn sẽ quan tâm đến những cuốn sách khác của Packt sau đây:
+
+== Mastering PostgreSQL 15 - Fifth Edition
+
+Hans-Jürgen Schönig
+
+ISBN: 9781803248349
+
+* Tận dụng các tính năng indexing trong PostgreSQL và tinh chỉnh performance của query.
+* Làm việc với stored procedure và quản lý backup cũng như recovery.
+* Nắm được các kỹ thuật replication và failover.
+* Cải thiện security của database server và xử lý encryption hiệu quả.
+* Troubleshoot PostgreSQL instance để tìm giải pháp cho các vấn đề phổ biến và không phổ biến.
+* Thực hiện database migration từ Oracle sang PostgreSQL một cách dễ dàng.
+
+== SQL for Data Analytics - Third Edition
+
+Jun Shan, Matt Goldwasser, Upom Malik , Benjamin Johnston
+
+ISBN: 9781801812870
+
+* Dùng SQL để làm sạch, chuẩn bị và kết hợp các dataset khác nhau.
+* Aggregate các statistics cơ bản bằng các `GROUP BY` clause.
+* Thực hiện các phép tính statistics nâng cao bằng một `WINDOW` function.
+* Import data vào một database để kết hợp với các table khác.
+* Export kết quả SQL query đến nhiều nguồn khác nhau.
+* Phân tích các data type đặc biệt trong SQL, bao gồm dữ liệu địa không gian, date/time và JSON.
+* Tối ưu query và tự động hóa các task.
+* Suy nghĩ về các vấn đề dữ liệu và tìm câu trả lời bằng SQL.
+
+== Packt đang tìm kiếm những tác giả như bạn
+
+Nếu bạn quan tâm đến việc trở thành tác giả, vui lòng truy cập authors.packtpub.com và ứng tuyển ngay hôm nay. Chúng tôi đã làm việc với hàng nghìn developer và chuyên gia công nghệ, cũng như bạn, để giúp họ chia sẻ insight với cộng đồng công nghệ toàn cầu. Bạn có thể nộp một application chung, ứng tuyển cho một chủ đề cụ thể đang được tuyển, hoặc gửi ý tưởng của riêng mình.
+
+== Chia sẻ suy nghĩ của bạn
+
+Giờ bạn đã hoàn thành Learn PostgreSQL, chúng tôi rất muốn nghe suy nghĩ của bạn! Nếu bạn mua sách từ Amazon, vui lòng click vào đây để chuyển thẳng đến trang review Amazon của cuốn sách và chia sẻ ý kiến hoặc để lại review trên website nơi bạn đã mua sách.
+
+Review của bạn rất quan trọng đối với chúng tôi và cộng đồng công nghệ, đồng thời sẽ giúp chúng tôi bảo đảm cung cấp nội dung chất lượng xuất sắc.
+
+== Chỉ mục
+
+== A
+
+* Access Control Lists (ACLs) 307, 323-327
+** kiểm tra 345, 346
+* advanced statement window functions 167
+** frame clause 167
+* aggregate functions 130-133
+** `EXCEPT` operator 135
+** `INTERSECT` operator 136
+** `UNION ALL` operator 133, 134
+** `UNION` operator 133, 134
+* `ALTER ROLE` statement 310
+** configuration parameter theo role 312, 313
+** `SESSION_USER`, so với `CURRENT_USER` 311, 312
+** dùng để đổi tên role hiện có 310
+* `ANALYZE` command 492-494
+* data type arbitrary precision 186, 188
+* archive và replication settings 586, 587
+* physical replication asynchronous
+** thực hiện 614, 615
+* replication asynchronous 609, 617-619
+** replica, monitoring 619, 620
+* Atomicity, Consistency, Isolation và Durability (ACID) 3, 360
+
+* auditing
+** theo role 530-532
+** theo session 528-530
+** triển khai 524, 525
+** PgAudit, cấu hình 527
+** PgAudit, cài đặt 525
+** PostgreSQL, cấu hình cho PgAudit 526
+* auto-explain 494-498
+* VACUUM tự động 410-412
+** worker autovacuum 410
+
+== B
+
+* backup 536
+** ưu điểm 536
+** nhược điểm 537
+* Balanced Tree (B-Tree) 462
+* base backup
+** quản lý 678-681
+* basic statement window functions
+** `CUME_DIST` 165
+** `DENSE_RANK` 162
+** `FIRST_VALUE` 160
+** `LAG` 163
+** `LAST_VALUE` 161
+** `LEAD` 164
+** *NTILE* 165, 166
+** *ORDER BY clause* 159
+** *PARTITION BY function*, sử dụng 157, 158
+** *RANK* 161, 162
+** *ROW_NUMBER function* 159
+** *WINDOW clause*, sử dụng 157, 158
+* *Bitmap Heap Scan* 455
+* *Bitmap Index Scan* 455
+* *Block Range Index (BRIN)* 463
+* *boolean data types* 183, 184
+
+== C
+
+* *cascading replication* 623-626
+* *CASE statement* 222, 223
+* *character data type* 188
+** data type có độ dài cố định 188, 189
+** variable length với data type 190, 191
+** variable length không có data type 191, 192
+* *checkpoint*
+** phát hành thủ công 403
+** throttling 402, 403
+* *checkpoint configuration parameters* 399, 400
+** `checkpoint_timeout` 400, 401
+** `max_wal_size` 400, 401
+* *checkpoints* 398, 399
+* *cloned cluster* 567, 568
+* *cluster* 6, 10
+** kết nối tới 31
+** connection string 39
+** quản lý 22
+** command `pg_ctl` 22-28
+** PostgreSQL process 28-30
+** `psql` command-line client 33, 35
+** template database 31-33
+* *cluster configuration* 574, 575
+** configuration context 580
+** tìm configuration error 578, 579
+** nesting của configuration file 579
+** kiểm tra configuration parameter 576-578
+** generator 589-592
+** sửa đổi từ live system 588, 589
+** setting 581
+* *cluster monitor* 592, 593
+** kiểm tra database 596, 597
+** kiểm tra index 597, 598
+** kiểm tra lock 594-596
+** chạy thông tin về query và session 593, 594
+** statistics 599
+** kiểm tra table 597, 598
+* *column-based permissions* 333-337
+* *comma separated values (CSV)* 560
+* *common table expressions (CTEs)* 105, 460
+** concept 145, 146
+** khám phá 145
+* *compression* 548, 549
+* *conditional statements* 220
+** *CASE statement* 222, 223
+** *IF statement* 220, 221
+* *configuration contexts* 580
+** backend 581
+** internal 581
+** postmaster 581
+** sighup 581
+** superuser 581
+** superuser-backend 581
+** user 581
+* *configuration errors*
+** tìm 578, 579
+* *configuration files*
+** khám phá 46-48
+** nesting 579
+* *configuration parameter*
+** kiểm tra 576-578
+* *connection string* 39
+* *context* 580
+* *continuous backups*
+** quản lý base backup 678-681
+** quản lý 677
+** kiểm tra stanza 677
+** tạo stanza 677
+* *control structure* 219
+* *COPY command* 559-563
+* *cost-based optimizer* 453
+* *crash* 397
+* *crash-recovery* 397
+* *cross join* 118
+* *CTE in PostgreSQL version 12* 146, 147
+** recursive CTE 150, 151
+** tạo recursive query 149
+** use case 147-149
+* *CUME_DIST function* 165
+* *CURRENT_USER*
+** so với `SESSION_USER` 311
+* *custom format* 539
+
+== D
+
+* *database* 10
+** kết nối 72, 73
+** sao chép 79
+** tạo 73, 81-83
+** tạo từ template đã sửa đổi 77, 78
+** drop 79
+** quản lý 74
+** xác nhận kích thước 80
+* *Database Administrator (DBA)* 5
+* *database connection issue*
+** giải quyết 40, 41
+* *Database Management System (DBMS)* 21
+* *Data Definition Language (DDL)* 182, 264
+** operation 635, 649-651
+* *data manipulation language (DML)* 635, 650
+* *Data Manipulation Level (DML)* 264
+* *data storage* 8
+* *data types*
+** boolean data types 183, 184
+** character data type 188
+** date/timestamp data type 192
+** khám phá 182
+** concept extensibility 182
+** integer type 185
+** numeric data type 184
+** standard data type 182, 183
+* *date data type* 192-195
+* *date/timestamp data type* 192
+* *deadlocks* 390-392
+* *dead tuple* 403
+* *declarative partitioning* 280
+** list partitioning 281-284
+** partition maintenance 288
+** range partitioning 284-288
+* *default ACLs* 327-330
+* *default partition* 291
+* *default privileges* 328
+* *delayed replication* 626
+* *DELETE rules* 239
+** tạo 245, 246
+** tạo table `new_tags` 240
+** tạo table 241
+
+* *DENSE_RANK function* 162
+* *derivatives*
+** dùng để cài đặt PostgreSQL 14, 15
+* *developing environment, PostgreSQL*
+** kết nối database 72, 73
+** thiết lập 72
+* *directory format* 539
+* *disk layout của PGDATA*
+** khám phá 42, 43
+* *distinct condition*
+** sử dụng 108-111
+* *Docker containers*
+** sử dụng 631, 632
+* *dump formats* 549-552
+
+== E
+
+* *End Of Life (EOL)* 6
+* *environment settings, logical replication* 636
+** file `pg_hba.conf` 639
+** primary server 637, 638
+** replica role 637
+** replica server 638, 639
+* *event triggers* 264
+** tạo 265
+** example 265, 267
+* *exception handling statement* 228
+* *EXCEPT operator* 135
+* *existing role*
+** kiểm tra 58-61
+** xóa 57, 58
+* *EXISTS condition* 116
+* *EXISTS/IN*
+** so với *INNER JOIN* 120
+* *EXPLAIN statement* 470-472
+** mode ANALYZE 474, 475
+** option 476-479
+** output format 473
+* *explicit transaction*
+** so với implicit transaction 362-367
+* *extension*
+** tạo 439
+** định nghĩa example 439
+** tạo file 440, 441
+** xóa extension đã cài đặt 437, 438
+** sử dụng extension đã cài đặt 436, 437
+** cài đặt 442, 443
+** cài đặt thủ công 434, 435
+* *extension upgrade*
+** tạo 443, 444
+** thực hiện 445
+
+== F
+
+* *Fedora Linux*
+** dùng để cài đặt PostgreSQL 15, 16
+* *filenode* 44
+* *files*
+** sử dụng thay cho role đơn 66
+* *FIRST_VALUE function* 160
+* *fixed precision data type* 186
+* *foreign data wrappers*
+** sử dụng 665, 666
+* *frame clause* 167
+** `RANGE BETWEEN start_point and end_point` 174-178
+** `ROWS BETWEEN start_point and end_point` 168-174
+* *FreeBSD*
+** dùng để cài đặt PostgreSQL 16
+* *FULL OUTER JOIN*
+** sử dụng 127, 128
+* *function parameter*
+** khai báo 213, 214
+** các category về volatility của function 216, 218
+** input/output parameter 214, 216
+* *functions* 205
+** kiến thức cơ bản 206, 207
+** conditional statement 220
+** control structure 219
+** drop 213
+** exception handling statement 228
+** khám phá 205
+** khai báo function parameter 213
+** loop statement 225, 226
+** khai báo parameter 214
+** PL/pgSQL function 211
+** polymorphic SQL function 210, 211
+** viết PostgreSQL function 211, 212
+** định nghĩa security 229, 230
+** SQL function 206
+** làm cho SQL function trả về set phần tử 207, 208
+** làm cho SQL function trả về table 208, 209
+
+== G
+
+* *Gather node* 457
+** Gather Merge node 458
+** plain Gather node 458
+* *Generalized Index Search Tree (GIST)* 463
+* *Geospatial References (GIS)* 3
+* *GIN* 463
+* *GNU/Linux Debian*
+** dùng để cài đặt PostgreSQL 14, 15
+* *groups* 52
+** sử dụng thay cho role đơn 65, 66
+
+== H
+
+* *hash index* 463
+* *Hash Join* 456, 458
+* *hash partitioning* 275
+** example 275
+* *Heap Only Tuple (HOT)* 598
+* *high availability (HA) system* 626
+* *Host-Based Access (HBA)* 41, 61
+* *hot backup* 536
+* *hstore data type* 198-201
+
+== I
+
+* *IF statement* 220, 221
+* *ilike condition*
+** sử dụng 108
+* *IMMUTABLE function* 217
+* *implicit transaction*
+** so với explicit transaction 362-367
+* *incoming connections, management*
+** ở role level 61, 62
+** sử dụng file thay cho role đơn 66, 67
+** sử dụng group thay cho role đơn 65, 66
+** gộp nhiều rule thành một rule 64, 65
+** thứ tự rule trong file `pg_hba.conf` 64
+** file `pg_hba.conf` 68
+** cú pháp file `pg_hba.conf` 62, 63
+** kiểm tra rule của file `pg_hba.conf` 67, 68
+* *IN condition* 113-115
+* *index* 462
+** tạo 463-465
+** drop 468
+** kiểm tra 465-468
+** invalidating 469
+** rebuild 470
+** type 462, 463
+* *index nodes* 455
+* *Index-Only Scan* 455
+* *Index Scan* 455
+* *information schema* 9
+* *INNER JOIN*
+** sử dụng 119
+** so với EXISTS/IN 120
+* *INSERT rules* 235
+** option ALSO 236
+** tạo 243, 244
+** option INSTEAD OF 237-239
+* *installed extension*
+** xóa 438
+** xóa qua `pgxnclient` 439
+* *integer types* 185
+* *INTERSECT operator* 136
+* *introspection commands* 39
+
+== J
+
+* *JavaScript Object Notation (JSON)* 201
+* *join*
+** sử dụng *FULL OUTER JOIN* 127, 128
+** sử dụng *INNER JOIN* 119
+** *INNER JOIN* so với EXISTS/IN 120
+** sử dụng *LATERAL JOIN* 129, 130
+** tìm hiểu 117, 118
+** sử dụng *LEFT JOIN* 121-124
+** sử dụng *RIGHT JOIN* 125, 126
+* *join nodes* 455, 456
+* *JSON data type* 201-205
+
+== L
+
+* *LAG function* 163
+* *languages*
+** khám phá 205
+* *LAST_VALUE function* 161
+* *LATERAL JOIN*
+** sử dụng 129, 130
+* *LEAD function* 164, 165
+* *LEFT JOIN*
+** sử dụng 121-125
+* *like condition*
+** sử dụng 106, 107
+* *limit condition*
+** sử dụng 111, 112
+* *list partitioning* 274
+** example 274
+* *logical backup* 536
+** giới hạn lượng data được backup 547, 548
+** automated backup 558, 559
+** compression 548, 549
+** COPY command 559-563
+** dump format 549-552
+** khám phá 537, 538
+** dump toàn bộ cluster 555, 556
+** parallel backup 556-558
+** `pg_restore` 549-552
+** thực hiện selective restore 552-554
+** dump một database 539-543
+** restore một database 543-547
+* *logical replication* 632-634
+** vô hiệu hóa 651, 652
+** environment setting 636
+** tạo bằng physical replication instance 652-657
+** monitoring 641, 642
+** read-only so với write-allowed 643-648
+** setup 639, 640
+** so với physical replication 635
+
+== M
+
+* *Log Sequence Number (LSN)* 397
+* *loop statement* 225, 226
+** record type 226, 227
+* *manually compiled extension*
+** xóa 439
+* *manual VACUUM* 404-410
+* *memory-related settings* 584
+* *Merge Join* 456
+* *multi-version concurrency control (MVCC)* 359, 373-379, 384-387
+* *MySQL/MariaDB*
+** migrate sang PostgreSQL bằng `pgloader` 684-688
+
+== N
+
+* *Nested Loop* 455, 486
+* *networking-related settings* 585, 586
+* *NEW variables* 234, 235
+* *nodes, by optimizer*
+** cost 460, 461
+** parallel node 457
+** sequential node 454
+** utility node 459
+* *NoSQL data type* 197
+** hstore data type 198-201
+** JSON data type 201-205
+* *NOT EXISTS condition* 116
+* *NOT IN condition* 113-115
+* *NTILE function* 165, 166
+* *numeric data types* 184
+** arbitrary precision data type 186, 188
+** fixed precision data type 186
+
+== O
+
+* *Object Identifier (OID)* 44
+* *objects*
+** trong thư mục PGDATA 43-45
+* *Object Store Support*
+** sử dụng `pgbackrest` 675
+* *offset condition*
+** sử dụng 111, 112
+* *OLD variables* 234, 235
+* *On-Line Analytical Processing (OLAP)* 590
+* *On-Line Transactional Processing (OLTP)* 590
+* *optimizer*
+** chọn parallel plan 458, 459
+** setting 587
+* *ORDER BY clause* 159
+
+== P
+
+* *parallel aggregations* 458
+* *parallel backups* 556-558
+* *Parallel Hash Join* 458
+* *parallel nodes* 457
+** Gather node 457
+** parallel aggregation 458, 459
+** parallel join 458
+** parallel scan 458
+* *parameters*
+** khám phá 46-48
+* *Partial Aggregate node* 458
+* *PARTITION BY function*
+** sử dụng 157, 158
+* *partitioning* 271, 292
+** concept cơ bản 271, 272
+** case study 295-303
+** hash partitioning 275
+** list partitioning 274
+** range partitioning 273
+** table inheritance 276-280
+** sử dụng tablespace 292, 293, 295
+* *partition maintenance* 288
+** attach table hiện có vào parent table 290
+** attach partition 288
+** detach partition 289
+* *permissions*
+** column-based permissions 333-337
+** cấp 331
+** GRANT statement 344
+** liên quan đến object trong schema 341
+** liên quan đến database 343, 344
+** liên quan đến language 342
+** liên quan đến routine 342, 343
+** liên quan đến schema 339, 340
+** liên quan đến sequence 337, 338
+** liên quan đến table 332
+** REVOKE statement 344
+** thu hồi 331, 332
+* *PgAudit*
+** configure 527
+** cài đặt 525
+** configure PostgreSQL 526
+* *pgbackrest.conf file* 676
+* *pgbackrest configuration, with S3 Azure*
+** link tham khảo 675
+* *pgbackrest tool*
+** configure 672
+** environment setting 669
+** feature 668
+** cài đặt 671
+** trao đổi public key 669, 670
+** repository 668
+** repository configuration 672-674
+** stanza 668
+** link tham khảo 668
+** sử dụng cho disaster recovery 667
+** sử dụng với Object Store Support 675
+* *pgBadger*
+** scheduling 523, 524
+* *pg_basebackup command* 616
+** link tham khảo 616
+* *PGConfig*
+** link tham khảo 589
+* *pg_ctl command* 22-28
+* *PGDATA directory* 8, 10
+** object 43-45
+** tablespace 45, 46
+* *pgenv*
+** dùng để cài đặt PostgreSQL 18, 19
+* *pg_hba.conf file* 68, 639
+** thứ tự rule 64
+** cú pháp 62, 63
+* *pg_hba.conf rules*
+** kiểm tra 67, 68
+* *pgloader*
+** link tham khảo 684
+** dùng để migrate từ MySQL/MariaDB sang PostgreSQL 684-687
+* *pg_restore* 549,-552
+* *pg_stat_replication*
+** link tham khảo 620
+* *pg_stat_statements, advanced statistics* 600
+** data collection 601, 602
+** reset data collection 602
+** cài đặt extension 600
+** tuning parameter 602
+* *pg_trgm extension*
+** khám phá 662-665
+** link tham khảo 665
+* *pgxnclient*
+** dùng để xóa extension đã cài đặt 439
+* *physical backup* 536, 537
+** cloned cluster 567, 568
+** khám phá 563, 564
+** thực hiện physical backup thủ công 564-566
+** `pg_verifybackup` 566
+** restore từ 568
+* *physical replication*
+** so với logical replication 635
+* *physical replication instance*
+** dùng để tạo logical replication 652-657
+* *physical replication techniques*
+** asynchronous replication 609
+** synchronous replication 609
+* *plain text format* 539
+* *PL/pgSQL functions* 211
+* *point-in-time recovery (PITR)* 537, 569, 661
+** quản lý 681-683
+* *policy* 347
+* *polymorphic SQL functions* 210, 211
+* *postgres_fdw extension*
+** sử dụng 665-667
+* *POSTGRES (POST-Ingres)* 4
+* *PostgreSQL* 3, 4
+** cài đặt component 11
+** configure cho PgAudit 526
+** xử lý consistency 393
+** thiết lập developing environment 72
+** history 4, 5
+** cài đặt 10, 11
+** cài đặt từ binary package 12
+** cài đặt từ source 17
+** cài đặt trên derivative 14, 15
+** cài đặt trên Fedora Linux 15, 16
+** cài đặt trên FreeBSD 16
+** cài đặt trên GNU/Linux Debian 14, 15
+** cài đặt trên Ubuntu 14, 15
+** cài đặt qua pgenv 18, 19
+** cài đặt bằng Docker Image 13, 14
+** life cycle 6
+** migrate từ MySQL/MariaDB bằng `pgloader` 684-688
+** xử lý persistency 393
+** link tham khảo 4
+** release policy 5
+** link tham khảo 661
+** user so với group 52, 53
+** version number 6
+** làm việc từ đầu 75
+* *PostgreSQL 15*
+** public schema 74
+* *PostgreSQL 16* 5
+* *PostgreSQL client* 11
+* *postgresql.conf file* 637, 675
+* *PostgreSQL contrib package* 11
+* *PostgreSQL docs* 11
+* *PostgreSQL function*
+** viết 211, 212
+* *PostgreSQL Global Development Group (PGDG)* 1
+* *PostgreSQL PL/Perl* 11
+* *PostgreSQL PL/Python* 11
+* *PostgreSQL PL/Tcl* 11
+* *PostgreSQL processes* 28-30
+* *PostgreSQL server* 11
+* *PostgreSQL server configuration* 675
+** file `pgbackrest.conf` 676
+** file `postgresql.conf` 675
+* *PostgreSQL terminology*
+** khám phá 6-10
+* *postmaster* 10, 23
+* *primary server*
+** promote replica server 626, 627
+** replicate theo cách synchronous 621
+* *process information settings* 585
+* *psql command-line client* 33, 35
+** nhập SQL statement qua 35, 37
+* *psql commands* 38, 39
+* *psql method*
+** sử dụng 80
+
+== Q
+
+* *query tuning*
+** example 480-491
+
+== R
+
+* *random-seek* 396
+* *range partitioning* 273
+** example 273
+* *RANK function* 161, 162
+* *real transaction identifier* 371, 373
+* *record type* 226, 227
+* *recursive CTE* 150, 151
+* *recursive queries*
+** tạo 149
+* *replica role* 637
+* *replica server*
+** promote thành primary 626, 627
+* *RETURNING clause for INSERT*
+** delete statement 145
+** tìm hiểu 140
+** MERGE statement 142, 144
+** update nhiều record 141, 142
+** trả về query tuple 141
+** update statement 144
+* *RIGHT JOIN*
+** sử dụng 125, 126
+* *role level*
+** quản lý incoming connection 61, 62
+* *role password encryption* 352
+* *roles* 52, 308
+** ALTER ROLE statement 310
+** availability 54, 55
+** connection 54, 55
+** inheritance 323
+** kế thừa từ role khác 316-319
+** kiểm tra 313-315
+** quản lý 53
+** tạo role mới 53
+** password 54, 55
+** giải quyết privilege 319-322
+** property liên quan đến object mới 308
+** property liên quan đến replication 309
+** property liên quan đến RLS 309
+** property liên quan đến superuser 309
+** sử dụng làm group 55-57
+* *Row-Level Security (RLS)* 307, 309, 346-351
+* *ROW_NUMBER function* 159
+* *rules* 234
+** khám phá 234
+** quản lý trên DELETE 243
+** quản lý trên INSERT 242
+** quản lý trên UPDATE 242
+
+== S
+
+* *savepoints* 387-390
+* *schemas* 74
+* *search_path variable* 75
+* *Secure Socket Layer (SSL)*
+** configure cluster 353
+** kết nối tới cluster 354, 355
+** connection 353
+* *segments* 396
+* *SELECT statement*
+** khám phá 105, 106
+* *semi-join queries* 117
+* *sequential nodes*
+** index node 455
+** join node 455, 456
+** Sequential Scan (Seq Scan) 454
+** utility node 454
+* *Sequential Scan (Seq Scan)* 454
+* *SESSION_USER*
+** so với `CURRENT_USER` 311, 312
+* *settings, cluster configuration* 581
+** archive và replication setting 586, 587
+** memory-related setting 584
+** networking-related setting 585, 586
+** optimizer setting 587
+** process information setting 585
+** statistics collector 587, 588
+** vacuum và autovacuum-related setting 587
+** WAL setting 582, 583
+* *Slony*
+** link tham khảo 633
+* *slot technique* 616
+* *SQL* 38
+* *SQL functions* 206
+** trả về set phần tử 207, 208
+** trả về table 208, 209
+* *SQL method* 81
+* *SQL statements*
+** nhập qua `psql` 35, 37
+* *STABLE function* 217
+* *standard data types* 182, 183
+* *standby server*
+** replicate theo cách synchronous 621, 622
+* *statement execution* 452
+** node theo optimizer 454
+** optimizer 452, 453
+* *statistics*
+** cập nhật 491-494
+* *statistics collector* 587, 588
+* *streaming replication* 612, 613
+** chuẩn bị environment setup 610-612
+** quản lý 612
+* *subqueries*
+** EXISTS condition 116
+** IN condition 113-115
+** NOT EXISTS condition 116
+** NOT IN condition 113-115
+** sử dụng 112
+* *synchronous replication* — 609, 620
+** cascading replication — 623-626
+** delayed replication — 626
+* *synchronous replication, PostgreSQL settings* — 621
+** primary server — 621
+** standby server — 621, 622
+
+== T
+
+* *table inheritance* — 276-280
+** tables, xóa — 280
+* *table manipulation statements* — 90
+** data, xóa — 99, 100
+** data, chèn — 90-93
+** data, chọn — 90-93
+** data, cập nhật — 98, 99
+** NULL values — 94, 95
+** NULL values, sắp xếp với — 96, 97
+** table, tạo từ table khác — 97, 98
+* *tables*
+** tạo — 89, 90
+** xóa — 78
+** EXISTS option — 85, 86
+** liệt kê — 76
+** quản lý — 84, 85
+** temporary tables, quản lý — 86-88
+** unlogged tables, quản lý — 88
+* *tablespaces* — 45, 46
+* *tar format* — 539
+* *template databases* — 31-33
+* *timeline* — 397
+* *timestamp data type* — 195, 197
+* *transaction*
+** thời gian trong transaction — 368, 369
+* *transaction identifiers* — 361, 369, 370
+* *transaction isolation levels* — 380
+** dirty read — 379
+** phantom read — 379
+** read committed — 379, 381
+** read uncommitted — 379, 381
+** repeatable read — 380, 381
+** serializable — 380-383
+** unrepeatable read — 379
+* *transactions* — 360-362
+* *triggers*
+** quản lý — 249, 250
+** on INSERT — 252-256
+** on UPDATE / DELETE — 257-264
+** TG_OP variable — 257
+** trigger syntax — 250, 251
+* *tuple freezing* — 370
+
+== U
+
+* *Ubuntu*
+** được sử dụng để cài đặt PostgreSQL 14, 15
+* *UNION ALL operator* — 133, 134
+* *UNION operator* — 133, 134
+* *UPDATE rules* — 240
+** tạo — 247-249
+** new_tags table, tạo — 240
+** tables, tạo — 241
+* *UPSERT statement*
+** sử dụng — 137
+** sử dụng trong PostgreSQL — 137-139
+* *user groups* — 52, 53
+* *users* — 52, 53
+** normal users — 74
+** superusers — 74
+* *utility nodes* — 459
+
+== V
+
+* *VACUUM* — 403
+** automatic VACUUM — 410-412
+** manual VACUUM — 404-410
+* *vacuum and autovacuum-related settings* — 587
+* *virtual transaction identifier* — 371, 373
+* *VOLATILE function* — 217
+
+== W
+
+* *WAL archiving* — 569
+* *wal_keep_segments option* — 615
+* *wal_level directive* — 610
+** link tham khảo — 610
+* *WAL-replay* — 397
+* *WAL segments* — 609
+* *WAL settings* — 582, 583
+* *WindowAgg node* — 460
+* *WINDOW clause*
+** sử dụng — 157, 158
+* *window functions* — 155
+** advanced statement window functions — 167
+** basic statement window functions — 156, 157
+* *Write-Ahead Logs (WALs)* — 8, 10, 29, 359, 393-397, 563
+** như phương pháp khôi phục khi xảy ra crash — 397, 398
+** checkpoints — 398, 399
+
+== X
+
+* *xid* — 361
+* *XID wraparound problem* — 369, 370
+
+== Tải bản PDF miễn phí của cuốn sách này
+
+Cảm ơn bạn đã mua cuốn sách này!
+
+Bạn thích đọc khi đang di chuyển nhưng không thể mang theo sách in ở mọi nơi?
+
+eBook bạn mua không tương thích với thiết bị bạn chọn?
+
+Đừng lo, giờ đây với mỗi cuốn sách Packt, bạn sẽ nhận được phiên bản PDF không DRM của cuốn sách đó hoàn toàn miễn phí.
+
+Đọc ở bất kỳ đâu, bất kỳ nơi nào, trên bất kỳ thiết bị nào. Tìm kiếm, sao chép và dán code từ những cuốn sách kỹ thuật yêu thích của bạn trực tiếp vào application của mình.
+
+Các quyền lợi chưa dừng lại ở đó: bạn có thể nhận quyền truy cập độc quyền vào các chương trình giảm giá, newsletter và nội dung miễn phí thú vị được gửi hằng ngày vào inbox của bạn.
+
+Hãy thực hiện các bước đơn giản sau để nhận các quyền lợi:
+
+. Quét mã QR hoặc truy cập liên kết bên dưới
+
+https://packt.link/free-ebook/9781837635641
+
+[%start=2]
+. Gửi bằng chứng mua hàng
+
+. Vậy là xong! Chúng tôi sẽ gửi trực tiếp bản PDF miễn phí của bạn và các quyền lợi khác đến email của bạn.

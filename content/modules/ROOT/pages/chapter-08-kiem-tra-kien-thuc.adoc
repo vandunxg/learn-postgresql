@@ -1,0 +1,34 @@
+= Kiểm tra kiến thức
+
+* `NEW` record là gì?
+
+  `NEW` record là record sẽ được xử lý trước một statement `INSERT` hoặc một statement `UPDATE`, ví dụ:
+
+[source,text]
+....
+  insert into mytable(id,city_name) values (1,'New York')
+....
+
+[source,text]
+....
+  NEW.id = 1
+  NEW.city_name = 'New York'
+....
+
+  Xem section *Exploring rules in PostgreSQL* để biết thêm chi tiết.
+
+* Chúng ta có thể thực thi một `INSERT` trên hai table trong một transaction bằng rules không?
+
+  Có; chúng ta có thể làm điều đó bằng clause `ALSO`. Xem section *Exploring rules in PostgreSQL* để biết thêm chi tiết.
+
+* Chúng ta có thể làm mọi thứ đã làm với rules bằng triggers không?
+
+  Có; bằng triggers, chúng ta có thể làm mọi thứ đã làm với rules và nhiều hơn nữa. Xem section *Managing triggers in PostgreSQL* để biết thêm chi tiết.
+
+* Chúng ta có thể biết một trigger đã được fire từ event `INSERT`, event `UPDATE` hay event `DELETE` không?
+
+  Có, bằng cách sử dụng variable `TG_OP`. Xem section *Managing triggers in PostgreSQL* để biết thêm chi tiết.
+
+* Chúng ta có thể viết một audit procedure thông báo cho chúng ta khi một DDL đã được execute không?
+
+  Có, bằng cách sử dụng event trigger. Xem section *Event triggers* để biết thêm chi tiết.

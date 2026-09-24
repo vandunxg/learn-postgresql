@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learn PostgreSQL — Theme Sample</title>
+  <style>
+    :root {
+      --bg: #f7f7f5;
+      --surface: #fcfcfa;
+      --surface-2: #f0f1ee;
+      --text: #242629;
+      --muted: #666b70;
+      --border: #e1e3df;
+      --accent: #336791;
+      --accent-strong: #285476;
+      --accent-soft: #e8f0f6;
+      --link: #2f628c;
+      --code-bg: #202428;
+      --code-text: #e8edf1;
+      --inline-code-bg: #eceeea;
+      --note-bg: #eaf2f8;
+      --tip-bg: #edf5ef;
+      --warn-bg: #faf2df;
+      --highlight-bg: #fff1a8;
+      --highlight-text: #242629;
+      --shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    }
+
+    html[data-theme="dark"] {
+      --bg: #1b1d1e;
+      --surface: #222426;
+      --surface-2: #292c2f;
+      --text: #d8d9da;
+      --muted: #a6a8ab;
+      --border: #36393c;
+      --accent: #6ea6d7;
+      --accent-strong: #9ac2e7;
+      --accent-soft: #243442;
+      --link: #79aedd;
+      --code-bg: #151719;
+      --code-text: #e1e5e8;
+      --inline-code-bg: #2b2e31;
+      --note-bg: #22313c;
+      --tip-bg: #233129;
+      --warn-bg: #3a3020;
+      --highlight-bg: #6b5a1c;
+      --highlight-text: #fff3b0;
+      --shadow: none;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Source Sans 3", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.72;
+      font-size: 17px;
+    }
+
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    button, input { font: inherit; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 64px;
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) 1fr auto;
+      align-items: center;
+      gap: 1rem;
+      padding: 0 1.25rem;
+      background: color-mix(in srgb, var(--surface) 92%, transparent);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      font-weight: 700;
+      letter-spacing: -.01em;
+    }
+
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      box-shadow: var(--shadow);
+    }
+
+    .search {
+      max-width: 620px;
+      width: 100%;
+      justify-self: center;
+      position: relative;
+    }
+
+    .search input {
+      width: 100%;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      border-radius: 7px;
+      padding: .65rem .9rem .65rem 2.45rem;
+      outline: none;
+    }
+
+    .search input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: .85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      font-size: .95rem;
+    }
+
+    .top-actions { display: flex; gap: .5rem; }
+
+    .icon-btn {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 7px;
+      min-width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .icon-btn:hover { background: var(--surface-2); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(220px, 280px) minmax(0, 1fr) 240px;
+      min-height: calc(100vh - 64px);
+    }
+
+    .sidebar,
+    .toc {
+      position: sticky;
+      top: 64px;
+      height: calc(100vh - 64px);
+      overflow: auto;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--border);
+      padding: 1.25rem 1rem 2rem;
+      background: var(--surface);
+    }
+
+    .book-meta {
+      padding: .25rem .5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+
+    .book-meta small { color: var(--muted); display: block; }
+    .book-meta strong { display: block; margin-top: .2rem; }
+
+    .nav-section { margin: 1.2rem 0; }
+    .nav-label {
+      padding: 0 .5rem;
+      margin-bottom: .4rem;
+      font-size: .76rem;
+      letter-spacing: .08em;
+      color: var(--muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .nav-list { list-style: none; padding: 0; margin: 0; }
+    .nav-list li { margin: .1rem 0; }
+    .nav-list a {
+      display: block;
+      padding: .48rem .6rem;
+      border-radius: 6px;
+      color: var(--text);
+      font-size: .95rem;
+    }
+    .nav-list a:hover { background: var(--surface-2); text-decoration: none; }
+    .nav-list a.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      font-weight: 700;
+      border-left: 3px solid var(--accent);
+      padding-left: calc(.6rem - 3px);
+    }
+    .nav-list .sub { padding-left: .9rem; }
+    .nav-list .sub a { color: var(--muted); font-size: .9rem; }
+
+    main {
+      min-width: 0;
+      padding: 3rem clamp(1.25rem, 4vw, 4.5rem) 5rem;
+    }
+
+    .article {
+      max-width: 840px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-weight: 700;
+      font-size: .78rem;
+      margin-bottom: .5rem;
+    }
+
+    h1, h2, h3 {
+      line-height: 1.2;
+      letter-spacing: -.02em;
+      scroll-margin-top: 90px;
+    }
+
+    h1 { font-size: clamp(2.2rem, 4vw, 3.25rem); margin: 0 0 1rem; }
+    h2 { font-size: 1.7rem; margin: 3rem 0 1rem; }
+    h3 { font-size: 1.25rem; margin: 2rem 0 .7rem; }
+
+    .lede {
+      font-size: 1.14rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+    }
+
+    code {
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+      font-size: .9em;
+    }
+
+    p code, li code {
+      background: var(--inline-code-bg);
+      padding: .1rem .35rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+    }
+
+    .code-block {
+      background: var(--code-bg);
+      color: var(--code-text);
+      border-radius: 8px;
+      margin: 1.4rem 0;
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    }
+
+    .code-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: .55rem .75rem;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      font-size: .78rem;
+      color: #aeb8bf;
+    }
+
+    .copy-btn {
+      border: 0;
+      background: transparent;
+      color: #c9d2d8;
+      cursor: pointer;
+      padding: .15rem .35rem;
+    }
+
+    pre {
+      margin: 0;
+      padding: 1rem 1.2rem 1.2rem;
+      overflow-x: auto;
+      line-height: 1.6;
+      font-size: .9rem;
+    }
+
+    .sql-keyword { color: #8fc5ff; font-weight: 600; }
+    .sql-string { color: #a7d8a2; }
+    .sql-number { color: #f3c987; }
+    .sql-comment { color: #83919b; font-style: italic; }
+
+    .admonition {
+      margin: 1.6rem 0;
+      border-left: 4px solid var(--accent);
+      background: var(--note-bg);
+      padding: .95rem 1rem;
+      border-radius: 0 7px 7px 0;
+    }
+
+    .admonition.tip { background: var(--tip-bg); border-left-color: #5b8f68; }
+    .admonition.warning { background: var(--warn-bg); border-left-color: #b2862f; }
+    .admonition strong { display: block; margin-bottom: .25rem; }
+
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th, td { text-align: left; padding: .75rem .9rem; border-bottom: 1px solid var(--border); }
+    thead { background: var(--surface-2); }
+    tbody tr:nth-child(even) { background: color-mix(in srgb, var(--surface-2) 45%, transparent); }
+    tbody tr:last-child td { border-bottom: 0; }
+
+    .figure {
+      margin: 1.8rem 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 1rem;
+    }
+
+    .figure-diagram {
+      min-height: 220px;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 24px 24px;
+      border-radius: 6px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .figure figcaption { color: var(--muted); font-size: .9rem; margin-top: .75rem; }
+
+    .chapter-nav {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 3.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .chapter-nav a {
+      display: block;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      padding: 1rem;
+      color: var(--text);
+    }
+
+    .chapter-nav a:hover { text-decoration: none; border-color: var(--accent); }
+    .chapter-nav small { color: var(--muted); display: block; }
+    .chapter-nav .next { text-align: right; }
+
+    .toc {
+      padding: 2rem 1.25rem;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .toc-title {
+      font-size: .76rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: .8rem;
+    }
+
+    .toc a {
+      display: block;
+      color: var(--muted);
+      font-size: .88rem;
+      padding: .28rem 0 .28rem .65rem;
+      border-left: 2px solid transparent;
+    }
+    .toc a:hover { color: var(--text); text-decoration: none; }
+    .toc a.active { color: var(--accent-strong); border-left-color: var(--accent); font-weight: 600; }
+
+    .progress {
+      position: fixed;
+      top: 63px;
+      left: 0;
+      height: 2px;
+      width: 0%;
+      background: var(--accent);
+      z-index: 60;
+    }
+
+    .reader-fab {
+      --reader-progress: 0deg;
+      position: fixed;
+      right: 1.25rem;
+      bottom: 1.25rem;
+      z-index: 80;
+      width: 56px;
+      height: 56px;
+      border: 0;
+      border-radius: 50%;
+      padding: 3px;
+      cursor: pointer;
+      color: var(--text);
+      background: conic-gradient(var(--accent) var(--reader-progress), var(--border) 0);
+      box-shadow: 0 8px 24px rgba(0,0,0,.14);
+      transition: transform .15s ease, opacity .15s ease;
+    }
+
+    .reader-fab:hover { transform: translateY(-2px); }
+    .reader-fab:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 30%, transparent); outline-offset: 3px; }
+
+    .reader-fab-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--surface);
+      border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+    }
+
+    .reader-fab-icon {
+      font-size: 1.15rem;
+      line-height: 1;
+      color: var(--accent-strong);
+      font-weight: 800;
+      transform: translateY(-1px);
+    }
+
+    .reader-fab .reader-tooltip {
+      position: absolute;
+      right: 66px;
+      top: 50%;
+      transform: translateY(-50%);
+      white-space: nowrap;
+      padding: .45rem .6rem;
+      border-radius: 6px;
+      background: var(--text);
+      color: var(--surface);
+      font-size: .78rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease;
+    }
+
+    .reader-fab:hover .reader-tooltip,
+    .reader-fab:focus-visible .reader-tooltip { opacity: 1; }
+
+    .toc a.active,
+    .nav-list .sub a.active-section {
+      color: var(--accent-strong);
+      font-weight: 700;
+    }
+
+    .nav-list .sub a.active-section {
+      background: var(--accent-soft);
+      border-left: 2px solid var(--accent);
+      padding-left: calc(.6rem - 2px);
+    }
+
+    .highlight-toggle.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+      border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+
+    .highlight-toggle.active::after {
+      content: "";
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      transform: translate(13px, -13px);
+    }
+
+    .highlight-toggle { position: relative; }
+
+    body.highlight-mode .layout { cursor: text; }
+    body.highlight-mode .user-highlight { cursor: pointer; }
+
+    mark.user-highlight {
+      background: var(--highlight-bg);
+      color: var(--highlight-text);
+      border-radius: 3px;
+      padding: .04em .08em;
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+
+    .highlight-status {
+      position: fixed;
+      left: 50%;
+      bottom: 1.25rem;
+      transform: translateX(-50%) translateY(12px);
+      z-index: 90;
+      padding: .5rem .72rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--muted);
+      font-size: .8rem;
+      box-shadow: 0 8px 22px rgba(0,0,0,.12);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+
+    body.highlight-mode .highlight-status {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .mobile-nav-btn { display: none; }
+
+    @media (max-width: 1180px) {
+      .layout { grid-template-columns: 250px minmax(0, 1fr); }
+      .toc { display: none; }
+      .topbar { grid-template-columns: 250px 1fr auto; }
+    }
+
+    @media (max-width: 820px) {
+      .topbar { grid-template-columns: auto 1fr auto; }
+      .brand span:last-child { display: none; }
+      .mobile-nav-btn { display: grid; }
+      .layout { display: block; }
+      .sidebar {
+        position: fixed;
+        top: 64px;
+        left: 0;
+        bottom: 0;
+        width: min(84vw, 320px);
+        height: auto;
+        transform: translateX(-102%);
+        transition: transform .2s ease;
+        z-index: 45;
+        box-shadow: 8px 0 24px rgba(0,0,0,.12);
+      }
+      .sidebar.open { transform: translateX(0); }
+      main { padding: 2rem 1.2rem 4rem; }
+      .article { max-width: 100%; }
+      .chapter-nav { grid-template-columns: 1fr; }
+      .chapter-nav .next { text-align: left; }
+      .search { max-width: none; }
+    }
+
+    @media (max-width: 520px) {
+      body { font-size: 16px; }
+      .topbar { padding: 0 .75rem; }
+      .search input { padding-left: .8rem; }
+      .search-icon { display: none; }
+      h1 { font-size: 2rem; }
+      h2 { font-size: 1.5rem; }
+      main { padding-inline: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="progress" id="progress"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <button class="icon-btn mobile-nav-btn" id="menuBtn" aria-label="Mở mục lục">☰</button>
+      <div class="brand-mark" aria-hidden="true">PG</div>
+      <span>Learn PostgreSQL</span>
+    </div>
+
+    <label class="search">
+      <span class="search-icon">⌕</span>
+      <input type="search" placeholder="Tìm kiếm trong sách…" aria-label="Tìm kiếm trong sách" />
+    </label>
+
+    <div class="top-actions">
+      <button class="icon-btn highlight-toggle" id="highlightBtn" type="button" aria-label="Bật chế độ highlight" aria-pressed="false" title="Highlight mode">✎</button>
+      <button class="icon-btn" id="themeBtn" aria-label="Chuyển chế độ sáng tối">☾</button>
+    </div>
+  </header>
+
+  <button class="reader-fab" id="readerFab" type="button" aria-label="Tiến độ đọc 0 phần trăm, về đầu trang" title="Tiến độ đọc · Về đầu trang">
+    <span class="reader-fab-inner" aria-hidden="true">
+      <span class="reader-fab-icon">↑</span>
+    </span>
+    <span class="reader-tooltip" id="readerTooltip">Đã đọc 0% · Về đầu trang</span>
+  </button>
+
+  <div class="highlight-status" id="highlightStatus" role="status">Highlight mode · Kéo chuột để tô · Click đoạn đã tô để xóa</div>
+
+  <div class="layout" id="readingArea">
+    <aside class="sidebar" id="sidebar" aria-label="Mục lục sách">
+      <div class="book-meta">
+        <small>SECOND EDITION</small>
+        <strong>Learn PostgreSQL</strong>
+      </div>
+
+      <section class="nav-section">
+        <div class="nav-label">Part I · Foundations</div>
+        <ul class="nav-list">
+          <li><a href="#">1. Getting Started</a></li>
+          <li><a href="#">2. Installing PostgreSQL</a></li>
+          <li><a href="#">3. SQL Basics</a></li>
+        </ul>
+      </section>
+
+      <section class="nav-section">
+        <div class="nav-label">Part II · Core PostgreSQL</div>
+        <ul class="nav-list">
+          <li><a href="#">4. Data Types</a></li>
+          <li><a href="#">5. Indexes</a></li>
+          <li><a href="#">6. Query Planning</a></li>
+          <li><a class="active" href="#top">7. Transactions & MVCC</a></li>
+          <li class="sub"><a href="#acid">ACID</a></li>
+          <li class="sub"><a href="#mvcc">MVCC</a></li>
+          <li class="sub"><a href="#isolation">Isolation Levels</a></li>
+          <li><a href="#">8. Locks & Deadlocks</a></li>
+        </ul>
+      </section>
+
+      <section class="nav-section">
+        <div class="nav-label">Part III · Advanced</div>
+        <ul class="nav-list">
+          <li><a href="#">9. Performance</a></li>
+          <li><a href="#">10. Replication</a></li>
+          <li><a href="#">11. Backup & Recovery</a></li>
+        </ul>
+      </section>
+    </aside>
+
+    <main id="top">
+      <article class="article">
+        <div class="eyebrow">Chapter 7</div>
+        <h1>Transactions &amp; MVCC</h1>
+        <p class="lede">Hiểu cách PostgreSQL đảm bảo tính nhất quán dữ liệu khi nhiều transaction cùng đọc và ghi trên một database.</p>
+
+        <p>Một <strong>transaction</strong> gom nhiều SQL operation thành một đơn vị xử lý duy nhất. PostgreSQL sử dụng <code>MVCC</code> để cho phép nhiều transaction hoạt động đồng thời mà vẫn hạn chế việc block không cần thiết giữa reader và writer.</p>
+
+        <div class="admonition">
+          <strong>NOTE</strong>
+          Trong PostgreSQL, mỗi statement chạy trong một transaction. Nếu bạn không mở transaction thủ công, PostgreSQL sẽ chạy statement trong một transaction ngầm định.
+        </div>
+
+        <h2 id="acid">ACID và transaction boundary</h2>
+        <p>ACID mô tả bốn thuộc tính cơ bản của transaction: Atomicity, Consistency, Isolation và Durability. Khi một transaction thành công, toàn bộ thay đổi được commit; khi thất bại, thay đổi có thể được rollback về trạng thái hợp lệ trước đó.</p>
+
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span>SQL</span>
+            <button class="copy-btn" data-copy="tx-code">Copy</button>
+          </div>
+          <pre id="tx-code"><code><span class="sql-keyword">BEGIN</span>;
+
+<span class="sql-keyword">UPDATE</span> accounts
+<span class="sql-keyword">SET</span> balance = balance - <span class="sql-number">100</span>
+<span class="sql-keyword">WHERE</span> id = <span class="sql-number">1</span>;
+
+<span class="sql-keyword">UPDATE</span> accounts
+<span class="sql-keyword">SET</span> balance = balance + <span class="sql-number">100</span>
+<span class="sql-keyword">WHERE</span> id = <span class="sql-number">2</span>;
+
+<span class="sql-keyword">COMMIT</span>;</code></pre>
+        </div>
+
+        <div class="admonition warning">
+          <strong>WARNING</strong>
+          Không giữ transaction mở lâu hơn cần thiết. Long-running transaction có thể giữ snapshot cũ, ảnh hưởng VACUUM và làm tăng bloat.
+        </div>
+
+        <h2 id="mvcc">MVCC hoạt động như thế nào?</h2>
+        <p>Thay vì update row theo cách khiến reader phải đợi writer, PostgreSQL tạo row version mới. Transaction nhìn thấy version nào phụ thuộc vào snapshot và isolation level của nó.</p>
+
+        <figure class="figure">
+          <div class="figure-diagram">
+            <div>
+              <strong>MVCC Timeline Placeholder</strong><br />
+              Transaction A → old row version<br />
+              Transaction B → new row version
+            </div>
+          </div>
+          <figcaption>Hình 7.1 — Minh họa đơn giản cách hai transaction quan sát các row version khác nhau.</figcaption>
+        </figure>
+
+        <h3>Ví dụ đọc dữ liệu</h3>
+        <div class="code-block">
+          <div class="code-toolbar">
+            <span>SQL</span>
+            <button class="copy-btn" data-copy="select-code">Copy</button>
+          </div>
+          <pre id="select-code"><code><span class="sql-keyword">SELECT</span>
+  customer_id,
+  <span class="sql-keyword">COUNT</span>(*) <span class="sql-keyword">AS</span> total_orders,
+  <span class="sql-keyword">SUM</span>(total_amount) <span class="sql-keyword">AS</span> revenue
+<span class="sql-keyword">FROM</span> orders
+<span class="sql-keyword">GROUP BY</span> customer_id
+<span class="sql-keyword">ORDER BY</span> revenue <span class="sql-keyword">DESC</span>;</code></pre>
+        </div>
+
+        <div class="table-wrap" role="region" aria-label="Kết quả query" tabindex="0">
+          <table>
+            <thead>
+              <tr><th>customer_id</th><th>total_orders</th><th>revenue</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>1042</td><td>32</td><td>125,400.00</td></tr>
+              <tr><td>1008</td><td>27</td><td>98,725.50</td></tr>
+              <tr><td>1031</td><td>18</td><td>76,120.00</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="admonition tip">
+          <strong>TIP</strong>
+          Với sách technical, code block và result table nên có độ tương phản cao hơn prose, nhưng không nên dùng quá nhiều màu syntax highlight cùng lúc.
+        </div>
+
+        <h2 id="isolation">Isolation Levels</h2>
+        <p>PostgreSQL hỗ trợ các mức isolation như <code>READ COMMITTED</code>, <code>REPEATABLE READ</code> và <code>SERIALIZABLE</code>. Mỗi mức đưa ra trade-off khác nhau giữa consistency, concurrency và chi phí thực thi.</p>
+
+        <div class="table-wrap" role="region" aria-label="So sánh isolation level" tabindex="0">
+          <table>
+            <thead>
+              <tr><th>Isolation level</th><th>Snapshot</th><th>Phù hợp</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>READ COMMITTED</code></td><td>Mỗi statement</td><td>Ứng dụng CRUD thông thường</td></tr>
+              <tr><td><code>REPEATABLE READ</code></td><td>Cả transaction</td><td>Đọc nhất quán trong transaction</td></tr>
+              <tr><td><code>SERIALIZABLE</code></td><td>Serializable execution</td><td>Logic yêu cầu consistency mạnh</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <nav class="chapter-nav" aria-label="Điều hướng chương">
+          <a href="#">
+            <small>← Chương trước</small>
+            <strong>Query Planning</strong>
+          </a>
+          <a href="#" class="next">
+            <small>Chương tiếp theo →</small>
+            <strong>Locks &amp; Deadlocks</strong>
+          </a>
+        </nav>
+      </article>
+    </main>
+
+    <aside class="toc" aria-label="Mục lục trang">
+      <div class="toc-title">On this page</div>
+      <a class="active" href="#acid">ACID</a>
+      <a href="#mvcc">MVCC</a>
+      <a href="#isolation">Isolation Levels</a>
+    </aside>
+  </div>
+
+  <script>
+    const HIGHLIGHT_STORAGE_KEY = 'pg-book-highlight-sample-v3';
+    const readingArea = document.getElementById('readingArea');
+    const savedReadingArea = localStorage.getItem(HIGHLIGHT_STORAGE_KEY);
+    if (savedReadingArea) readingArea.innerHTML = savedReadingArea;
+
+    const root = document.documentElement;
+    const themeBtn = document.getElementById('themeBtn');
+    const highlightBtn = document.getElementById('highlightBtn');
+    const sidebar = document.getElementById('sidebar');
+    const menuBtn = document.getElementById('menuBtn');
+    const progress = document.getElementById('progress');
+    const readerFab = document.getElementById('readerFab');
+    const readerTooltip = document.getElementById('readerTooltip');
+    const tocLinks = [...document.querySelectorAll('.toc a[href^="#"]')];
+    const sidebarSectionLinks = [...document.querySelectorAll('.nav-list .sub a[href^="#"]')];
+    const sections = tocLinks
+      .map((link) => document.querySelector(link.getAttribute('href')))
+      .filter(Boolean);
+
+    let highlightMode = false;
+
+    const saveHighlights = () => {
+      localStorage.setItem(HIGHLIGHT_STORAGE_KEY, readingArea.innerHTML);
+    };
+
+    const toggleHighlightMode = () => {
+      highlightMode = !highlightMode;
+      document.body.classList.toggle('highlight-mode', highlightMode);
+      highlightBtn.classList.toggle('active', highlightMode);
+      highlightBtn.setAttribute('aria-pressed', String(highlightMode));
+      highlightBtn.setAttribute('aria-label', highlightMode ? 'Tắt chế độ highlight' : 'Bật chế độ highlight');
+      highlightBtn.title = highlightMode ? 'Tắt Highlight mode' : 'Bật Highlight mode';
+      if (!highlightMode) window.getSelection()?.removeAllRanges();
+    };
+
+    const getTextNodesInRange = (range) => {
+      const common = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+        ? range.commonAncestorContainer.parentNode
+        : range.commonAncestorContainer;
+      const walker = document.createTreeWalker(common, NodeFilter.SHOW_TEXT, {
+        acceptNode(node) {
+          if (!node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+          try {
+            return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+          } catch (_) {
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+      });
+      const nodes = [];
+      while (walker.nextNode()) nodes.push(walker.currentNode);
+      if (common.nodeType === Node.TEXT_NODE && common.nodeValue.trim()) nodes.unshift(common);
+      return [...new Set(nodes)];
+    };
+
+    const applyHighlight = (range) => {
+      const nodes = getTextNodesInRange(range);
+      if (!nodes.length) return false;
+      let applied = false;
+
+      nodes.forEach((node) => {
+        if (node.parentElement?.closest('mark.user-highlight')) return;
+        if (node.parentElement?.closest('button, input, textarea, select, script, style')) return;
+
+        const start = node === range.startContainer ? range.startOffset : 0;
+        const end = node === range.endContainer ? range.endOffset : node.nodeValue.length;
+        if (end <= start) return;
+
+        const selected = node.splitText(start);
+        const tail = selected.splitText(end - start);
+        const mark = document.createElement('mark');
+        mark.className = 'user-highlight';
+        mark.title = 'Click để xóa highlight';
+        selected.parentNode.insertBefore(mark, selected);
+        mark.appendChild(selected);
+        applied = true;
+      });
+
+      return applied;
+    };
+
+    highlightBtn.addEventListener('click', toggleHighlightMode);
+
+    readingArea.addEventListener('mouseup', () => {
+      if (!highlightMode) return;
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || selection.rangeCount === 0) return;
+      const range = selection.getRangeAt(0);
+      const ancestor = range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+        ? range.commonAncestorContainer.parentElement
+        : range.commonAncestorContainer;
+      if (!readingArea.contains(ancestor)) return;
+      if (applyHighlight(range)) saveHighlights();
+      selection.removeAllRanges();
+    });
+
+    readingArea.addEventListener('click', (event) => {
+      if (!highlightMode) return;
+      const mark = event.target.closest?.('mark.user-highlight');
+      if (!mark) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const parent = mark.parentNode;
+      while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
+      mark.remove();
+      parent.normalize();
+      saveHighlights();
+    });
+
+    themeBtn.addEventListener('click', () => {
+      const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
+      root.dataset.theme = next;
+      themeBtn.textContent = next === 'dark' ? '☀' : '☾';
+      localStorage.setItem('pg-theme', next);
+    });
+
+    const savedTheme = localStorage.getItem('pg-theme');
+    if (savedTheme) {
+      root.dataset.theme = savedTheme;
+      themeBtn.textContent = savedTheme === 'dark' ? '☀' : '☾';
+    }
+
+    menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+    document.querySelectorAll('.copy-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const target = document.getElementById(btn.dataset.copy);
+        try {
+          await navigator.clipboard.writeText(target.innerText);
+          const previous = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(() => (btn.textContent = previous), 1200);
+        } catch (_) {
+          btn.textContent = 'Copy failed';
+        }
+      });
+    });
+
+    const updateProgress = () => {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      const value = max > 0 ? (window.scrollY / max) * 100 : 0;
+      const percent = Math.round(Math.min(100, Math.max(0, value)));
+      progress.style.width = `${percent}%`;
+      readerFab.style.setProperty('--reader-progress', `${percent * 3.6}deg`);
+      readerTooltip.textContent = `Đã đọc ${percent}% · Về đầu trang`;
+      readerFab.setAttribute('aria-label', `Tiến độ đọc ${percent} phần trăm, về đầu trang`);
+    };
+
+    const setActiveSection = (id) => {
+      tocLinks.forEach((link) => {
+        link.classList.toggle('active', link.getAttribute('href') === `#${id}`);
+      });
+      sidebarSectionLinks.forEach((link) => {
+        link.classList.toggle('active-section', link.getAttribute('href') === `#${id}`);
+      });
+    };
+
+    const sectionObserver = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (visible.length) setActiveSection(visible[0].target.id);
+    }, {
+      rootMargin: '-96px 0px -62% 0px',
+      threshold: [0, 0.1, 0.5]
+    });
+
+    sections.forEach((section) => sectionObserver.observe(section));
+
+    readerFab.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    window.addEventListener('resize', updateProgress);
+    updateProgress();
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+= Tài liệu tham khảo
+
+* Tài liệu chính thức về PostgreSQL rules trên `INSERT`, `UPDATE` và `DELETE`: https://www.PostgreSQL.org/docs/current/rules-update.html
+* Tài liệu chính thức về PostgreSQL trigger function: https://www.PostgreSQL.org/docs/current/plpgsql-trigger.html
+* Tài liệu chính thức về PostgreSQL `ALTER TRIGGER`: https://www.PostgreSQL.org/docs/current/sql-altertrigger.html
+* Tài liệu chính thức về PostgreSQL `DROP TRIGGER`: https://www.PostgreSQL.org/docs/current/sql-droptrigger.html
+* Tài liệu chính thức về PostgreSQL `EVENT TRIGGER`: https://www.postgresql.org/docs/current/functions-event-triggers.html
+
+== Tìm hiểu thêm trên Discord
+
+Để tham gia cộng đồng Discord của cuốn sách này, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy follow QR code bên dưới:
+
+https://discord.gg/jYWCjF6Tku
