@@ -73,6 +73,11 @@
 .article .title,
 .article .imageblock .title { color: var(--color-muted); font-size: .9rem; }
 .article .imageblock .title { margin-top: .75rem; }
-.article blockquote,
-.article .quoteblock { margin: 1.6rem 0; padding: .2rem 1.2rem; border-left: 4px solid var(--color-accent); color: var(--color-muted); }
+.article .quoteblock {
+  margin: 1.6rem 0;
+  padding: .2rem 1.2rem;
+  border-left: 4px solid var(--color-accent);
+  color: var(--color-muted);
+}
+.article .quoteblock > blockquote { margin: 0; padding: 0; border: 0; color: inherit; }
 .article sup.footnote { font-size: .75em; }

@@ -7,15 +7,21 @@
       var code = block.querySelector('pre code');
       if (!pre || !code || block.querySelector('.code-toolbar')) return;
 
-      var toolbar = document.createElement('div');
-      var hasTitle = !!block.querySelector('.title');
-      toolbar.className = 'code-toolbar' + (hasTitle ? ' has-block-title' : '');
-      toolbar.setAttribute('data-reader-ignore', '');
+      var title = block.querySelector('.title');
+      var hasTitle = !!title;
+      var toolbar = title || document.createElement('div');
+      if (hasTitle) {
+        toolbar.className = (toolbar.className + ' code-toolbar has-block-title').trim();
+      } else {
+        toolbar.className = 'code-toolbar';
+        toolbar.setAttribute('data-reader-ignore', '');
+      }
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'copy-code-button';
       button.textContent = 'Copy';
       button.setAttribute('aria-label', 'Copy code');
+      button.setAttribute('data-reader-ignore', '');
       if (!hasTitle) {
         var language = document.createElement('span');
         var languageMatch = (code.className || '').match(/language-([\w-]+)/);
@@ -32,7 +38,7 @@
         toolbar.appendChild(language);
       }
       toolbar.appendChild(button);
-      pre.parentNode.insertBefore(toolbar, pre);
+      if (!hasTitle) pre.parentNode.insertBefore(toolbar, pre);
 
       button.addEventListener('click', function () {
         var value = code.textContent;

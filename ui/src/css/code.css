@@ -32,6 +32,19 @@
 }
 .listingblock.code-output pre { line-height: 1.55; }
 .listingblock.code-console pre { line-height: 1.65; }
+.listingblock > .title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: .45rem .75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  color: #aeb8bf;
+  font-size: .75rem;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.listingblock.code-output > .title { border-bottom-color: var(--color-output-border); }
 .listingblock > .content,
 .literalblock > .content { position: relative; }
 .listingblock pre,
@@ -56,7 +69,7 @@
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.code-toolbar.has-block-title { justify-content: flex-end; }
+.code-toolbar.has-block-title { justify-content: space-between; }
 .copy-code-button {
   padding: .2rem .4rem;
   border: 0;

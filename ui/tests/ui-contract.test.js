@@ -100,20 +100,21 @@ test('SQL highlighting styles functions and operators', () => {
 
 test('copy toolbar omits its language label when the block already has a title', () => {
   const source = read('ui/src/js/copy-code.js');
-  const children = [];
-  const toolbar = {
-    className: '',
+  const titleChildren = [];
+  const title = {
+    className: 'title',
     setAttribute() {},
-    appendChild(child) { children.push(child); },
+    appendChild(child) { titleChildren.push(child); },
   };
-  const pre = { parentNode: { insertBefore(node) { this.node = node; } } };
+  let insertedToolbar;
+  const pre = { parentNode: { insertBefore(node) { insertedToolbar = node; } } };
   const code = { className: 'language-output', textContent: 'INSERT 0 1' };
   const block = {
     querySelector(selector) {
       if (selector === 'pre') return pre;
       if (selector === 'pre code') return code;
       if (selector === '.code-toolbar') return null;
-      if (selector === '.title') return {};
+      if (selector === '.title') return title;
       return null;
     },
   };
@@ -125,7 +126,7 @@ test('copy toolbar omits its language label when the block already has a title',
         return {
           className: '',
           setAttribute() {},
-          appendChild(child) { children.push(child); },
+          appendChild() {},
           addEventListener() {},
           textContent: '',
         };
@@ -135,8 +136,24 @@ test('copy toolbar omits its language label when the block already has a title',
 
   vm.runInNewContext(source, context);
 
-  assert.equal(children.length, 1);
-  assert.equal(children[0].className, 'copy-code-button');
+  assert.match(title.className, /code-toolbar/);
+  assert.equal(titleChildren.length, 1);
+  assert.equal(titleChildren[0].className, 'copy-code-button');
+  assert.equal(insertedToolbar, undefined);
+});
+
+test('titled code headers keep the title left and copy button right', () => {
+  const code = read('ui/src/css/code.css');
+
+  assert.match(code, /\.code-toolbar\.has-block-title\s*\{\s*justify-content:\s*space-between;/);
+  assert.doesNotMatch(code, /\.code-toolbar\.has-block-title\s*\{\s*justify-content:\s*flex-end;/);
+});
+
+test('quote styling does not apply a second frame to its inner blockquote', () => {
+  const article = read('ui/src/css/article.css');
+
+  assert.match(article, /\.article \.quoteblock \{/);
+  assert.doesNotMatch(article, /\.article blockquote,\s*\.article \.quoteblock/);
 });
 
 test('unknown source languages receive generic syntax highlighting', () => {
