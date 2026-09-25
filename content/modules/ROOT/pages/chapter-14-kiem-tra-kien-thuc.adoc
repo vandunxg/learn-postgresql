@@ -1,21 +1,21 @@
 = Kiểm tra kiến thức
 
-* *Logging khác auditing như thế nào?*
+* *Logging và auditing khác nhau như thế nào?*
 
-  Logging là cách theo dõi một số activity xảy ra bên trong cluster mà không đặc biệt quan tâm đến “target” của activity đó. Ngược lại, auditing là cách log và theo dõi những activity cụ thể xảy ra trên các target cụ thể. Ví dụ, logging có thể theo dõi “mọi query chậm” mà không quan tâm query được chạy trên table nào, còn auditing có thể theo dõi “mọi thay đổi trên table xyz”. Xem phần *Implementing auditing* để biết thêm chi tiết.
+  Logging là cách theo dõi một số activity xảy ra bên trong cluster mà không đặc biệt quan tâm đến “target” của activity đó. Ngược lại, auditing là cách ghi log và theo dõi các activity cụ thể diễn ra trên những target cụ thể. Ví dụ, logging có thể theo dõi “mọi query chậm” mà không quan tâm query chạy trên table nào, còn auditing có thể theo dõi “mọi thay đổi trên table xyz”. Xem phần *Triển khai auditing* để biết thêm chi tiết.
 
 * *pgBadger là gì?*
 
-  pgBadger là một external command có thể inspect PostgreSQL text log và build một dashboard với activity của cluster. Xem phần *Extracting information from logs – pgBadger* để biết thêm chi tiết.
+  pgBadger là một command bên ngoài có thể kiểm tra PostgreSQL text log và tạo một dashboard về activity của cluster. Xem phần *Trích xuất thông tin từ log – pgBadger* để biết thêm chi tiết.
 
-* *Database administrator quyết định nơi gửi PostgreSQL log bằng cách nào?*
+* *Database administrator xác định nơi PostgreSQL gửi log bằng cách nào?*
 
-  PostgreSQL cung cấp một tập logging configuration parameter, chẳng hạn `log_directory` và `log_filename`, để xác định nơi PostgreSQL sẽ lưu log. Xem phần *Where to log* để biết thêm chi tiết.
+  PostgreSQL cung cấp một bộ parameter cấu hình logging, chẳng hạn như `log_directory` và `log_filename`, để xác định nơi PostgreSQL sẽ lưu log. Xem phần *Ghi log ở đâu* để biết thêm chi tiết.
 
 * *Logging collector là gì?*
 
-  Logging collector là một PostgreSQL process đặc biệt, thu thập log mà daemon ghi vào standard error rồi redirect thông tin đó đến location thích hợp (ví dụ: một file trên disk). Xem phần *Where to log* để biết thêm chi tiết.
+  Logging collector là một process đặc biệt của PostgreSQL, thu thập các log do daemon ghi vào standard error rồi chuyển chúng đến vị trí thích hợp (ví dụ: một file trên disk). Xem phần *Ghi log ở đâu* để biết thêm chi tiết.
 
-* *pgAudit extension là gì?*
+* *Extension PgAudit là gì?*
 
-  PgAudit là một extension cho phép audit các query cụ thể ở session mode hoặc user mode. Xem phần *Configuring PostgreSQL to exploit PgAudit* để biết thêm chi tiết.
+  PgAudit là một extension cho phép audit các query cụ thể theo session mode hoặc user mode. Xem phần *Cấu hình PostgreSQL để sử dụng PgAudit* để biết thêm chi tiết.

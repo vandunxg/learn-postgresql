@@ -1,18 +1,19 @@
 = Sử dụng UPSERT
 
-Trong section này, chúng ta sẽ xem cách PostgreSQL thực hiện một UPSERT statement. Không có UPSERT statement trong SQL, nhưng có thể đạt được cùng effect bằng cách dùng một `INSERT` SQL statement.
+Trong phần này, chúng ta sẽ tìm hiểu cách thực hiện UPSERT trong PostgreSQL. SQL không có statement riêng cho UPSERT, nhưng có thể đạt được kết quả tương tự bằng một SQL statement `INSERT`.
 
-== UPSERT – cách của PostgreSQL
+== UPSERT – cách thực hiện trong PostgreSQL
 
-Trong PostgreSQL, UPSERT statement không tồn tại như trong các DBMS khác. UPSERT statement được dùng khi chúng ta muốn insert một record mới lên trên record hiện có hoặc update một record hiện có. Để làm điều này trong PostgreSQL, chúng ta có thể dùng keyword `ON CONFLICT`:
+Trong PostgreSQL, không có statement riêng cho UPSERT như ở các DBMS khác. UPSERT được dùng khi muốn insert một row mới nếu row đó chưa tồn tại hoặc update một row hiện có. Để làm điều này trong PostgreSQL, chúng ta có thể sử dụng từ khóa `ON CONFLICT`:
 
-[source,text]
+[source,sql]
 ....
-INSERT INTO table_name(column_list) VALUES(value_list)
+INSERT INTO table_name (column_list)
+VALUES (value_list)
 ON CONFLICT target action;
 ....
 
-Ở đây, `ON CONFLICT` có nghĩa là target action được thực thi khi record đã tồn tại (nghĩa là khi một record có cùng primary key đã tồn tại). Target action có thể là:
+Ở đây, `ON CONFLICT` cho biết hành động nào sẽ được thực thi khi xảy ra conflict (tức là khi đã tồn tại một row có cùng primary key). Hành động đó có thể là:
 
 [source,text]
 ....
@@ -21,21 +22,16 @@ DO NOTHING
 
 Hoặc có thể là:
 
-[source,text]
+[source,sql]
 ....
-DO UPDATE SET { column_name = { expression | DEFAULT } |
-         ( column_name [, ...] ) = [ ROW ] ( { expression | DEFAULT } [, ...]
- ) |
-         ( column_name [, ...] ) = ( sub-SELECT )
-         } [, ...]
-[ WHERE condition ]
+DO UPDATE SET { column_name = { expression | DEFAULT } | (column_name [, ...]) = [ ROW ] ({ expression | DEFAULT } [, ...]) | (column_name [, ...]) = (sub-SELECT) } [, ...] [ WHERE condition ]
 ....
 
-Bây giờ, hãy xem một ví dụ để hiểu rõ hơn UPSERT hoạt động thế nào:
+Bây giờ, hãy xem một ví dụ để hiểu rõ hơn cách UPSERT hoạt động:
 
-. Ví dụ, bắt đầu với table `j_posts_tags`:
+. Ví dụ, trước tiên hãy xem table `j_posts_tags`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \d j_posts_tags
                    Table "forum.j_posts_tags"
@@ -47,6 +43,27 @@ Bây giờ, hãy xem một ví dụ để hiểu rõ hơn UPSERT hoạt động 
        "j_posts_tags_post_pk_fkey" FOREIGN KEY (post_pk) REFERENCES
    posts(pk)
 ....
+
+.SQL
+[source,sql]
+....
+\d j_posts_tags
+....
+
+.Output
+[source,output]
+....
+                   Table "forum.j_posts_tags"
+    Column    |   Type   | Collation | Nullable | Default
+   ---------+---------+-----------+----------+---------
+    tag_pk    | integer |             | not null |
+    post_pk | integer |               | not null |
+   Foreign-key constraints:
+       "j_posts_tags_post_pk_fkey" FOREIGN KEY (post_pk) REFERENCES
+   posts(pk)
+....
+
+
 [source,text]
 ....
 "j_posts_tags_tag_pk_fkey" FOREIGN KEY (tag_pk) REFERENCES
@@ -55,14 +72,28 @@ tags(pk)
 
 . Trước tiên, hãy thêm một primary key vào table `j_posts_add`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> alter table j_posts_tags add constraint j_posts_tags_pkey
 primary key (tag_pk,post_pk);
 ALTER TABLE
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+ALTER TABLE j_posts_tags ADD CONSTRAINT j_posts_tags_pkey
+PRIMARY KEY (tag_pk, post_pk);
+....
+
+.Output
+[source,output]
+....
+ALTER TABLE
+....
+
+
+[source,console,role="transcript"]
 ....
 ALTER TABLE
 
@@ -81,9 +112,34 @@ posts(pk)
 tags(pk)
 ....
 
-. Tiếp theo, hãy insert một số record vào table `j_posts_tags`:
+.SQL
+[source,sql]
+....
+ALTER TABLE
+\d j_posts_tags
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                Table "forum.j_posts_tags"
+ Column    |   Type    | Collation | Nullable | Default
+ ---------+---------+-----------+----------+---------
+ tag_pk    | integer |                | not null |
+ post_pk | integer |                  | not null |
+Indexes:
+    "j_posts_tags_pkey" PRIMARY KEY, btree (tag_pk, post_pk)
+Foreign-key constraints:
+    "j_posts_tags_post_pk_fkey" FOREIGN KEY (post_pk) REFERENCES
+posts(pk)
+    "j_posts_tags_tag_pk_fkey" FOREIGN KEY (tag_pk) REFERENCES
+tags(pk)
+....
+
+
+. Tiếp theo, hãy chèn một số row vào table `j_posts_tags`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into j_posts_tags (post_pk ,tag_pk) values
 (3,2),(1,1),(2,1);
@@ -98,9 +154,35 @@ forumdb=> select * from j_posts_tags ;
 (3 rows)
 ....
 
-. Bây giờ hãy thử insert một record khác với cùng primary key. Nếu thực hiện một `insert statement` tiêu chuẩn như sau, chúng ta có thể thấy PostgreSQL trả về error vì đang cố insert một record đã tồn tại:
+.SQL
+[source,sql]
+....
+INSERT INTO j_posts_tags (post_pk, tag_pk)
+VALUES
+    (3, 2),
+    (1, 1),
+    (2, 1);
+SELECT *
+FROM j_posts_tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 3
+
+ tag_pk | post_pk
+--------+---------
+       2 |         3
+       1 |         1
+       1 |         2
+(3 rows)
+....
+
+
+. Bây giờ, hãy thử insert một row khác có cùng primary key. Nếu thực thi một `insert statement` tiêu chuẩn dưới đây, PostgreSQL sẽ trả về lỗi vì row cần insert đã tồn tại:
+
+[source,console,role="transcript"]
 ....
 forumdb=>insert into j_posts_tags (post_pk ,tag_pk) values (2,1);
 ERROR: duplicate key value violates unique constraint "j_posts_
@@ -108,9 +190,25 @@ tags_pkey"
 DETAIL:    Key (tag_pk, post_pk)=(1, 2) already exists.
 ....
 
-. Bây giờ hãy thử sử dụng option `ON CONFLICT DO NOTHING`:
+.SQL
+[source,sql]
+....
+INSERT INTO j_posts_tags (post_pk, tag_pk)
+VALUES (2, 1);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ERROR: duplicate key value violates unique constraint "j_posts_
+tags_pkey"
+DETAIL:    Key (tag_pk, post_pk)=(1, 2) already exists.
+....
+
+
+. Bây giờ, hãy thử tùy chọn `ON CONFLICT DO NOTHING`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into j_posts_tags (post_pk ,tag_pk) values (2,1) ON
 CONFLICT DO NOTHING;
@@ -125,12 +223,36 @@ forumdb=> select * from j_posts_tags ;
 (3 rows)
 ....
 
-Trong trường hợp này, PostgreSQL không trả về error; thay vào đó, nó đơn giản là không làm gì.
+.SQL
+[source,sql]
+....
+INSERT INTO j_posts_tags (post_pk, tag_pk)
+VALUES (2, 1)
+ON CONFLICT DO NOTHING;
+SELECT *
+FROM j_posts_tags;
+....
+
+.Output
+[source,output]
+....
+INSERT 0 0
+
+ tag_pk | post_pk
+--------+---------
+       2 |         3
+       1 |         1
+       1 |         2
+(3 rows)
+....
+
+
+Trong trường hợp này, PostgreSQL không trả về lỗi; thay vào đó, nó không thực hiện hành động nào.
 
 [%start=6]
-. Bây giờ hãy thử option `DO UPDATE set`. Option này hiện thực statement UPSERT, như trong ví dụ sau:
+. Bây giờ, hãy thử tùy chọn `DO UPDATE set`. Với tùy chọn này, có thể thực hiện UPSERT, như trong ví dụ sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> insert into j_posts_tags (post_pk ,tag_pk) values (2,1) ON
 CONFLICT (tag_pk,post_pk) DO UPDATE set tag_pk=excluded.tag_pk+1;
@@ -145,14 +267,38 @@ forumdb=>    select * from j_posts_tags ;
 (3 rows)
 ....
 
-Các field bên trong condition `ON CONFLICT` phải có một unique constraint hoặc exclusion constraint. Statement trước đó đơn giản thay thế statement sau:
+.SQL
+[source,sql]
+....
+INSERT INTO j_posts_tags (post_pk, tag_pk)
+VALUES (2, 1)
+ON CONFLICT (tag_pk, post_pk) DO UPDATE SET tag_pk = excluded.tag_pk+1;
+SELECT *
+FROM j_posts_tags;
+....
+
+.Output
+[source,output]
+....
+INSERT 0 1
+
+ tag_pk | post_pk
+--------+---------
+       2 |         3
+       1 |         1
+       2 |         2
+(3 rows)
+....
+
+
+Các column trong điều kiện `ON CONFLICT` phải nằm trong một unique constraint hoặc exclusion constraint. Statement ở trên về cơ bản thay cho statement sau:
 
 [source,text]
 ....
 INSERT INTO   j_posts_tags (post_pk ,tag_pk) values (2,1)
 ....
 
-Nó được thay thế bằng statement này:
+Statement đó được thay thế bằng statement này:
 
 [source,text]
 ....

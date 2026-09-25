@@ -1,8 +1,8 @@
 = Kiểm tra kiến thức
 
-* `NEW` record là gì?
+* Record `NEW` là gì?
 
-  `NEW` record là record sẽ được xử lý trước một statement `INSERT` hoặc một statement `UPDATE`, ví dụ:
+  Record `NEW` là record sẽ được xử lý trước khi thực thi statement `INSERT` hoặc `UPDATE`, ví dụ:
 
 [source,text]
 ....
@@ -15,20 +15,20 @@
   NEW.city_name = 'New York'
 ....
 
-  Xem section *Exploring rules in PostgreSQL* để biết thêm chi tiết.
+  Xem phần *Khám phá rule trong PostgreSQL* để biết thêm chi tiết.
 
-* Chúng ta có thể thực thi một `INSERT` trên hai table trong một transaction bằng rules không?
+* Có thể dùng rule để thực hiện một `INSERT` trên hai table trong cùng một transaction không?
 
-  Có; chúng ta có thể làm điều đó bằng clause `ALSO`. Xem section *Exploring rules in PostgreSQL* để biết thêm chi tiết.
+  Có; có thể thực hiện việc này bằng clause `ALSO`. Xem phần *Khám phá rule trong PostgreSQL* để biết thêm chi tiết.
 
-* Chúng ta có thể làm mọi thứ đã làm với rules bằng triggers không?
+* Có thể dùng trigger để làm mọi việc có thể làm bằng rule không?
 
-  Có; bằng triggers, chúng ta có thể làm mọi thứ đã làm với rules và nhiều hơn nữa. Xem section *Managing triggers in PostgreSQL* để biết thêm chi tiết.
+  Có; trigger cho phép thực hiện mọi việc rule có thể làm và còn nhiều hơn nữa. Xem phần *Quản lý trigger trong PostgreSQL* để biết thêm chi tiết.
 
-* Chúng ta có thể biết một trigger đã được fire từ event `INSERT`, event `UPDATE` hay event `DELETE` không?
+* Có thể xác định một trigger được kích hoạt bởi event `INSERT`, `UPDATE` hay `DELETE` không?
 
-  Có, bằng cách sử dụng variable `TG_OP`. Xem section *Managing triggers in PostgreSQL* để biết thêm chi tiết.
+  Có, bằng cách sử dụng biến `TG_OP`. Xem phần *Quản lý trigger trong PostgreSQL* để biết thêm chi tiết.
 
-* Chúng ta có thể viết một audit procedure thông báo cho chúng ta khi một DDL đã được execute không?
+* Có thể viết một audit procedure để thông báo khi một statement DDL đã được thực thi không?
 
-  Có, bằng cách sử dụng event trigger. Xem section *Event triggers* để biết thêm chi tiết.
+  Có, bằng cách sử dụng event trigger. Xem phần *Event trigger* để biết thêm chi tiết.

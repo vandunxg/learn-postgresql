@@ -1,10 +1,10 @@
-= Tìm hiểu về join
+= Tìm hiểu về JOIN
 
-Hãy xem xét join là gì, có bao nhiêu loại join và chúng được dùng để làm gì. Chúng ta có thể coi join là sự kết hợp các row từ hai hoặc nhiều table.
+Hãy cùng tìm hiểu JOIN là gì, có những loại JOIN nào và chúng được dùng để làm gì. JOIN là cách kết hợp các row từ hai hoặc nhiều table.
 
-Ví dụ, query sau trả về mọi tổ hợp từ các row của table category và các row của table `posts`:
+Ví dụ, query sau trả về mọi tổ hợp giữa các row trong table categories và các row trong table `posts`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select c.pk,c.title,p.pk,p.category,p.title from categories
 c,posts p;
@@ -27,15 +27,52 @@ c,posts p;
   5 | Database                 |  3 |          3 | Data types in C++
 (15 rows)
 ....
-Query này tạo một Cartesian product giữa table category và table posts. Nó cũng có thể được gọi là một cross join:
 
-image::chapter-05-figure-5-1-000.png[Hình 5.1: Một cross join]
+.SQL
+[source,sql]
+....
+SELECT
+    c.pk,
+    c.title,
+    p.pk,
+    p.category,
+    p.title
+FROM categories c, posts p;
+....
 
-*Hình 5.1: Một cross join*
+.Output
+[source,output]
+....
+ pk |           title            | pk | category |             title
+ ----+-----------------------+----+----------+------------
+  1 | Database                   |  1 |          1 | Indexing PostgreSQL
+  2 | Unix                       |  1 |          1 | Indexing PostgreSQL
+  3 | Programming Languages     |  1 |          1 | Indexing PostgreSQL
+  4 | New Category              |  1 |          1 | Indexing PostgreSQL
+  5 | Database                  |  1 |          1 | Indexing PostgreSQL
+  1 | Database                  |  2 |          1 | Indexing Mysql
+  2 | Unix                      |  2 |          1 | Indexing Mysql
+  3 | Programming Languages    |  2 |          1 | Indexing Mysql
+  4 | New Category             |  2 |          1 | Indexing Mysql
+  5 | Database                 |  2 |          1 | Indexing Mysql
+  1 | Database                  |  3 |          3 | Data types in C++
+  2 | Unix                      |  3 |          3 | Data types in C++
+  3 | Programming Languages    |  3 |          3 | Data types in C++
+  4 | New Category             |  3 |          3 | Data types in C++
+  5 | Database                 |  3 |          3 | Data types in C++
+(15 rows)
+....
 
-Query tương tự cũng có thể được viết theo cách sau:
 
-[source,text]
+Query này tạo ra một Cartesian product giữa table categories và table posts. Đây cũng chính là một CROSS JOIN:
+
+image::chapter-05-figure-5-1-000.png[Hình 5.1: Một CROSS JOIN]
+
+*Hình 5.1: Một CROSS JOIN*
+
+Có thể viết query tương đương như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select c.pk,c.title,p.pk,p.category,p.title from categories c
 CROSS JOIN posts p;
@@ -59,22 +96,58 @@ CROSS JOIN posts p;
 (15 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT
+    c.pk,
+    c.title,
+    p.pk,
+    p.category,
+    p.title
+FROM categories c CROSS JOIN posts p;
+....
+
+.Output
+[source,output]
+....
+ pk |         title          | pk | category |                 title
+----+-----------------------+----+----------+------------
+  1 | Database               |     1 |              1 | Indexing PostgreSQL
+  2 | Unix                   |     1 |              1 | Indexing PostgreSQL
+  3 | Programming Languages |      1 |              1 | Indexing PostgreSQL
+  4 | New Category           |     1 |              1 | Indexing PostgreSQL
+  5 | Database               |     1 |              1 | Indexing PostgreSQL
+  1 | Database               |     2 |              1 | Indexing Mysql
+  2 | Unix                   |     2 |              1 | Indexing Mysql
+  3 | Programming Languages |      2 |              1 | Indexing Mysql
+  4 | New Category           |     2 |              1 | Indexing Mysql
+  5 | Database               |     2 |              1 | Indexing Mysql
+  1 | Database               |     3 |              3 | Data types in C++
+  2 | Unix                   |     3 |              3 | Data types in C++
+  3 | Programming Languages |      3 |              3 | Data types in C++
+  4 | New Category           |     3 |              3 | Data types in C++
+  5 | Database               |     3 |              3 | Data types in C++
+(15 rows)
+....
+
+
 == Sử dụng INNER JOIN
 
-Bây giờ giả sử rằng, bắt đầu với tất cả combination khả dĩ tồn tại giữa các row của table category và các row của table posts, chúng ta muốn filter tất cả row có cùng value với field category (`category.pk = posts.category`). Chúng ta muốn có một result giống như result được mô tả trong diagram sau:
+Giả sử chúng ta bắt đầu với mọi tổ hợp có thể có giữa các row trong table categories và các row trong table posts, rồi muốn lọc ra những row có cùng giá trị trong column category (`category.pk = posts.category`). Kết quả mong muốn được minh họa trong sơ đồ sau:
 
-image::chapter-05-figure-5-2-000.png[Hình 5.2: Một inner join]
+image::chapter-05-figure-5-2-000.png[Hình 5.2: Một INNER JOIN]
 
-*Hình 5.2: Một inner join*
+*Hình 5.2: Một INNER JOIN*
 
 [quote]
 ____
-Keyword INNER JOIN chọn các record có value khớp trong cả hai table.
+Từ khóa INNER JOIN chọn các row có giá trị khớp ở cả hai table.
 
 ____
-Để thực hiện điều này, chúng ta cần chạy code sau:
+Để thực hiện điều này, chúng ta chạy query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select c.pk,c.title,p.pk,p.category,p.title from categories
 c,posts p where c.pk=p.category;
@@ -86,9 +159,34 @@ c,posts p where c.pk=p.category;
     (3 rows)
 ....
 
-Chúng ta cũng có thể viết cùng query bằng operation JOIN tường minh:
+.SQL
+[source,sql]
+....
+SELECT
+    c.pk,
+    c.title,
+    p.pk,
+    p.category,
+    p.title
+FROM categories c, posts p
+WHERE c.pk = p.category;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |            title            | pk | category |              title
+----+-----------------------+----+----------+------------
+  1 | Database                   |   1 |             1 | Indexing PostgreSQL
+  1 | Database                   |   2 |             1 | Indexing Mysql
+  3 | Programming Languages |        3 |             3 | Data types in C++
+    (3 rows)
+....
+
+
+Cũng có thể viết query này bằng cú pháp JOIN tường minh:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select c.pk,c.title,p.pk,p.category,p.title from categories c
 inner join posts p on c.pk=p.category;
@@ -100,11 +198,35 @@ inner join posts p on c.pk=p.category;
 (3 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT
+    c.pk,
+    c.title,
+    p.pk,
+    p.category,
+    p.title
+FROM categories c inner JOIN posts p ON c.pk = p.category;
+....
+
+.Output
+[source,output]
+....
+ pk |            title            | pk | category |              title
+----+-----------------------+----+----------+------------
+  1 | Database                   |   1 |             1 | Indexing PostgreSQL
+  1 | Database                     |   2 |          1 | Indexing Mysql
+  3 | Programming Languages |          3 |          3 | Data types in C++
+(3 rows)
+....
+
+
 == INNER JOIN so với EXISTS/IN
 
-Nếu muốn search tất cả post thuộc category Database bằng condition INNER JOIN, chúng ta phải viết lại query như sau:
+Nếu muốn tìm tất cả post thuộc category Database bằng INNER JOIN, chúng ta phải viết lại query như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is on.
@@ -126,18 +248,45 @@ category | 1
 title      | Indexing Mysql
 ....
 
+.SQL
+[source,sql]
+....
+\x SELECT c.pk, c.title, p.pk, p.category, p.title FROM categories c inner JOIN posts p ON c.pk = p.category WHERE c.title = 'Database';
+....
+
+.Output
+[source,output]
+....
+Expanded display is on.
+
+
+-[ RECORD 1 ]-----------------
+pk         | 1
+title      | Database
+pk         | 1
+category | 1
+title      | Indexing PostgreSQL
+-[ RECORD 2 ]-----------------
+pk         | 1
+title      | Database
+pk         | 2
+category | 1
+title      | Indexing Mysql
+....
+
+
 [quote]
 ____
-Với condition INNER JOIN, chúng ta có thể viết lại tất cả query có thể được viết bằng condition IN hoặc EXISTS.
+Với INNER JOIN, có thể viết lại mọi query vốn có thể viết bằng điều kiện IN hoặc EXISTS.
 
 ____
-Nên sử dụng JOIN condition bất cứ khi nào có thể thay cho IN hoặc EXISTS condition, vì chúng có execution speed tốt hơn, như chúng ta sẽ thấy trong các chapter sau.
+Bất cứ khi nào có thể, nên ưu tiên dùng điều kiện JOIN thay cho điều kiện IN hoặc EXISTS, vì có tốc độ thực thi tốt hơn, như chúng ta sẽ thấy trong các chương sau.
 
 == Sử dụng LEFT JOIN
 
-Bây giờ chúng ta sẽ tìm hiểu left join là gì. Ví dụ, chúng ta có thể thực hiện query sau:
+Tiếp theo, hãy tìm hiểu LEFT JOIN là gì. Ví dụ, ta có thể chạy query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select c.*,p.category,p.title from categories c left join posts
 p on c.pk=p.category;
@@ -179,22 +328,74 @@ category      | (NULL)
 title         | (NULL)
 ....
 
-Query này trả về tất cả record của table categories và trả về các record khớp từ table posts. Như chúng ta có thể thấy, nếu table thứ hai (table posts trong ví dụ này) không có match, result sẽ là NULL.
+.SQL
+[source,sql]
+....
+SELECT
+    c.*,
+    p.category,
+    p.title
+FROM categories c left JOIN posts p ON c.pk = p.category;
+....
+
+.Output
+[source,output]
+....
+-[ RECORD 1 ]--------------------------------
+pk            | 1
+title         | Database
+description | Database related discussions
+category      | 1
+title         | Indexing PostgreSQL
+-[ RECORD 2 ]--------------------------------
+pk            | 1
+title         | Database
+description | Database related discussions
+category      | 1
+title         | Indexing Mysql
+-[ RECORD 3 ]--------------------------------
+pk            | 3
+title         | Programming Languages
+description | All about programming languages
+category      | 3
+title         | Data types in C++
+-[ RECORD 4 ]--------------------------------
+pk            | 2
+title         | Unix
+description | Unix and Linux discussions
+category      | (NULL)
+title         | (NULL)
+-[ RECORD 5 ]--------------------------------
+pk            | 5
+title         | Database
+description | PostgreSQL
+category      | (NULL)
+title         | (NULL)
+-[ RECORD 6 ]--------------------------------
+pk            | 4
+title         | New Category
+description | (NULL)
+category      | (NULL)
+title         | (NULL)
+....
+
+
+Query này trả về tất cả row của table categories cùng với các row khớp trong table posts. Như có thể thấy, nếu table thứ hai (trong ví dụ này là table posts) không có row khớp, các giá trị ở phía bên phải của kết quả sẽ là NULL.
 
 [quote]
 ____
-Keyword left join trả về tất cả record từ table bên trái (table1), và tất cả record từ table bên phải (table2). Result là NULL ở phía bên phải nếu không có match.
+Từ khóa LEFT JOIN trả về tất cả row từ table bên trái (table1) và các row từ table bên phải (table2) khớp với chúng. Nếu không có row khớp, các giá trị ở phía bên phải của kết quả là NULL.
 
 ____
-Diagram này cho chúng ta hình dung left join hoạt động như thế nào:
+Sơ đồ này minh họa cách LEFT JOIN hoạt động:
 
-image::chapter-05-figure-5-3-000.png[Hình 5.3: Một left join]
+image::chapter-05-figure-5-3-000.png[Hình 5.3: Một LEFT JOIN]
 
-*Hình 5.3: Một left join*
+*Hình 5.3: Một LEFT JOIN*
 
-Giả sử bây giờ chúng ta muốn search tất cả category không có post, chúng ta có thể viết như sau:
+Giả sử muốn tìm tất cả category không có post, ta có thể viết như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is off.
@@ -209,9 +410,29 @@ from posts);
 (3 rows)
 ....
 
-Query này, được viết bằng condition NOT IN, tìm tất cả record trong table categories mà value pk không khớp với field category của table posts. Như chúng ta đã thấy, một cách khác để viết cùng query là dùng condition NOT EXISTS:
+.SQL
+[source,sql]
+....
+\x SELECT * FROM categories c WHERE c.pk NOT IN (SELECT category FROM posts);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+Expanded display is off.
+
+ pk |      title       |           description
+----+--------------+----------------------------
+  2 | Unix             | Unix and Linux discussions
+  4 | New Category | (NULL)
+  5 | Database         | PostgreSQL
+(3 rows)
+....
+
+
+Query này dùng điều kiện NOT IN để tìm tất cả row trong table categories có giá trị ở column pk không khớp với column category của table posts. Như đã thấy, có thể viết query tương tự bằng điều kiện NOT EXISTS:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from categories c where not exists (select 1 from posts
 where category=c.pk);
@@ -223,9 +444,29 @@ where category=c.pk);
 (3 rows)
 ....
 
-Nếu bây giờ muốn dùng left join để đạt cùng mục đích, chúng ta sẽ bắt đầu bằng query left join sau:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories c
+WHERE NOT EXISTS (SELECT 1 FROM posts WHERE category = c.pk);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |      title       |           description
+----+--------------+----------------------------
+  2 | Unix             | Unix and Linux discussions
+  4 | New Category | (NULL)
+  5 | Database        | PostgreSQL
+(3 rows)
+....
+
+
+Nếu muốn đạt cùng kết quả bằng LEFT JOIN, trước hết ta viết query sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is on.
@@ -264,11 +505,55 @@ description | (NULL)
 category      | (NULL)
 ....
 
-Từ result, có thể thấy ngay rằng tất cả value chúng ta đang tìm là những value mà `p.category` là NULL.
+.SQL
+[source,sql]
+....
+\x SELECT c.*, p.category FROM categories c left JOIN posts p ON p.category = c.pk;
+....
 
-Vì vậy, chúng ta viết lại query theo cách sau:
+.Output
+[source,output]
+....
+Expanded display is on.
 
-[source,text]
+-[ RECORD 1 ]--------------------------------
+pk             | 1
+title          | Database
+description | Database related discussions
+category       | 1
+-[ RECORD 2 ]--------------------------------
+pk             | 1
+title          | Database
+description | Database related discussions
+category       | 1
+-[ RECORD 3 ]--------------------------------
+pk             | 3
+title          | Programming Languages
+description | All about programming languages
+category       | 3
+-[ RECORD 4 ]--------------------------------
+pk             | 2
+title         | Unix
+description | Unix and Linux discussions
+category      | (NULL)
+-[ RECORD 5 ]--------------------------------
+pk            | 5
+title         | Database
+description | PostgreSQL
+category      | (NULL)
+-[ RECORD 6 ]--------------------------------
+pk            | 4
+title         | New Category
+description | (NULL)
+category      | (NULL)
+....
+
+
+Kết quả cho thấy những row cần tìm đều có `p.category` là NULL.
+
+Vì vậy, ta viết lại query như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is off.
@@ -284,36 +569,62 @@ pk where p.category is null;
 (3 rows)
 ....
 
-Như thể hiện ở đây, chúng ta nhận được cùng result như khi dùng condition NOT EXISTS hoặc NOT IN.
+.SQL
+[source,sql]
+....
+\x SELECT c.* FROM categories c left JOIN posts p ON p.category = c. pk WHERE p.category IS NULL;
+....
+
+.Output
+[source,output]
+....
+Expanded display is off.
+
+
+ pk |      title       |         description
+----+--------------+----------------------------
+  2 | Unix             | Unix and Linux discussions
+  4 | New Category | (NULL)
+  5 | Database         | PostgreSQL
+(3 rows)
+....
+
+
+Như minh họa, kết quả nhận được giống với kết quả khi dùng điều kiện NOT EXISTS hoặc NOT IN.
 
 [quote]
 ____
-Với condition left join, chúng ta có thể viết lại một số query có thể được viết bằng condition IN hoặc EXISTS.
+LEFT JOIN cho phép viết lại một số query vốn có thể viết bằng điều kiện IN hoặc EXISTS.
 
 ____
-Như đã đề cập trước đó, nên sử dụng JOIN condition bất cứ khi nào có thể thay cho IN hoặc EXISTS condition, vì chúng có execution speed tốt hơn, như chúng ta sẽ thấy trong các chapter sau.
+Như đã đề cập trước đó, bất cứ khi nào có thể, nên ưu tiên dùng điều kiện JOIN thay cho điều kiện IN hoặc EXISTS, vì có tốc độ thực thi tốt hơn, như chúng ta sẽ thấy trong các chương sau.
 
 == Sử dụng RIGHT JOIN
 
-Right join là bản song sinh của left join, vì vậy chúng ta sẽ nhận được cùng result nếu viết table A left join table B hoặc table B right join table A. Ví dụ, chúng ta có thể nhận được cùng result nếu viết:
+RIGHT JOIN là phiên bản đối xứng của LEFT JOIN, vì vậy table A LEFT JOIN table B và table B RIGHT JOIN table A cho cùng một kết quả. Ví dụ, ta có thể viết:
 
-[source,text]
+[source,sql]
 ....
-select c.*,p.category from categories c left join posts p on p.category=c.
-pk;
+SELECT
+    c.*,
+    p.category
+FROM categories c left JOIN posts p ON p.category = c. pk;
 ....
 
 hoặc nếu viết:
 
-[source,text]
+[source,sql]
 ....
-select c.*,p.category,p.title from posts p right join categories c on
-c.pk=p.category;
+SELECT
+    c.*,
+    p.category,
+    p.title
+FROM posts p right JOIN categories c ON c.pk = p.category;
 ....
 
-như có thể thấy ở đây:
+Như có thể thấy dưới đây:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is on.
@@ -359,24 +670,75 @@ category      | (NULL)
 title         | (NULL)
 ....
 
+.SQL
+[source,sql]
+....
+\x SELECT c.*, p.category, p.title FROM posts p right JOIN categories c ON c.pk = p.category;
+....
+
+.Output
+[source,output]
+....
+Expanded display is on.
+
+
+-[ RECORD 1 ]--------------------------------
+pk             | 1
+title          | Database
+description | Database related discussions
+category       | 1
+title          | Indexing PostgreSQL
+-[ RECORD 2 ]--------------------------------
+pk             | 1
+title          | Database
+description | Database related discussions
+category       | 1
+title          | Indexing Mysql
+-[ RECORD 3 ]--------------------------------
+pk             | 3
+title          | Programming Languages
+description | All about programming languages
+category      | 3
+title         | Data types in C++
+-[ RECORD 4 ]--------------------------------
+pk            | 2
+title         | Unix
+description | Unix and Linux discussions
+category      | (NULL)
+title         | (NULL)
+-[ RECORD 5 ]--------------------------------
+pk            | 5
+title         | Database
+description | PostgreSQL
+category      | (NULL)
+title         | (NULL)
+-[ RECORD 6 ]--------------------------------
+pk            | 4
+title         | New Category
+description | (NULL)
+category      | (NULL)
+title         | (NULL)
+....
+
+
 [quote]
 ____
-Keyword RIGHT JOIN trả về tất cả record từ table bên phải (table2) và tất cả record từ table bên trái (table1) khớp với table bên phải (table2). Result là NULL từ phía bên trái khi không có match.
+Từ khóa RIGHT JOIN trả về tất cả row từ table bên phải (table2) và các row từ table bên trái (table1) khớp với table bên phải (table2). Nếu không có row khớp, các giá trị ở phía bên trái của kết quả là NULL.
 
 ____
-Diagram này minh họa cách RIGHT JOIN hoạt động:
+Sơ đồ này minh họa cách RIGHT JOIN hoạt động:
 
-image::chapter-05-figure-5-4-000.png[Hình 5.4: Một right join]
+image::chapter-05-figure-5-4-000.png[Hình 5.4: Một RIGHT JOIN]
 
-*Hình 5.4: Một right join*
+*Hình 5.4: Một RIGHT JOIN*
 
 == Sử dụng FULL OUTER JOIN
 
-Trong SQL, FULL OUTER JOIN là sự kết hợp của result mà chúng ta có được nếu ghép right join và left join lại với nhau. Chúng ta sẽ kiểm tra điều này qua các bước sau:
+Trong SQL, FULL OUTER JOIN kết hợp kết quả của LEFT JOIN và RIGHT JOIN. Hãy kiểm chứng điều này qua các bước sau:
 
-. Tạo một temporary table mới và insert một số data:
+. Tạo một temporary table mới rồi chèn một số dữ liệu:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> create temp table new_posts as select * from posts;
    SELECT 3
@@ -386,9 +748,25 @@ Trong SQL, FULL OUTER JOIN là sự kết hợp của result mà chúng ta có �
    INSERT 0 1
 ....
 
-. Tình huống hiện tại là như sau:
+.SQL
+[source,sql]
+....
+CREATE TEMP TABLE new_posts AS SELECT * FROM posts;
+INSERT INTO new_posts (pk, title, content, author, category)
+VALUES (6, 'A new Book', 'A new book not present in categories....', 1, NULL);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   SELECT 3
+   INSERT 0 1
+....
+
+
+. Tình trạng hiện tại như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> \x
    Expanded display is off.
@@ -401,9 +779,28 @@ Trong SQL, FULL OUTER JOIN là sự kết hợp của result mà chúng ta có �
      6 | A new Book               |       (NULL)
 ....
 
-. Bây giờ hãy thử viết query JOIN này:
+.SQL
+[source,sql]
+....
+\x SELECT pk, title, category FROM new_posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   Expanded display is off.
+    pk |          title           | category
+   ----+---------------------+----------
+     1 | Indexing PostgreSQL |                 1
+     2 | Indexing Mysql           |            1
+     3 | Data types in C++        |            3
+     6 | A new Book               |       (NULL)
+....
+
+
+. Tiếp theo, hãy thử viết query JOIN sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select c.pk,c.title,p.pk,p.title from categories c inner
    join new_posts p on p.category=c.pk;
@@ -415,11 +812,34 @@ Trong SQL, FULL OUTER JOIN là sự kết hợp của result mà chúng ta có �
    (3 rows)
 ....
 
-Query này trả về tất cả record có post (trong table new_post) và category.
-[%start=4]
-. Nếu muốn có các phép nối left và right giữa các table `new_posts` và `category`, chúng ta phải dùng full outer join và viết như sau:
+.SQL
+[source,sql]
+....
+SELECT
+    c.pk,
+    c.title,
+    p.pk,
+    p.title
+FROM categories c inner JOIN new_posts p ON p.category = c.pk;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+    pk |           title              | pk |          title
+   ----+-----------------------+----+---------------------
+     1 | Database                     |    1 | Indexing PostgreSQL
+     1 | Database                     |    2 | Indexing Mysql
+     3 | Programming Languages |           3 | Data types in C++
+   (3 rows)
+....
+
+
+Query này trả về tất cả row có post trong table new_post và category tương ứng.
+[%start=4]
+. Nếu muốn thực hiện cả LEFT JOIN và RIGHT JOIN giữa table `new_posts` và table `category`, chúng ta phải dùng FULL OUTER JOIN như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select c.pk,c.title,p.pk,p.title from categories c full
 outer join new_posts p on p.category=c.pk;
@@ -435,19 +855,46 @@ outer join new_posts p on p.category=c.pk;
 (7 rows)
 ....
 
-Biểu đồ này minh họa cách full outer join hoạt động:
+.SQL
+[source,sql]
+....
+SELECT
+    c.pk,
+    c.title,
+    p.pk,
+    p.title
+FROM categories c full outer JOIN new_posts p ON p.category = c.pk;
+....
 
-image::chapter-05-figure-5-5-000.jpg[Hình 5.5: Một full outer join]
+.Output
+[source,output]
+....
+   pk     |         title                |     pk        |     title
+--------+-----------------------+--------+---------------
+       1 | Database                     |          1 | Indexing PostgreSQL
+       1 | Database                     |          2 | Indexing Mysql
+       3 | Programming Languages |                 3 | Data types in C++
+(NULL) | (NULL)                         |          6 | A new Book
+       2 | Unix                       | (NULL) | (NULL)
+       5 | Database                   | (NULL) | (NULL)
+       4 | New Category                 | (NULL) | (NULL)
+(7 rows)
+....
 
-*Hình 5.5: Một full outer join*
 
-Một câu hỏi cần xem xét là: *full join khác cross join, mà chúng ta đã thấy ở phần đầu của section về join, như thế nào?*
+Sơ đồ này minh họa cách FULL OUTER JOIN hoạt động:
 
-Full outer join khác cross join vì cross join tạo ra Cartesian product từ tất cả record hiện diện trong các table.
+image::chapter-05-figure-5-5-000.jpg[Hình 5.5: Một FULL OUTER JOIN]
 
-Ví dụ, với một cross join sử dụng cùng data như full join trước đó, chúng ta sẽ nhận được result sau:
+*Hình 5.5: Một FULL OUTER JOIN*
 
-[source,text]
+Một câu hỏi cần xem xét là: *FULL JOIN khác CROSS JOIN như thế nào?* CROSS JOIN đã được giới thiệu ở đầu phần này.
+
+FULL OUTER JOIN khác CROSS JOIN ở chỗ CROSS JOIN tạo ra Cartesian product từ tất cả row hiện có trong các table.
+
+Ví dụ, nếu dùng CROSS JOIN với cùng dữ liệu như FULL JOIN ở trên, ta nhận được kết quả sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select c.pk,c.title,p.pk,p.title from categories c cross join
 new_posts p;
@@ -476,13 +923,53 @@ new_posts p;
 (20 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT
+    c.pk,
+    c.title,
+    p.pk,
+    p.title
+FROM categories c cross JOIN new_posts p;
+....
+
+.Output
+[source,output]
+....
+ pk |            title           | pk |               title
+----+-----------------------+----+---------------------
+  1 | Database                   |   1 | Indexing PostgreSQL
+  2 | Unix                       |   1 | Indexing PostgreSQL
+  3 | Programming Languages |        1 | Indexing PostgreSQL
+  4 | New Category               |   1 | Indexing PostgreSQL
+  5 | Database                   |   1 | Indexing PostgreSQL
+  1 | Database                   |   2 | Indexing Mysql
+  2 | Unix                       |   2 | Indexing Mysql
+  3 | Programming Languages |        2 | Indexing Mysql
+  4 | New Category               |   2 | Indexing Mysql
+  5 | Database                   |   2 | Indexing Mysql
+  1 | Database                   |   3 | Data types in C++
+  2 | Unix                       |   3 | Data types in C++
+  3 | Programming Languages |        3 | Data types in C++
+  4 | New Category               |   3 | Data types in C++
+  5 | Database                   |   3 | Data types in C++
+  1 | Database                   |   6 | A new Book
+  2 | Unix                       |   6 | A new Book
+  3 | Programming Languages |        6 | A new Book
+  4 | New Category               |   6 | A new Book
+  5 | Database                   |   6 | A new Book
+(20 rows)
+....
+
+
 == Sử dụng LATERAL JOIN
 
-Lateral join là một kiểu join trong SQL cho phép bạn join một table với một subquery, trong đó subquery được chạy cho từng row của main table. Subquery được thực thi trước khi các row được join, và result được dùng để join các row. Với join mode này, bạn có thể dùng thông tin từ một table để filter hoặc process data từ table khác.
+LATERAL JOIN là một kiểu JOIN trong SQL cho phép kết hợp một table với một subquery, trong đó subquery được thực thi cho từng row của table chính. Subquery được thực thi trước khi các row được kết hợp, và kết quả của subquery được dùng để kết hợp các row. Với kiểu JOIN này, chúng ta có thể dùng thông tin từ một table để lọc hoặc xử lý dữ liệu từ table khác.
 
-Hãy thêm một field có tên `likes` vào table `posts` và insert một số data vào field này:
+Hãy thêm một column có tên `likes` vào table `posts`, rồi chèn một số dữ liệu vào column này:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> alter table posts add likes integer default 0;
 ALTER TABLE
@@ -490,9 +977,27 @@ forumdb=> update posts set likes = 3 where title like 'Indexing%';
 UPDATE 2
 ....
 
-Tình trạng hiện tại là:
+.SQL
+[source,sql]
+....
+ALTER TABLE posts ADD likes integer DEFAULT 0;
+UPDATE posts
+SET
+    likes = 3
+WHERE title like 'Indexing%';
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ALTER TABLE
+UPDATE 2
+....
+
+
+Tình trạng hiện tại:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select title,likes from posts order by likes ;
           title          | likes
@@ -503,9 +1008,31 @@ forumdb=> select title,likes from posts order by likes ;
 (3 rows)
 ....
 
-Bây giờ, giả sử chúng ta muốn search tất cả user có post với số lượt like lớn hơn 2; query giải quyết vấn đề này là:
+.SQL
+[source,sql]
+....
+SELECT
+    title,
+    likes
+FROM posts
+ORDER BY likes;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+          title          | likes
+---------------------+-------
+ Data types in C++     |      0
+ Indexing PostgreSQL |        3
+ Indexing Mysql        |      3
+(3 rows)
+....
+
+
+Giả sử muốn tìm tất cả user có post với số lượt like lớn hơn 2. Query tương ứng là:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select u.* from users u where exists (select 1 from posts p
 where u.pk=p.author and likes > 2 ) ;
@@ -515,9 +1042,27 @@ where u.pk=p.author and likes > 2 ) ;
 (1 row)
 ....
 
-Giả sử bây giờ chúng ta cũng muốn có giá trị của field `likes`. Một cách đơn giản để giải quyết vấn đề này là dùng lateral join:
+.SQL
+[source,sql]
+....
+SELECT u.*
+FROM users u
+WHERE EXISTS (SELECT 1 FROM posts p WHERE u.pk = p.author AND likes > 2);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |     username   | gecos |           email
+----+--------------+-------+---------------------
+  1 | luca_ferrari |          | luca@pgtraining.com
+(1 row)
+....
+
+
+Giả sử chúng ta cũng muốn lấy giá trị của column `likes`. Một cách đơn giản là dùng LATERAL JOIN:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select u.username,q.* from users u join lateral (select author,
 title,likes from posts p where u.pk=p.author and likes > 2 ) as q on true;
@@ -528,4 +1073,24 @@ title,likes from posts p where u.pk=p.author and likes > 2 ) as q on true;
 (2 rows)
 ....
 
-Query này rất giống query `EXISTS`, ngoại trừ việc trong main query, chúng ta có thể lấy tất cả value nằm trong subquery và dùng chúng ở phần chính của query.
+.SQL
+[source,sql]
+....
+SELECT
+    u.username,
+    q.*
+FROM users u JOIN lateral (SELECT author, title, likes FROM posts p WHERE u.pk = p.author AND likes > 2) AS q ON TRUE;
+....
+
+.Output
+[source,output]
+....
+   username     | author |          title            | likes
+--------------+--------+---------------------+-------
+ luca_ferrari |        1 | Indexing PostgreSQL |           3
+ luca_ferrari |        1 | Indexing Mysql            |     3
+(2 rows)
+....
+
+
+Query này rất giống query `EXISTS`, ngoại trừ việc query chính có thể lấy các giá trị từ subquery và sử dụng chúng.

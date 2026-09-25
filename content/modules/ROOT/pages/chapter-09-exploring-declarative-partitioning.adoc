@@ -1,14 +1,14 @@
-= Exploring declarative partitioning
+= Khám phá declarative partitioning
 
-Trong section này, chúng ta sẽ nói về declarative partitioning. Tính năng này đã có trong PostgreSQL từ version 10, nhưng performance của nó đã tăng lên trong các version mới hơn. Bây giờ chúng ta sẽ xem một ví dụ partitioning by range và một ví dụ partitioning by list.
+Trong phần này, chúng ta sẽ tìm hiểu về declarative partitioning. Tính năng này đã có trong PostgreSQL từ phiên bản 10, nhưng hiệu năng đã được cải thiện ở các phiên bản mới hơn. Bây giờ chúng ta sẽ xem một ví dụ về range partitioning và một ví dụ về list partitioning.
 
 == List partitioning
 
-Trong ví dụ đầu tiên về declarative partitioning, chúng ta sẽ dùng cùng ví dụ đã xem khi giới thiệu partitioning bằng inheritance. Chúng ta sẽ thấy mọi thứ trở nên đơn giản hơn nhiều khi dùng phương pháp declarative partitioning:
+Trong ví dụ đầu tiên về declarative partitioning, chúng ta sẽ sử dụng chính ví dụ đã xem khi giới thiệu partitioning bằng table inheritance. Chúng ta sẽ thấy mọi thứ đơn giản hơn nhiều khi sử dụng phương pháp declarative partitioning:
 
-. Bây giờ hãy tạo parent table:
+. Trước hết, hãy tạo parent table:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TABLE part_tags (
     pk SERIAL NOT NULL ,
@@ -21,12 +21,25 @@ Trong ví dụ đầu tiên về declarative partitioning, chúng ta sẽ dùng 
    PARTITION BY LIST (level);
 ....
 
-Như có thể thấy từ ví dụ trước, chúng ta phải định nghĩa loại partitioning muốn áp dụng. Trong trường hợp này, đó là `LIST PARTITIONING`. Một điểm quan trọng khác cần lưu ý là field được dùng để partition data phải là một phần của primary key.
+.SQL
+[source,sql]
+....
+CREATE TABLE part_tags (
+    pk SERIAL NOT NULL,
+    level INTEGER NOT NULL DEFAULT 0,
+    tag VARCHAR (255) NOT NULL,
+    PRIMARY KEY (pk, level)
+   )
+   PARTITION BY LIST (level);
+....
+
+
+Như có thể thấy trong ví dụ trước, chúng ta phải xác định loại partitioning sẽ áp dụng. Trong trường hợp này, đó là `LIST PARTITIONING`. Một điểm quan trọng khác cần lưu ý là column được dùng để partition dữ liệu phải là một phần của primary key.
 
 [%start=2]
 . Tiếp theo, hãy định nghĩa các child table:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TABLE part_tags_level_0 PARTITION OF part_tags FOR
    VALUES IN (0);
@@ -42,22 +55,58 @@ Như có thể thấy từ ví dụ trước, chúng ta phải định nghĩa lo
    CREATE TABLE
 ....
 
-Với các SQL statement này, chúng ta đang định nghĩa rằng tất cả record có giá trị `level` bằng 0 sẽ được lưu trong table `part_tags_level_0`, tất cả record có giá trị `level` bằng 1 sẽ được lưu trong table `part_tags_level_1`, v.v.
+.SQL
+[source,sql]
+....
+CREATE TABLE part_tags_level_0 PARTITION OF part_tags FOR
+   VALUES IN (0);
+....
+
+.Output
+[source,output]
+....
+   CREATE TABLE part_tags_level_1 PARTITION OF part_tags FOR VALUES IN
+   (1);
+   CREATE TABLE part_tags_level_2 PARTITION OF part_tags FOR VALUES IN
+   (2);
+   CREATE TABLE part_tags_level_3 PARTITION OF part_tags FOR VALUES IN
+   (3);
+   CREATE TABLE
+   CREATE TABLE
+   CREATE TABLE
+   CREATE TABLE
+....
+
+
+Với các SQL statement này, chúng ta định nghĩa rằng mọi row có giá trị `level` bằng 0 sẽ được lưu trong table `part_tags_level_0`, mọi row có giá trị `level` bằng 1 sẽ được lưu trong table `part_tags_level_1`, v.v.
 
 [%start=3]
-. Bây giờ hãy định nghĩa các index cho parent table. Các index này sẽ tự động được propagate đến child table. Chúng ta có thể thực hiện việc này bằng statement đơn giản sau:
+. Bây giờ hãy định nghĩa các index cho parent table. Các index này sẽ tự động được áp dụng cho các child table. Có thể thực hiện việc này bằng statement đơn giản sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
   forumdb=> CREATE INDEX on part_tags (tag);
   CREATE INDEX
 ....
 
-. Như được trình bày ở đây, quy trình partition của chúng ta đã hoàn tất.
+.SQL
+[source,sql]
+....
+CREATE INDEX ON part_tags (tag);
+....
 
-Đối với các parent table, chúng ta có như sau:
+.Output
+[source,output]
+....
+  CREATE INDEX
+....
 
-[source,text]
+
+. Như minh họa ở đây, quá trình partitioning đã hoàn tất.
+
+Đối với parent table, kết quả như sau:
+
+[source,console,role="transcript"]
 ....
   forumdb=> \d part_tags;
                                       Partitioned table "forum.part_tags"
@@ -80,9 +129,39 @@ Với các SQL statement này, chúng ta đang định nghĩa rằng tất cả 
   Number of partitions: 4 (Use \d+ to list them.)
 ....
 
-Đối với các child table, chúng ta có như sau:
+.SQL
+[source,sql]
+....
+\d part_tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                                      Partitioned table "forum.part_tags"
+   Column |              Type             | Collation | Nullable |
+  Default
+
+
+  --------+------------------------+-----------+----------+-----------
+  ----------------------------
+   pk     | integer                |                   | not null |
+  nextval('part_tags_pk_seq'::regclass)
+   level    | integer                     |            | not null | 0
+   tag      | character varying(255) |                 | not null |
+
+
+  Partition key: LIST (level)
+  Indexes:
+       "part_tags_pkey" PRIMARY KEY, btree (pk, level)
+       "part_tags_tag_idx" btree (tag)
+  Number of partitions: 4 (Use \d+ to list them.)
+....
+
+
+Đối với child table, kết quả như sau:
+
+[source,console,role="transcript"]
 ....
   forumdb=>    \d part_tags_level_0;
                                                  Table "forum.part_tags_level_0"
@@ -104,10 +183,39 @@ Với các SQL statement này, chúng ta đang định nghĩa rằng tất cả 
       "part_tags_level_0_tag_idx" btree (tag)
 ....
 
-[%start=5]
-. Bây giờ hãy thực hiện một số operation `INSERT`:
+.SQL
+[source,sql]
+....
+\d part_tags_level_0;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                                                 Table "forum.part_tags_level_0"
+   Column |              Type             | Collation | Nullable |
+  Default
+
+
+  --------+------------------------+-----------+----------+-----------
+  ----------------------------
+   pk     | integer                |                   | not null |
+  nextval('part_tags_pk_seq'::regclass)
+   level    | integer                     |            | not null | 0
+   tag      | character varying(255) |                 | not null |
+
+
+  Partition of: part_tags FOR VALUES IN (0)
+  Indexes:
+      "part_tags_level_0_pkey" PRIMARY KEY, btree (pk, level)
+      "part_tags_level_0_tag_idx" btree (tag)
+....
+
+
+[%start=5]
+. Bây giờ hãy thực hiện một số thao tác `INSERT`:
+
+[source,console,role="transcript"]
 ....
   forumdb=> insert into part_tags (tag,level) values ('Operating
   System',0);
@@ -122,9 +230,35 @@ Với các SQL statement này, chúng ta đang định nghĩa rằng tất cả 
   INSERT 0 1
 ....
 
-. Cuối cùng, hãy kiểm tra xem mọi thứ có ổn không:
+.SQL
+[source,sql]
+....
+INSERT INTO part_tags (tag, level)
+VALUES ('Operating System', 0);
+INSERT INTO part_tags (tag, level)
+VALUES ('Linux', 1);
+INSERT INTO part_tags (tag, level)
+VALUES ('BSD Unix', 1);
+INSERT INTO part_tags (tag, level)
+VALUES ('DOS', 1);
+INSERT INTO part_tags (tag, level)
+VALUES ('Windows', 2);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  INSERT 0 1
+  INSERT 0 1
+  INSERT 0 1
+  INSERT 0 1
+  INSERT 0 1
+....
+
+
+. Cuối cùng, hãy kiểm tra xem mọi thứ có hoạt động đúng không:
+
+[source,console,role="transcript"]
 ....
   forumdb=> select * from part_tags;
    pk | level |          tag
@@ -169,23 +303,92 @@ Với các SQL statement này, chúng ta đang định nghĩa rằng tất cả 
   (1 row)
 ....
 
-Như vậy, chúng ta đã tạo thành công các partition theo list.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM part_tags;
+SELECT *
+FROM part_tags_level_0;
+SELECT *
+FROM part_tags_level_1;
+SELECT *
+FROM part_tags_level_2;
+....
+
+.Output
+[source,output]
+....
+   pk | level |          tag
+
+
+  ----+-------+------------------
+    1 |      0 | Operating System
+    2 |      1 | Linux
+    3 |      1 | BSD Unix
+    4 |      1 | DOS
+    5 |      2 | Windows
+  (5 rows)
+
+
+
+
+   pk | level |          tag
+
+
+  ----+-------+------------------
+    1 |      0 | Operating System
+
+
+  (1 row)
+
+   pk | level |       tag
+
+
+  ----+-------+----------
+    2 |       1 | Linux
+    3 |       1 | BSD Unix
+    4 |       1 | DOS
+  (3 rows)
+   pk | level |       tag
+
+
+  ----+-------+---------
+    5 |       2 | Windows
+  (1 row)
+....
+
+
+Như vậy, các partition theo list đã được tạo thành công.
 
 == Range partitioning
 
-Sau khi đã thấy có thể partition by list theo cách rất đơn giản, hãy xem cách partition by range:
+Sau khi thấy list partitioning có thể thực hiện rất đơn giản, hãy xem cách thực hiện range partitioning:
 
-. Như trước đó, hãy `DROP` table `part_tags` hiện có cùng child table của nó:
+. Như trước, hãy `DROP` table `part_tags` hiện có cùng các child table của nó:
 
-[source,text]
+[source,console,role="transcript"]
 ....
   forumdb=> DROP TABLE IF EXISTS part_tags cascade;
   DROP TABLE
 ....
 
-. Giả sử chúng ta muốn có một table giống hệt table trước đó, nhưng bây giờ muốn table `part_tags` có một field `ins_date`, nơi lưu ngày tag được thêm vào. Chúng ta muốn partition by range trên field `ins_date` để đưa tất cả record được nhập trong January 2023, February 2023, March 2023 và April 2023 vào các table khác nhau. Dưới đây là tất cả statement giúp thực hiện việc này; chúng rất giống các statement đã xem trong section trước:
+.SQL
+[source,sql]
+....
+DROP TABLE IF EXISTS part_tags CASCADE;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  DROP TABLE
+....
+
+
+. Giả sử chúng ta muốn một table giống hệt table trước, nhưng lần này table `part_tags` có thêm column `ins_date` để lưu ngày tag được thêm vào. Chúng ta muốn thực hiện range partitioning trên column `ins_date`, đưa tất cả row được nhập trong tháng 1 năm 2023, tháng 2 năm 2023, tháng 3 năm 2023 và tháng 4 năm 2023 vào các table khác nhau. Dưới đây là toàn bộ statement cần thiết; chúng rất giống các statement đã xem trong phần trước:
+
+[source,console,role="transcript"]
 ....
   forumdb=> CREATE TABLE part_tags (
         pk serial NOT NULL,
@@ -223,12 +426,56 @@ Sau khi đã thấy có thể partition by list theo cách rất đơn giản, h
    CREATE INDEX
 ....
 
-Như có thể thấy, hai khác biệt duy nhất là `PARTITION BY RANGE` và `FOR VALUES FROM .. TO ...`
+.SQL
+[source,sql]
+....
+CREATE TABLE part_tags (
+        pk serial NOT NULL,
+        ins_date date NOT NULL DEFAULT now()::date,
+        tag VARCHAR (255) NOT NULL,
+        level INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (pk, ins_date)
+   )
+   PARTITION BY RANGE (ins_date);
+CREATE TABLE part_tags_date_01_2023 PARTITION OF part_tags
+   FOR VALUES FROM ('2023-01-01') TO ('2023-01-31');
+CREATE TABLE part_tags_date_02_2023 PARTITION OF part_tags
+   FOR VALUES FROM ('2023-02-01') TO ('2023-02-28');
+CREATE TABLE part_tags_date_03_2023 PARTITION OF part_tags
+   FOR VALUES FROM ('2023-03-01') TO ('2023-03-31');
+CREATE TABLE part_tags_date_04_2023 PARTITION OF part_tags
+   FOR VALUES FROM ('2023-04-01') TO ('2023-04-30');
+CREATE INDEX ON part_tags(tag);
+....
+
+.Output
+[source,output]
+....
+   CREATE TABLE
+
+
+   CREATE TABLE
+
+
+   CREATE TABLE
+
+
+   CREATE TABLE
+
+
+   CREATE TABLE
+
+
+   CREATE INDEX
+....
+
+
+Như có thể thấy, chỉ có hai điểm khác biệt: `PARTITION BY RANGE` và `FOR VALUES FROM .. TO ...`
 
 [%start=3]
-. Trong ví dụ này, cũng như ví dụ trước về list partitioning, chúng ta đã tạo được parent table và tất cả child table một cách đơn giản, và như có thể thấy trong snippet sau, statement `CREATE INDEX` đã được tự động propagate đến các child table:
+. Trong ví dụ này, cũng như trong ví dụ trước về list partitioning, chúng ta đã tạo parent table và toàn bộ các child table một cách đơn giản. Như có thể thấy trong đoạn sau, statement `CREATE INDEX` cũng đã được tự động áp dụng cho các child table:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \d part_tags;
               Partitioned table "forum.part_tags"
@@ -276,9 +523,64 @@ Như có thể thấy, hai khác biệt duy nhất là `PARTITION BY RANGE` và 
       "part_tags_date_01_2023_tag_idx" btree (tag)
 ....
 
-. Như đã làm trước đó, hãy thực hiện một số operation `INSERT`:
+.SQL
+[source,sql]
+....
+\d part_tags;
+\d part_tags_date_01_2023;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+              Partitioned table "forum.part_tags"
+    Column   |           Type             | Collation | Nullable |
+   Default
+
+
+  ----------+------------------------+-----------+----------+---------
+  ------------------------------
+   pk       | integer                |            | not null |
+  nextval('part_tags_pk_seq'::regclass)
+   ins_date | date                    |           | not null |
+  now()::date
+   tag      | character varying(255) |           | not null |
+
+
+   level     | integer                |           | not null | 0
+  Partition key: RANGE (ins_date)
+  Indexes:
+      "part_tags_pkey" PRIMARY KEY, btree (pk, ins_date)
+      "part_tags_tag_idx" btree (tag)
+  Number of partitions: 4 (Use \d+ to list them.)
+
+
+                                  Table "forum.part_tags_date_01_2023"
+    Column   |           Type         | Collation | Nullable |
+  Default
+
+
+  ----------+------------------------+-----------+----------+---------
+  ------------------------------
+   pk       | integer                |            | not null |
+  nextval('part_tags_pk_seq'::regclass)
+   ins_date | date                    |           | not null |
+  now()::date
+   tag      | character varying(255) |           | not null |
+
+
+   level     | integer                |           | not null | 0
+  Partition of: part_tags FOR VALUES FROM ('2023-01-01') TO ('2023-01-
+  31')
+  Indexes:
+      "part_tags_date_01_2023_pkey" PRIMARY KEY, btree (pk, ins_date)
+      "part_tags_date_01_2023_tag_idx" btree (tag)
+....
+
+
+. Như trước, hãy thực hiện một số thao tác `INSERT`:
+
+[source,console,role="transcript"]
 ....
   forumdb=> insert into part_tags (tag,ins_date,level) values
   ('Operating Systems','2023-01-01',0);
@@ -294,9 +596,32 @@ Như có thể thấy, hai khác biệt duy nhất là `PARTITION BY RANGE` và 
   INSERT 0 1
 ....
 
-. Và bây giờ hãy kiểm tra xem mọi thứ có ổn không:
+.SQL
+[source,sql]
+....
+INSERT INTO part_tags (tag, ins_date, level)
+VALUES ('Operating Systems', '2023-01-01', 0);
+INSERT INTO part_tags (tag, ins_date, level)
+VALUES ('Linux', '2023-02-01', 1);
+INSERT INTO part_tags (tag, ins_date, level)
+VALUES ('BSD Unix', '2023-03-01', 1);
+INSERT INTO part_tags (tag, ins_date, level)
+VALUES ('Rocky Linux Distro', '2023-04-01', 2);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  INSERT 0 1
+  INSERT 0 1
+  INSERT 0 1
+  INSERT 0 1
+....
+
+
+. Bây giờ hãy kiểm tra xem mọi thứ có hoạt động đúng không:
+
+[source,console,role="transcript"]
 ....
   forumdb=> select * from part_tags;
    pk |   ins_date   |          tag            | level
@@ -327,7 +652,50 @@ Như có thể thấy, hai khác biệt duy nhất là `PARTITION BY RANGE` và 
 
   ----+------------+-------+-------
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+SELECT *
+FROM part_tags;
+SELECT *
+FROM part_tags_date_01_2023;
+SELECT *
+FROM part_tags_date_02_2023;
+....
+
+.Output
+[source,output]
+....
+   pk |   ins_date   |          tag            | level
+
+
+  ----+------------+--------------------+-------
+    1 | 2023-01-01 | Operating Systems         |     0
+    2 | 2023-02-01 | Linux                     |     1
+    3 | 2023-03-01 | BSD Unix                  |     1
+    4 | 2023-04-01 | Rocky Linux Distro |            2
+  (4 rows)
+
+
+   pk |   ins_date   |          tag           | level
+
+
+  ----+------------+-------------------+-------
+    1 | 2023-01-01 | Operating Systems |            0
+  (1 row)
+
+
+
+
+   pk |   ins_date   |   tag   | level
+
+
+  ----+------------+-------+-------
+....
+
+
+[source,console,role="transcript"]
 ....
 2 | 2023-02-01 | Linux |            1
 (1 row)
@@ -349,11 +717,42 @@ forumdb=> select * from part_tags_date_04_2023;
 (1 row)
 ....
 
-Như chúng ta có thể thấy, toàn bộ data đã được partition chính xác.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM part_tags_date_03_2023;
+SELECT *
+FROM part_tags_date_04_2023;
+....
+
+.Output
+[source,output]
+....
+2 | 2023-02-01 | Linux |            1
+(1 row)
+
+
+ pk |   ins_date     |    tag     | level
+
+
+----+------------+----------+-------
+  3 | 2023-03-01 | BSD Unix |             1
+(1 row)
+ pk |   ins_date     |          tag            | level
+
+
+----+------------+--------------------+-------
+  4 | 2023-04-01 | Rocky Linux Distro |               2
+(1 row)
+....
+
+
+Như có thể thấy, toàn bộ dữ liệu đã được partition chính xác.
 
 == Bảo trì partition
 
-Trong hai section trước, chúng ta đã xem declarative partitioning là gì và cách tạo các table được partition khi bắt đầu công việc từ đầu. Trong section này, chúng ta sẽ xem xét cách attach hoặc detach partition khi partitioned table đã tồn tại. Chúng ta sẽ xem cách thực hiện những việc sau:
+Trong hai phần trước, chúng ta đã tìm hiểu declarative partitioning là gì và cách tạo các partitioned table từ đầu. Trong phần này, chúng ta sẽ xem cách attach hoặc detach partition khi partitioned table đã tồn tại. Cụ thể, chúng ta sẽ thực hiện các thao tác sau:
 
 * Attach một partition mới
 * Detach một partition hiện có
@@ -361,18 +760,32 @@ Trong hai section trước, chúng ta đã xem declarative partitioning là gì 
 
 == Attach một partition mới
 
-Nếu muốn attach một partition mới vào parent table, chúng ta phải thực thi như sau:
+Nếu muốn attach một partition mới vào parent table, chúng ta phải thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TABLE part_tags_date_05_2023 PARTITION OF part_tags FOR
    VALUES FROM ('2023-05-01') TO ('2023-05-30');
    CREATE TABLE
 ....
 
-Như chúng ta có thể thấy ở đây, một partition mới có tên `part_tags_date_05_2023` đã được thêm vào parent table `part_tags`:
+.SQL
+[source,sql]
+....
+CREATE TABLE part_tags_date_05_2023 PARTITION OF part_tags FOR
+   VALUES FROM ('2023-05-01') TO ('2023-05-30');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TABLE
+....
+
+
+Như có thể thấy, một partition mới có tên `part_tags_date_05_2023` đã được thêm vào parent table `part_tags`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> \d+ part_tags;
                      Partitioned table "forum.part_tags"
@@ -408,19 +821,75 @@ Như chúng ta có thể thấy ở đây, một partition mới có tên `part_
    ('2023-05-30')
 ....
 
+.SQL
+[source,sql]
+....
+\d+ part_tags;
+....
+
+.Output
+[source,output]
+....
+                     Partitioned table "forum.part_tags"
+     Column    |             Type             | [...] | Description
+
+
+   ----------+------------------------+-------+-------------
+    pk         | integer                      | [...] |
+
+
+    ins_date | date                           | [...] |
+
+
+    tag        | character varying(255) | [...] |
+
+
+    level      | integer                      | [...] |
+
+
+   Partition key: RANGE (ins_date)
+   Indexes:
+       "part_tags_pkey" PRIMARY KEY, btree (pk, ins_date)
+       "part_tags_tag_idx" btree (tag)
+   Partitions: part_tags_date_01_2023 FOR VALUES FROM ('2023-01-01') TO
+   ('2023-01-31'),
+             part_tags_date_02_2023 FOR VALUES FROM ('2023-02-01') TO
+   ('2023-02-28'),
+             part_tags_date_03_2023 FOR VALUES FROM ('2023-03-01') TO
+   ('2023-03-31'),
+             part_tags_date_04_2023 FOR VALUES FROM ('2023-04-01') TO
+   ('2023-04-30'),
+             part_tags_date_05_2023 FOR VALUES FROM ('2023-05-01') TO
+   ('2023-05-30')
+....
+
+
 == Detach một partition hiện có
 
-Nếu muốn detach một partition hiện có khỏi parent table, chúng ta phải thực thi như sau:
+Nếu muốn detach một partition hiện có khỏi parent table, chúng ta phải thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> ALTER TABLE part_tags DETACH PARTITION part_tags_date_05_2023 ;
    ALTER TABLE
 ....
 
-Như chúng ta có thể thấy ở đây, partition có tên `part_tags_date_05_2023` đã được detach khỏi parent table `part_tags`:
+.SQL
+[source,sql]
+....
+ALTER TABLE part_tags DETACH PARTITION part_tags_date_05_2023;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   ALTER TABLE
+....
+
+
+Như có thể thấy, partition có tên `part_tags_date_05_2023` đã được detach khỏi parent table `part_tags`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> \d+ part_tags;
                      Partitioned table "forum.part_tags"
@@ -454,11 +923,52 @@ Như chúng ta có thể thấy ở đây, partition có tên `part_tags_date_05
    ('2023-04-30')
 ....
 
+.SQL
+[source,sql]
+....
+\d+ part_tags;
+....
+
+.Output
+[source,output]
+....
+                     Partitioned table "forum.part_tags"
+     Column    |             Type             | [...] | Description
+
+
+   ----------+------------------------+-------+-------------
+    pk         | integer                    | [...] |
+
+
+    ins_date | date                         | [...] |
+
+
+    tag        | character varying(255) | [...] |
+
+
+    level      | integer                    | [...] |
+
+
+   Partition key: RANGE (ins_date)
+   Indexes:
+         "part_tags_pkey" PRIMARY KEY, btree (pk, ins_date)
+         "part_tags_tag_idx" btree (tag)
+   Partitions: part_tags_date_01_2023 FOR VALUES FROM ('2023-01-01') TO
+   ('2023-01-31'),
+             part_tags_date_02_2023 FOR VALUES FROM ('2023-02-01') TO
+   ('2023-02-28'),
+             part_tags_date_03_2023 FOR VALUES FROM ('2023-03-01') TO
+   ('2023-03-31'),
+             part_tags_date_04_2023 FOR VALUES FROM ('2023-04-01') TO
+   ('2023-04-30')
+....
+
+
 == Attach một table hiện có vào parent table
 
-Để thực hành việc này, chúng ta cần một table có tên `part_tags_already_exists` hiện diện trong database và chứa tất cả tag có ngày nhập trước `2022-12-31`. Nếu đang sử dụng Docker image, bạn có thể tìm table này trong database `forumdb`. Nếu không, hãy đảm bảo tạo table với structure sau:
+Để thực hiện việc này, chúng ta cần một table có tên `part_tags_already_exists` tồn tại trong database và chứa tất cả tag được nhập trước `2022-12-31`. Nếu đang sử dụng Docker image, bạn có thể tìm table này trong database `forumdb`. Nếu không, hãy đảm bảo tạo table với cấu trúc sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \d part_tags_already_exists
                       Table "forum.part_tags_already_exists"
@@ -483,13 +993,59 @@ Như chúng ta có thể thấy ở đây, partition có tên `part_tags_date_05
         "part_tags_already_exists_tag_idx" btree (tag)
 ....
 
-Nếu muốn attach table này, vốn chứa tất cả tag có ngày nhập trước `2022-12-31`, vào parent table, chúng ta phải chạy statement sau:
+.SQL
+[source,sql]
+....
+\d part_tags_already_exists
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                      Table "forum.part_tags_already_exists"
+       Column    |           Type             | Collation | Nullable | Default
+
+
+   ----------+------------------------+-----------+---------
+    pk         | integer                |             | not null
+
+
+    ins_date | date                         |             | not null
+
+
+    tag        | character varying(255) |                   | not null
+
+
+    level      | integer                      |             | not null
+
+
+   Indexes:
+        "part_tags_already_exists_pkey" PRIMARY KEY, btree (pk, ins_date)
+        "part_tags_already_exists_tag_idx" btree (tag)
+....
+
+
+Table này chứa tất cả tag được nhập trước `2022-12-31`; để attach nó vào parent table, chúng ta phải chạy statement sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> ALTER TABLE part_tags ATTACH PARTITION part_tags_already_exists
    FOR VALUES FROM ('1970-01-01') TO ('2022-12-31');
    ALTER TABLE
 ....
 
-Bằng cách này, table `part_tags_already_exists` trở thành child table của parent table `part_tags`.
+.SQL
+[source,sql]
+....
+ALTER TABLE part_tags ATTACH PARTITION part_tags_already_exists
+   FOR VALUES FROM ('1970-01-01') TO ('2022-12-31');
+....
+
+.Output
+[source,output]
+....
+   ALTER TABLE
+....
+
+
+Sau thao tác này, table `part_tags_already_exists` trở thành child table của parent table `part_tags`.

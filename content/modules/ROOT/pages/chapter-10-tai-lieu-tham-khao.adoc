@@ -5,15 +5,15 @@
 * Tài liệu chính thức về statement `DROP ROLE`: https://www.postgresql.org/docs/current/sql-droprole.html
 * Tài liệu chính thức về statement `GRANT`: https://www.postgresql.org/docs/current/sql-grant.html
 * Tài liệu chính thức về statement `REVOKE`: https://www.postgresql.org/docs/current/sql-revoke.html
-* Chi tiết catalog `pg_roles` của PostgreSQL: https://www.postgresql.org/docs/current/view-pg-roles.html
-* Chi tiết catalog `pg_authid` của PostgreSQL: https://www.postgresql.org/docs/current/catalog-pg-authid.html
-* Tài liệu ACL của PostgreSQL: https://www.postgresql.org/docs/current/ddl-priv.html
-* Chi tiết rule host-based access của PostgreSQL: https://www.postgresql.org/docs/current/auth-pg-hba-conf.html
-* Các utility function ACL của PostgreSQL: https://www.postgresql.org/docs/current/functions-info.html
+* Thông tin chi tiết về catalog `pg_roles` của PostgreSQL: https://www.postgresql.org/docs/current/view-pg-roles.html
+* Thông tin chi tiết về catalog `pg_authid` của PostgreSQL: https://www.postgresql.org/docs/current/catalog-pg-authid.html
+* Tài liệu về ACL của PostgreSQL: https://www.postgresql.org/docs/current/ddl-priv.html
+* Thông tin chi tiết về rule host-based access của PostgreSQL: https://www.postgresql.org/docs/current/auth-pg-hba-conf.html
+* Các utility function liên quan đến ACL của PostgreSQL: https://www.postgresql.org/docs/current/functions-info.html
 
 == Tìm hiểu thêm trên Discord
 
-Để tham gia cộng đồng Discord của cuốn sách, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy quét QR code bên dưới:
+Để tham gia cộng đồng Discord của cuốn sách, nơi bạn có thể chia sẻ phản hồi, đặt câu hỏi cho tác giả và cập nhật thông tin về các bản phát hành mới, hãy quét QR code bên dưới:
 
 https://discord.gg/jYWCjF6Tku
 

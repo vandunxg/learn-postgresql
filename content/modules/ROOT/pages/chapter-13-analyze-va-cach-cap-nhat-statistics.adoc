@@ -1,32 +1,32 @@
 = ANALYZE và cách cập nhật statistics
 
-PostgreSQL sử dụng cách tiếp cận dựa trên statistics để đánh giá các execution plan khác nhau. Điều này nghĩa là PostgreSQL không biết có bao nhiêu tuple trong một table, nhưng có một xấp xỉ tốt cho phép planner tính cost của execution plan.
+PostgreSQL sử dụng cách tiếp cận dựa trên statistics để đánh giá các execution plan khác nhau. Điều đó có nghĩa là PostgreSQL không biết chính xác một table có bao nhiêu tuple, nhưng có một ước lượng đủ tốt để planner tính cost của execution plan.
 
-Statistics không chỉ liên quan đến số lượng (có bao nhiêu tuple) mà còn liên quan đến chất lượng của data bên dưới, chẳng hạn có bao nhiêu value khác nhau, value nào xuất hiện thường xuyên hơn trong một column, v.v. Nhờ kết hợp toàn bộ data này, PostgreSQL có thể đưa ra quyết định hiệu năng tốt.
+Statistics không chỉ mô tả số lượng (có bao nhiêu tuple) mà còn phản ánh chất lượng của data bên dưới, chẳng hạn có bao nhiêu value khác nhau, value nào xuất hiện thường xuyên hơn trong một column, v.v. Kết hợp tất cả thông tin này, PostgreSQL có thể đưa ra quyết định tốt hơn về hiệu năng.
 
-Tuy nhiên, có những lúc chất lượng của statistical data không đủ tốt để PostgreSQL chọn plan tốt nhất, một vấn đề thường được gọi là “out-of-date statistics”. Thực tế, statistics không được cập nhật theo thời gian thực; thay vào đó, PostgreSQL theo dõi những gì đang diễn ra trong mọi table thuộc mọi database và tổng hợp số tuple mới, tuple đã được update và tuple đã bị delete, cũng như chất lượng của data đó. Có thể xảy ra việc statistics không được cập nhật đủ thường xuyên (hoặc hoàn toàn không được cập nhật) vì những lý do khác nhau mà chúng ta sẽ giải thích sau trong chapter này, vì vậy DBA phải luôn có cách buộc PostgreSQL bắt đầu lại từ đầu và “rebuild” statistics.
+Tuy nhiên, đôi khi statistics không đủ chính xác để PostgreSQL chọn plan tốt nhất; vấn đề này thường được gọi là “out-of-date statistics”. Thực tế, statistics không được cập nhật theo thời gian thực. Thay vào đó, PostgreSQL theo dõi những gì đang diễn ra trong mọi table của mọi database và tổng hợp số lượng tuple mới, tuple được update và tuple bị delete, cũng như chất lượng của data đó. Vì nhiều lý do khác nhau sẽ được giải thích ở phần sau của chương này, statistics có thể không được cập nhật đủ thường xuyên, thậm chí hoàn toàn không được cập nhật; vì vậy DBA luôn cần có cách buộc PostgreSQL “rebuild” statistics từ đầu.
 
-Command thực hiện việc này là `ANALYZE`.
+Command dùng để thực hiện việc này là `ANALYZE`.
 
 [quote]
 ____
-*Lưu ý:* Command `ANALYZE` không liên quan gì đến option `ANALYZE` của command `EXPLAIN`; thay vào đó, nó tương tự option cùng tên được dùng với command `VACUUM`, như đã giải thích trong *Chapter 11*.
+*Lưu ý:* Command `ANALYZE` không liên quan đến option `ANALYZE` của command `EXPLAIN`; thay vào đó, nó tương tự option cùng tên của command `VACUUM`, như đã giải thích trong *Chapter 11*.
 
 ____
-`ANALYZE` nhận một table (và tùy chọn, một danh sách column) rồi xây dựng toàn bộ statistics cho table được chỉ định (hoặc chỉ cho các column được chỉ định).
+`ANALYZE` nhận một table và, tùy chọn, một danh sách column; sau đó xây dựng toàn bộ statistics cho table được chỉ định (hoặc chỉ cho các column được chỉ định).
 
-Dù việc giữ statistics luôn cập nhật là quan trọng, chạy `ANALYZE` thủ công không phải là một thói quen tốt, và đó là lý do daemon auto-analyze chịu trách nhiệm cập nhật statistics định kỳ khi có đủ thay đổi xảy ra trên một table.
+Mặc dù việc giữ statistics luôn cập nhật là quan trọng, chạy `ANALYZE` thủ công không phải là thói quen tốt. Vì thế, daemon auto-analyze chịu trách nhiệm định kỳ cập nhật statistics khi một table có đủ nhiều thay đổi.
 
 Cú pháp của command `ANALYZE` như sau:
 
 [source,sql]
 ....
-      ANALYZE [ ( option [, ...] ) ] [ table_and_columns [, ...] ]
+ANALYZE [ (option [, ...]) ] [ table_and_columns [, ...] ]
 ....
 
-Về cơ bản, nó có thể được chạy trên một table duy nhất như sau:
+Về cơ bản, ANALYZE có thể được chạy trên một table duy nhất như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
       forumdb=> \timing
       forumdb=> ANALYZE posts;
@@ -34,16 +34,30 @@ Về cơ bản, nó có thể được chạy trên một table duy nhất như 
       Time: 252.771 ms
 ....
 
+.SQL
+[source,sql]
+....
+\timing ANALYZE posts;
+....
+
+.Output
+[source,output]
+....
+      ANALYZE
+      Time: 252.771 ms
+....
+
+
 [quote]
 ____
-*Lưu ý:* Bạn có thể kiểm tra thời gian cần để thực thi command và query bằng special command `\timing` của `psql`, command này sẽ in ra tóm tắt thời gian đã trôi qua sau mỗi statement. Đây không phải là cách chắc chắn để đo performance, mà chỉ để có ý tưởng về thời gian một task đang mất.
+*Lưu ý:* Bạn có thể kiểm tra thời gian thực thi command và query bằng command đặc biệt `\timing` của `psql`. Command này in ra tóm tắt thời gian đã trôi qua sau mỗi statement. Đây không phải là cách đáng tin cậy để đo performance, mà chỉ giúp bạn hình dung một tác vụ đang mất bao lâu.
 
 ____
-`ANALYZE` không hỗ trợ nhiều option, chủ yếu là `VERBOSE` để hiển thị output chi tiết về việc `ANALYZE` đang làm gì, và `SKIP_LOCKED`, khiến `ANALYZE` bỏ qua một table nếu nó không thể acquire lock phù hợp vì có các operation đang chạy khác đã acquire một lock không tương thích.
+`ANALYZE` không hỗ trợ nhiều option. Hai option chính là `VERBOSE`, dùng để hiển thị output chi tiết về những gì `ANALYZE` đang thực hiện, và `SKIP_LOCKED`, khiến `ANALYZE` bỏ qua một table nếu không thể lấy lock phù hợp vì các operation khác đang chạy đã lấy một lock không tương thích.
 
-PostgreSQL lưu statistics mà `ANALYZE` thu thập ở đâu? Catalog đặc biệt `pg_stats` chứa toàn bộ statistics được planner sử dụng để xác định các value và constraint cần xem xét trên các attribute. Ví dụ, hãy xem PostgreSQL biết gì về column `author` của table `posts`, và cụ thể là có bao nhiêu value khác nhau:
+PostgreSQL lưu statistics do `ANALYZE` thu thập ở đâu? Catalog đặc biệt `pg_stats` chứa toàn bộ statistics mà planner sử dụng để xác định những value và constraint cần xem xét cho các attribute. Ví dụ, hãy xem PostgreSQL biết gì về column `author` trong table `posts`, cụ thể là có bao nhiêu value khác nhau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> SELECT n_distinct
                 FROM pg_stats
@@ -54,11 +68,29 @@ PostgreSQL lưu statistics mà `ANALYZE` thu thập ở đâu? Catalog đặc bi
    (1 row)
 ....
 
-PostgreSQL biết rằng trong database ví dụ của chúng ta có 1.000 author khác nhau đã đăng ít nhất một post, như được command `EXPLAIN ANALYZE` minh họa trong section trước.
+.SQL
+[source,sql]
+....
+SELECT n_distinct
+FROM pg_stats
+WHERE attname = 'author' AND tablename = 'posts';
+....
 
-Một phần thông tin quan trọng bạn có thể tìm thấy trong catalog `pg_stats` là các most common value, kèm theo frequency mà các value đó xuất hiện. Việc trích xuất thông tin này cần chú ý hơn một chút vì cả value lẫn frequency đều được lưu dưới dạng array, vì vậy query sau cung cấp các most common value và frequency cho column `author`:
+.Output
+[source,output]
+....
+    n_distinct
+   ------------
+             1000
+   (1 row)
+....
 
-[source,text]
+
+PostgreSQL biết rằng trong database ví dụ của chúng ta có 1.000 author khác nhau đã đăng ít nhất một post, như đã được minh họa bằng command `EXPLAIN ANALYZE` trong phần trước.
+
+Một thông tin quan trọng khác có trong catalog `pg_stats` là các most common values, cùng với frequency của chúng. Việc trích xuất thông tin này cần cẩn thận hơn một chút vì cả value lẫn frequency đều được lưu dưới dạng array. Vì vậy, query sau cung cấp các most common values và frequency cho column `author`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select most_common_vals, most_common_freqs from pg_stats where
    tablename = 'posts' and attname = 'category';
@@ -69,9 +101,30 @@ Một phần thông tin quan trọng bạn có thể tìm thấy trong catalog `
    3}
 ....
 
-Output của query nghĩa là category có primary key 3 xuất hiện với frequency 0.2056, category có primary key 4 xuất hiện với frequency 0.2016, v.v. Frequency chuyển thành số tuple bằng cách nhân số tuple chứa trong table (500,000) với frequency. Vì vậy, category có primary key 3 xuất hiện trong `500000 x 0.2056 = 102,800` tuple của table `posts`. Có thể dễ dàng kiểm tra điều này bằng query sau:
+.SQL
+[source,sql]
+....
+SELECT
+    most_common_vals,
+    most_common_freqs
+FROM pg_stats
+WHERE tablename = 'posts' AND attname = 'category';
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   -[ RECORD 1 ]-----+-------------------------------------------------------
+   --
+   most_common_vals | {3,4,1,5,2}
+   most_common_freqs | {0.20566666,0.20163333,0.19843334,0.19743334,0.1968333
+   3}
+....
+
+
+Output của query cho biết category có primary key là 3 xuất hiện với frequency 0.2056, category có primary key là 4 xuất hiện với frequency 0.2016, v.v. Có thể quy đổi frequency thành số tuple bằng cách nhân tổng số tuple trong table (500,000) với frequency. Vì vậy, category có primary key là 3 xuất hiện trong `500000 x 0.2056 = 102,800` tuple của table `posts`. Bạn có thể dễ dàng kiểm tra điều này bằng query sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> SELECT count(*), category
    FROM posts
@@ -87,8 +140,33 @@ Output của query nghĩa là category có primary key 3 xuất hiện với fre
    (5 rows)
 ....
 
-Result lấy từ `pg_stats` không giống query `SELECT count(*)` vì `pg_stats` không nhằm cung cấp một result tuyệt đối và chính xác, mà chỉ cung cấp một order of magnitude.
+.SQL
+[source,sql]
+....
+SELECT
+    count(*),
+    category
+FROM posts
+GROUP BY category
+ORDER BY 2;
+....
 
-`pg_stats` còn có các thông tin khác, chẳng hạn số lượng value `NULL` của một column, số lượng value khác nhau, v.v.
+.Output
+[source,output]
+....
+   count    | category
+   --------+----------
+   100000 |            1
+   100000 |            2
+   100000 |            3
+   100000 |            4
+   100000 |            5
+   (5 rows)
+....
 
-Tóm lại, PostgreSQL theo dõi statistics của mọi column trong mọi table; statistics được cập nhật bởi `ANALYZE` hoặc daemon auto-analyze để planner luôn có thể được tin cậy trong việc đưa ra một xấp xỉ tốt về số lượng và chất lượng data được lưu trong table.
+
+Result từ `pg_stats` không giống với query `SELECT count(*)` vì `pg_stats` không nhằm cung cấp một result tuyệt đối và chính xác, mà chỉ cung cấp một order of magnitude.
+
+Ngoài ra, `pg_stats` còn chứa những thông tin khác, chẳng hạn số lượng value `NULL` của một column, số lượng value khác nhau, v.v.
+
+Tóm lại, PostgreSQL theo dõi statistics của mọi column trong mọi table. `ANALYZE` hoặc daemon auto-analyze cập nhật statistics để planner luôn có thể đưa ra một ước lượng tốt về số lượng và chất lượng data được lưu trong table.

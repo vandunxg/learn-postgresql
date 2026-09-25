@@ -1,12 +1,12 @@
-= 4. Basic Statements
+= 4. Các statement cơ bản
 
-Trong chapter này, chúng ta sẽ thảo luận về các PostgreSQL basic SQL command; đây là các Data Definition Language (DDL) command và Data Manipulation Language (DML) command. Nói một cách cơ bản, DDL command được dùng để quản lý database và table, còn DML command được dùng để insert, delete, update và select data bên trong database. Trong chapter này, chúng ta cũng sẽ đi sâu vào môi trường `psql`. Như đã học trong Chapter 2, *Getting to know your cluster*, `psql` có thể được mô tả là shell environment của PostgreSQL; đây là cánh cổng chúng ta phải đi qua để bắt đầu viết command native trong PostgreSQL. Chúng ta cần nhớ rằng `psql` luôn có mặt trong mọi PostgreSQL installation mà chúng ta làm việc cùng, và đáng để học vì đây là một environment mạnh để quản lý data và database.
+Trong chương này, chúng ta sẽ tìm hiểu các lệnh SQL cơ bản của PostgreSQL, gồm các lệnh thuộc Data Definition Language (DDL) và Data Manipulation Language (DML). Nói một cách đơn giản, các lệnh DDL được dùng để quản lý database và table, còn các lệnh DML được dùng để chèn, xóa, cập nhật và truy vấn dữ liệu trong database. Trong chương này, chúng ta cũng sẽ đi sâu vào môi trường `psql`. Như đã học trong Chương 2, *Làm quen với cluster của bạn*, `psql` có thể được mô tả là môi trường shell của PostgreSQL; đây là cánh cổng chúng ta phải đi qua để bắt đầu viết các lệnh trực tiếp trong PostgreSQL. Chúng ta cần nhớ rằng `psql` luôn có mặt trong mọi bản cài đặt PostgreSQL mà chúng ta sử dụng, và rất đáng để học vì đây là một môi trường mạnh mẽ để quản lý dữ liệu và database.
 
-Basic statement và `psql` do đó là nền tảng để chúng ta xây dựng kiến thức về PostgreSQL. Vì vậy, đọc và hiểu chapter này là điều thiết yếu để hiểu một số chủ đề phức tạp hơn được đề cập về sau.
+Do đó, các statement cơ bản và `psql` là nền tảng để chúng ta xây dựng kiến thức về PostgreSQL. Vì vậy, việc đọc và hiểu chương này là điều thiết yếu để nắm được một số chủ đề phức tạp hơn được trình bày ở các phần sau.
 
-Hãy bắt đầu bằng danh sách những gì chúng ta sẽ học trong chapter này:
+Hãy bắt đầu với danh sách những nội dung chúng ta sẽ học trong chương này:
 
-* Thiết lập development environment
+* Thiết lập môi trường phát triển
 * Tạo và quản lý database
 * Quản lý table
-* Tìm hiểu các basic table manipulation statement
+* Tìm hiểu các statement cơ bản để thao tác với table

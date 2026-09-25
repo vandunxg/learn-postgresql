@@ -1,12 +1,12 @@
 = Sử dụng foreign data wrappers và extension `postgres_fdw`
 
-Foreign data wrapper cho phép chúng ta truy cập data được host trên một external database như thể data đó được lưu trong một local table thông thường. Chúng ta có thể connect PostgreSQL tới nhiều data source khác nhau; có thể connect PostgreSQL tới một PostgreSQL server khác, hoặc connect PostgreSQL tới một data source khác, dù data source đó là relational hay non-relational. Khi foreign data wrapper đã được connect, PostgreSQL có thể đọc remote table như thể đó là local table. Có foreign data wrapper dành cho những database phổ biến như Oracle và MySQL, cũng như foreign data wrapper dành cho những system ít phổ biến hơn. Danh sách đầy đủ các foreign data wrapper hiện có cho PostgreSQL được cung cấp tại https://wiki.postgresql.org/wiki/Foreign_data_wrappers.
+Foreign data wrapper cho phép truy cập dữ liệu được lưu trên external database như thể dữ liệu đó nằm trong một local table thông thường. PostgreSQL có thể kết nối với nhiều nguồn dữ liệu khác nhau: một PostgreSQL server khác hoặc một nguồn dữ liệu relational hay non-relational. Sau khi thiết lập kết nối qua foreign data wrapper, PostgreSQL có thể đọc một remote table như thể đó là một local table. Có các foreign data wrapper cho những database phổ biến như Oracle và MySQL, cũng như cho những hệ thống ít phổ biến hơn. Danh sách đầy đủ các foreign data wrapper hiện có cho PostgreSQL được đăng tại https://wiki.postgresql.org/wiki/Foreign_data_wrappers.
 
-Trong section này, chúng ta sẽ xét một ví dụ sử dụng foreign data wrapper `postgresql_fdw`, được dùng để connect một PostgreSQL server tới một PostgreSQL server khác.
+Trong phần này, chúng ta sẽ xem một ví dụ sử dụng foreign data wrapper `postgresql_fdw` để kết nối một PostgreSQL server với một PostgreSQL server khác.
 
-Nếu muốn sử dụng Docker image, chúng ta phải mở hai Bash terminal; trong terminal đầu tiên, thực thi:
+Nếu muốn sử dụng Docker image, hãy mở hai Bash terminal. Trong terminal thứ nhất, thực thi:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 chapter19$ bash run-pg-docker.sh chapter19-postgresql_fdw
 postgres@pg_fdw1:~$ psql -U forum forumdb
@@ -16,9 +16,32 @@ forumdb=> select * from categories;
 (0 rows)
 ....
 
-Sau đó, trong Bash terminal thứ hai, thực thi:
+.Command
+[source,bash]
+....
+chapter19$ bash run-pg-docker.sh chapter19-postgresql_fdw
+psql -U forum forumdb
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories;
+....
+
+.Output
+[source,output]
+....
+ pk | title | description
+----+-------+-------------
+(0 rows)
+....
+
+
+Tiếp theo, trong Bash terminal thứ hai, thực thi:
+
+[source,console,role="transcript"]
 ....
 chapter19$ bash run-pg-docker-pg_fdw2.sh chapter19-postgresql_fdw
 postgres@pg_fdw2:~$ psql -U forum forumdb
@@ -31,11 +54,37 @@ forumdb=> select * from categories;
 (3 rows)
 ....
 
-Tình huống ban đầu của chúng ta gồm hai server. Một server có tên `pg_fdw1` với IP address `192.168.16.2`, và server thứ hai có tên `pg_fdw2` với IP address `192.168.16.3`. Mục tiêu là connect server `pg_fdw2` tới server `pg_fdw1` và cho phép query category table của server `pg_fdw2` từ server `pg_fdw1` như thể đó là local table:
+.Command
+[source,bash]
+....
+chapter19$ bash run-pg-docker-pg_fdw2.sh chapter19-postgresql_fdw
+psql -U forum forumdb
+....
 
-. Hãy bắt đầu bằng việc cài đặt extension `postgres_fdw` trên server `pg_fdw1`. Với tư cách superuser `postgresql`, hãy thực thi:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   pk |           title            |             description
+----+----------------------------+----------------------------
+     1 | Database                  | Database related discussions
+     2 | Unix                      | Unix and Linux discussions
+     3 | Programming Languages | All about programming languages
+(3 rows)
+....
+
+
+Ban đầu, chúng ta có hai server. Một server tên `pg_fdw1`, có địa chỉ IP `192.168.16.2`, còn server kia tên `pg_fdw2`, có địa chỉ IP `192.168.16.3`. Mục tiêu là thiết lập kết nối từ server `pg_fdw2` tới server `pg_fdw1` và cho phép query category table của server `pg_fdw2` từ server `pg_fdw1` như thể đó là một local table:
+
+. Hãy bắt đầu bằng cách cài đặt extension `postgres_fdw` trên server `pg_fdw1`. Với quyền superuser `postgresql`, hãy thực thi:
+
+[source,console,role="transcript"]
 ....
    postgres@pg_fdw1:~$ psql -U postgres forumdb
 
@@ -44,7 +93,26 @@ Tình huống ban đầu của chúng ta gồm hai server. Một server có tên
    CREATE EXTENSION
 ....
 
-   Giả sử trên server `pg_fdw2`, `pg_hba.conf` được configure như sau:
+.Command
+[source,bash]
+....
+psql -U postgres forumdb
+....
+
+.SQL
+[source,sql]
+....
+CREATE extension postgres_fdw;
+....
+
+.Output
+[source,output]
+....
+   CREATE EXTENSION
+....
+
+
+   Giả sử trên server `pg_fdw2`, `pg_hba.conf` được cấu hình như sau:
 
 [source,text]
 ....
@@ -53,27 +121,55 @@ Tình huống ban đầu của chúng ta gồm hai server. Một server có tên
 ....
 
 [%start=2]
-. Bây giờ chúng ta phải tạo connection giữa hai server bằng statement dưới đây trên server `pg_fdw1`:
+. Bây giờ, chúng ta phải tạo connection giữa hai server bằng statement sau trên server `pg_fdw1`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=# CREATE SERVER remote_pg_fdw2 FOREIGN DATA WRAPPER
    postgres_fdw OPTIONS (host 'pg_fdw2', dbname 'forumdb');
    CREATE SERVER
 ....
 
-. Bây giờ chúng ta phải viết một user map giữa hai server:
+.SQL
+[source,sql]
+....
+CREATE SERVER remote_pg_fdw2 FOREIGN DATA WRAPPER
+   postgres_fdw OPTIONS (host 'pg_fdw2', dbname 'forumdb');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE SERVER
+....
+
+
+. Bây giờ, chúng ta phải tạo user mapping giữa hai server:
+
+[source,console,role="transcript"]
 ....
    forumdb=# CREATE USER MAPPING FOR forum SERVER remote_pg_fdw2
    OPTIONS (user 'forum', password 'LearnPostgreSQL');
    CREATE USER MAPPING
 ....
 
-. Bây giờ chúng ta phải tạo một foreign table với SELECT permission cho user `forum`:
+.SQL
+[source,sql]
+....
+CREATE USER MAPPING FOR forum SERVER remote_pg_fdw2
+   OPTIONS (user 'forum', password 'LearnPostgreSQL');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE USER MAPPING
+....
+
+
+. Bây giờ, chúng ta phải tạo một foreign table và cấp SELECT permission cho user `forum`:
+
+[source,console,role="transcript"]
 ....
    forumdb=# create foreign table forum.f_categories (
              pk integer,
@@ -87,9 +183,30 @@ Tình huống ban đầu của chúng ta gồm hai server. Một server có tên
    GRANT
 ....
 
-   Bây giờ chúng ta có thể query table `forum.f_categories` như thể đó là một local table:
+.SQL
+[source,sql]
+....
+CREATE foreign TABLE forum.f_categories (
+             pk integer,
+             title text,
+             description text
+   )
+   SERVER remote_pg_fdw2 OPTIONS (schema_name 'forum', table_name
+   'categories');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   grant SELECT ON forum.f_categories to forum;
+   CREATE FOREIGN TABLE
+   GRANT
+....
+
+
+    Bây giờ, chúng ta có thể query table `forum.f_categories` như thể đó là một local table:
+
+[source,console,role="transcript"]
 ....
    postgres@pg_fdw1:~$      psql -U forum forumdb
    forumdb=> select * from f_categories ;
@@ -101,8 +218,33 @@ Tình huống ban đầu của chúng ta gồm hai server. Một server có tên
    (3 rows)
 ....
 
-Như có thể thấy trong ví dụ trước, chúng ta có thể query một foreign table như thể table đó nằm trên local server.
+.Command
+[source,bash]
+....
+     psql -U forum forumdb
+....
 
-Foreign data wrapper là những tool rất mạnh, hỗ trợ công việc của DBA mỗi khi cần đọc data từ external source. Những external source này có thể là PostgreSQL server, nhưng cũng có thể là các loại server khác, chẳng hạn MySQL, Oracle hoặc SQL server.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM f_categories;
+....
+
+.Output
+[source,output]
+....
+       pk |         title            |              description
+   ----+-----------------------+----------------------------
+        1 | Database                 | Database related discussions
+        2 | Unix                     | Unix and Linux discussions
+        3 | Programming Languages | All about programming languages
+   (3 rows)
+....
+
+
+Như ví dụ trên cho thấy, chúng ta có thể query một foreign table như thể table đó nằm trên local server.
+
+Foreign data wrapper là công cụ rất mạnh, hỗ trợ DBA khi cần đọc dữ liệu từ external source. Các external source này có thể là PostgreSQL server, nhưng cũng có thể là những loại server khác, chẳng hạn MySQL, Oracle hoặc SQL server.
 
 Để biết thêm thông tin, xem https://www.postgresql.org/docs/current/postgres-fdw.html.

@@ -1,9 +1,9 @@
 = 9 Partitioning
 
-Trong chapter trước, chúng ta đã nói về rules và triggers. Trong chapter này, chúng ta sẽ nói về partitioning. Partitioning là một kỹ thuật cho phép chia một table rất lớn thành các table nhỏ hơn để làm cho query hiệu quả hơn. Trong chapter này, chúng ta sẽ xem cách partition data và, trong một số trường hợp, cách sử dụng rules và triggers đã thấy trong chapter trước để thực hiện partitioning. Chúng ta sẽ bắt đầu bằng việc giới thiệu các concept cơ bản của partitioning, sau đó xem các khả năng PostgreSQL cung cấp để triển khai partitioning.
+Trong chương trước, chúng ta đã tìm hiểu về rules và triggers. Trong chương này, chúng ta sẽ tìm hiểu về partitioning. Partitioning là một kỹ thuật cho phép chia một table rất lớn thành các table nhỏ hơn, giúp các query hiệu quả hơn. Trong chương này, chúng ta sẽ xem cách partition dữ liệu và, trong một số trường hợp, cách sử dụng rules và triggers đã được giới thiệu trong chương trước để thực hiện partitioning. Chúng ta sẽ bắt đầu bằng cách giới thiệu các khái niệm cơ bản về partitioning, sau đó xem xét những khả năng mà PostgreSQL cung cấp để triển khai partitioning.
 
-Chapter này sẽ bao quát các topic sau:
+Chương này sẽ trình bày các chủ đề sau:
 
-* Concept cơ bản
+* Các khái niệm cơ bản
 * Partitioning bằng table inheritance
 * Declarative partitioning

@@ -1,12 +1,12 @@
 = Tài liệu tham khảo
 
-* PostgreSQL transaction isolation levels – official documentation: https://www.postgresql.org/docs/current/sql-set-transaction.html
-* PostgreSQL transaction isolation level SERIALIZABLE – official documentation: https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE
-* PostgreSQL savepoints – official documentation: https://www.postgresql.org/docs/current/sql-savepoint.html
-* PostgreSQL VACUUM – official documentation: https://www.postgresql.org/docs/current/sql-vacuum.html
+* Tài liệu chính thức của PostgreSQL về transaction isolation level: https://www.postgresql.org/docs/current/sql-set-transaction.html
+* Tài liệu chính thức của PostgreSQL về isolation level SERIALIZABLE: https://www.postgresql.org/docs/current/transaction-iso.html#XACT-SERIALIZABLE
+* Tài liệu chính thức của PostgreSQL về savepoint: https://www.postgresql.org/docs/current/sql-savepoint.html
+* Tài liệu chính thức của PostgreSQL về VACUUM: https://www.postgresql.org/docs/current/sql-vacuum.html
 
 == Tìm hiểu thêm trên Discord
 
-Để tham gia cộng đồng Discord của cuốn sách, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy follow QR code bên dưới:
+Để tham gia cộng đồng Discord của cuốn sách, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy quét QR code bên dưới:
 
 https://discord.gg/jYWCjF6Tku

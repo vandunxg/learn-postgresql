@@ -1,7 +1,7 @@
 = Tóm tắt
 
-PostgreSQL cung cấp một infrastructure logging đáng tin cậy và linh hoạt, cho phép database administrator monitor những gì cluster đã thực hiện trong khoảng thời gian rất gần đây. Nhờ tính linh hoạt, log có thể được configure để cho phép các external tool như pgBadger truy cập nhằm phân tích cluster. Hơn nữa, cùng infrastructure logging đó có thể được tận dụng để thực hiện audit, một dạng introspection thường được yêu cầu bởi luật của chính quyền địa phương.
+PostgreSQL cung cấp một hạ tầng logging đáng tin cậy và linh hoạt, cho phép database administrator theo dõi những gì cluster đã thực hiện trong thời gian rất gần đây. Nhờ tính linh hoạt này, có thể cấu hình hệ thống logging để các công cụ bên ngoài như pgBadger truy cập log nhằm phân tích cluster. Hơn nữa, hạ tầng logging này còn có thể được tận dụng để thực hiện auditing, một hình thức introspection thường được pháp luật địa phương yêu cầu.
 
-Trong chapter này, bạn đã học cách configure PostgreSQL logging system để đáp ứng nhu cầu, cách monitor cluster bằng các web dashboard do pgBadger cung cấp, và cuối cùng là cách audit user và application của mình.
+Trong chương này, bạn đã học cách cấu hình hệ thống logging của PostgreSQL để đáp ứng nhu cầu, cách theo dõi cluster bằng các dashboard web do pgBadger cung cấp, và cuối cùng là cách thực hiện auditing đối với user và application của mình.
 
-Trong chapter tiếp theo, bạn sẽ học cách backup cluster của mình.
+Trong chương tiếp theo, bạn sẽ học cách backup cluster của mình.

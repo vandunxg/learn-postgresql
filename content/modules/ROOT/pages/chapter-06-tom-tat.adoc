@@ -1,7 +1,7 @@
 = Tóm tắt
 
-Trong chapter này, chúng ta đã tìm hiểu cách sử dụng window function. Chúng ta đã thấy rằng bằng cách sử dụng window function, chúng ta có thể tạo ra các aggregate phức tạp hơn so với những aggregate được tạo bằng statement `GROUP BY`, mà chúng ta đã tìm hiểu trong Chapter 5, Advanced Statements. Chúng ta đã học cách sử dụng các function `ROW_NUMBER()`, `FIRST_VALUE()`, `LAST_VALUE()`, `RANK`, `DENSE_RANK()`, `LAG()`, `LEAD()`, `CUME_DIST()` và `NTILE()`. Chúng ta cũng đã thấy sự khác biệt giữa việc tạo aggregate bằng clause `ROWS BETWEEN` và `RANGE BETWEEN`. Bạn có thể sử dụng những gì đã học trong chapter này cho các hoạt động data mining để công việc dễ dàng hơn nhiều.
+Trong chương này, chúng ta đã tìm hiểu cách sử dụng window function. Chúng ta đã thấy rằng window function cho phép tạo ra các aggregate phức tạp hơn những aggregate được tạo bằng statement `GROUP BY`, như đã tìm hiểu trong chương 5 về các statement nâng cao. Chúng ta đã học cách sử dụng các function `ROW_NUMBER()`, `FIRST_VALUE()`, `LAST_VALUE()`, `RANK`, `DENSE_RANK()`, `LAG()`, `LEAD()`, `CUME_DIST()` và `NTILE()`. Chúng ta cũng đã thấy sự khác biệt giữa việc tạo aggregate bằng các clause `ROWS BETWEEN` và `RANGE BETWEEN`. Bạn có thể áp dụng những gì đã học trong chương này cho các tác vụ data mining để công việc trở nên dễ dàng hơn nhiều.
 
-Để biết thêm thông tin về window function, bạn có thể tham khảo tài liệu chính thức: https://www.postgresql.org/docs/current/functions-window.html.
+Để biết thêm thông tin về window function, bạn có thể tham khảo tài liệu chính thức tại: https://www.postgresql.org/docs/current/functions-window.html.
 
-Trong chapter tiếp theo, chúng ta sẽ nói về server-side programming. Chúng ta sẽ xem cách tạo các function để sử dụng ở phía server và, nếu cần, nơi sử dụng window function.
+Trong chương tiếp theo, chúng ta sẽ nói về lập trình phía server. Chúng ta sẽ tìm hiểu cách tạo các function để sử dụng ở phía server và, khi cần, xem xét những trường hợp có thể sử dụng window function.

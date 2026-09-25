@@ -1,17 +1,17 @@
 = 11. Transactions, MVCC, WALs và Checkpoints
 
-Chapter này giới thiệu về transaction, một thành phần nền tảng của mọi hệ thống database cấp enterprise. Transaction là cách để database quản lý nhiều operation và biến chúng thành một operation atomic duy nhất. PostgreSQL có cơ chế transaction rất phong phú và tuân thủ standard, cho phép user xác định cụ thể các property của transaction, bao gồm cả transaction lồng nhau.
+Chương này giới thiệu transaction, một thành phần nền tảng trong mọi hệ thống database cấp enterprise. Transaction cho phép database quản lý nhiều thao tác và xử lý chúng như một thao tác atomic duy nhất. PostgreSQL cung cấp cơ chế transaction phong phú, tuân thủ tiêu chuẩn, cho phép người dùng chỉ định cụ thể các thuộc tính của transaction, kể cả transaction lồng nhau.
 
-PostgreSQL phụ thuộc rất nhiều vào transaction để giữ data nhất quán giữa các connection đồng thời và các hoạt động song song; nhờ Write-Ahead Logs (WALs), PostgreSQL cố gắng hết sức để giữ data an toàn và đáng tin cậy. Hơn nữa, PostgreSQL triển khai Multi-Version Concurrency Control (MVCC), một cách để duy trì concurrency cao giữa các transaction.
+PostgreSQL phụ thuộc rất nhiều vào transaction để giữ data nhất quán giữa các connection chạy đồng thời và các hoạt động song song; nhờ WAL, PostgreSQL cố gắng hết sức để giữ data an toàn và đáng tin cậy. Hơn nữa, PostgreSQL triển khai Multi-Version Concurrency Control (MVCC), một cơ chế duy trì concurrency cao giữa các transaction.
 
-Chapter này có thể được chia thành hai phần: phần đầu thiên về thực hành hơn và cung cấp các ví dụ cụ thể về transaction, cách sử dụng transaction cũng như cách hiểu MVCC. Phần thứ hai mang tính lý thuyết hơn nhiều, giải thích WAL hoạt động như thế nào và cách WAL cho phép PostgreSQL khôi phục ngay cả sau một crash.
+Chương này có thể chia thành hai phần: phần đầu thiên về thực hành hơn, cung cấp các ví dụ cụ thể về transaction, cách sử dụng transaction cũng như cách hiểu về MVCC. Phần thứ hai thiên về lý thuyết hơn nhiều, giải thích cách WAL hoạt động và cách WAL cho phép PostgreSQL khôi phục ngay cả sau khi xảy ra crash.
 
-Trong chapter này, bạn sẽ tìm hiểu các chủ đề sau:
+Trong chương này, bạn sẽ tìm hiểu các chủ đề sau:
 
-* Các property của transaction
+* Các thuộc tính của transaction
 * Các isolation level của transaction
 * MVCC là gì và hoạt động như thế nào
 * Savepoint
 * Deadlock
-* Cách PostgreSQL xử lý persistency và consistency: WAL
+* Cách PostgreSQL xử lý persistency và consistency: WALs
 * VACUUM

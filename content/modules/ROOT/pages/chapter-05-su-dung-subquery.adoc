@@ -1,12 +1,12 @@
 = Sử dụng subquery
 
-Trong section này, chúng ta sẽ nói về subquery. Subquery có thể được mô tả là query lồng nhau - chúng ta có thể lồng một query bên trong một query khác bằng cách sử dụng dấu ngoặc đơn. Subquery có thể trả về một giá trị đơn hoặc một record set, giống như các query thông thường. Chúng ta sẽ bắt đầu giới thiệu subquery bằng operator `IN`/`NOT IN`.
+Trong phần này, chúng ta sẽ tìm hiểu về subquery. Subquery có thể được mô tả là một query lồng nhau: chúng ta có thể lồng một query bên trong một query khác bằng cách sử dụng dấu ngoặc đơn. Subquery có thể trả về một giá trị đơn hoặc một result set, giống như các query thông thường. Chúng ta sẽ bắt đầu tìm hiểu subquery với operator `IN`/`NOT IN`.
 
 == Subquery và điều kiện `IN`/`NOT IN`
 
-Hãy bắt đầu với operator `IN`; chúng ta có thể sử dụng operator `IN` bên trong clause `where` thay vì sử dụng nhiều điều kiện `OR`. Ví dụ, nếu muốn tìm kiếm tất cả category có giá trị `pk=1` hoặc giá trị `pk=2`, bạn phải thực hiện statement sau:
+Trước tiên, hãy xem operator `IN`. Chúng ta có thể sử dụng operator `IN` trong clause `where` thay vì dùng nhiều điều kiện `OR`. Ví dụ, nếu muốn tìm tất cả các category có giá trị `pk=1` hoặc `pk=2`, chúng ta phải thực hiện statement sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from categories where pk=1 or pk=2;
  pk |    title    |            description
@@ -16,9 +16,28 @@ forumdb=> select * from categories where pk=1 or pk=2;
 (2 rows)
 ....
 
-Một cách khác để đạt được cùng kết quả là:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories
+WHERE pk = 1 OR pk = 2;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |    title    |            description
+ ----+----------+------------------------------
+  1 | Database    | Database related discussions
+  2 | Unix        | Unix and Linux discussions
+(2 rows)
+....
+
+
+Một cách khác để có cùng kết quả là:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from categories where pk in (1,2);
  pk |    title    |            description
@@ -28,9 +47,28 @@ forumdb=> select * from categories where pk in (1,2);
 (2 rows)
 ....
 
-Một operator tương tự operator `IN` nhưng có chức năng ngược lại là operator `NOT IN`. Ví dụ, nếu muốn tìm kiếm tất cả category không có `pk=1` hoặc `pk=2`, chúng ta phải thực thi như sau:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories
+WHERE pk IN (1, 2);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |    title    |            description
+ ----+----------+------------------------------
+  1 | Database    | Database related discussions
+  2 | Unix        | Unix and Linux discussions
+(2 rows)
+....
+
+
+Một operator tương tự `IN` nhưng hoạt động ngược lại là `NOT IN`. Ví dụ, nếu muốn tìm tất cả các category không có `pk=1` hoặc `pk=2`, chúng ta phải thực hiện như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from categories where pk not in (1,2);
  pk |            title             |             description
@@ -41,18 +79,54 @@ forumdb=> select * from categories where pk not in (1,2);
 (3 rows)
 ....
 
-Bây giờ chúng ta có thể insert một ít dữ liệu vào table `users` và table `posts`:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories
+WHERE pk NOT IN (1, 2);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |            title             |             description
+ ----+-----------------------+----------------------------
+  3 | Programming Languages       | All about programming languages
+  4 | New Category                | (NULL)
+  5 | Database                    | PostgreSQL
+(3 rows)
+....
+
+
+Bây giờ, chúng ta có thể chèn một số dữ liệu vào các table `users` và `posts`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into users (username,email) values ('luca_ferrari','luca@
 pgtraining.com'),('enrico_pirozzi','enrico@pgtraining.com');
 INSERT 0 2
 ....
 
-Các statement sau đây insert dữ liệu vào table `posts`:
+.SQL
+[source,sql]
+....
+INSERT INTO users (username, email)
+VALUES
+    ('luca_ferrari', 'luca@ pgtraining.com'),
+    ('enrico_pirozzi', 'enrico@pgtraining.com');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 2
+....
+
+
+Các statement sau đây dùng để chèn dữ liệu vào table `posts`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into posts (title,content,author,category) values
 ('Indexing PostgreSQL','Btree in PostgreSQL is....',1,1);
@@ -65,9 +139,29 @@ types in C++','Data type in C++ are ..' ,2,3);
 INSERT 0 1
 ....
 
-Các record hiện có trong table `posts` lúc này là như sau:
+.SQL
+[source,sql]
+....
+INSERT INTO posts (title, content, author, category)
+VALUES ('Indexing PostgreSQL', 'Btree in PostgreSQL is....', 1, 1);
+INSERT INTO posts (title, content, author, category)
+VALUES ('Indexing Mysql', 'Btree in Mysql is....', 1, 1);
+INSERT INTO posts (title, content, author, category)
+VALUES ('Data types in C++', 'Data type in C++ are ..', 2, 3);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+....
+
+
+Các row hiện có trong table `posts` lúc này là:
+
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is on.
@@ -92,11 +186,42 @@ author    | 2
 category  | 3
 ....
 
-Giả sử bây giờ chúng ta muốn tìm kiếm tất cả post thuộc category `Database`. Có thể thực hiện việc này bằng một số phương pháp.
+.SQL
+[source,sql]
+....
+\x SELECT pk, title, content, author, category FROM posts;
+....
 
-Phương pháp sau sử dụng subquery:
+.Output
+[source,output]
+....
+Expanded display is on.
+-[ RECORD 1 ]------------------------
+pk        | 1
+title     | Indexing PostgreSQL
+content   | Btree in PostgreSQL is....
+author    | 1
+category  | 1
+-[ RECORD 2 ]------------------------
+pk        | 2
+title     | Indexing Mysql
+content   | Btree in Mysql is....
+author    | 1
+category  | 1
+-[ RECORD 3 ]------------------------
+pk        | 3
+title     | Data types in C++
+content   | Data type in C++ are ..
+author    | 2
+category  | 3
+....
 
-[source,text]
+
+Giả sử chúng ta muốn tìm tất cả post thuộc category `Database`. Có một số cách để thực hiện việc này.
+
+Cách dưới đây sử dụng subquery:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,content,author,category from posts where
 category in (select pk from categories where title ='Database');
@@ -114,9 +239,40 @@ author     | 1
 category   | 1
 ....
 
-Subquery được biểu diễn như sau:
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    content,
+    author,
+    category
+FROM posts
+WHERE category IN (SELECT pk FROM categories WHERE title = 'Database');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+-[ RECORD 1 ]------------------------
+pk         | 1
+title      | Indexing PostgreSQL
+content    | Btree in PostgreSQL is....
+author     | 1
+category   | 1
+-[ RECORD 2 ]------------------------
+pk         | 2
+title      | Indexing Mysql
+content    | Btree in Mysql is....
+author     | 1
+category   | 1
+....
+
+
+Subquery được viết như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is off.
@@ -129,9 +285,28 @@ forumdb=> select pk from categories where title ='Database';
 (2 rows)
 ....
 
-Statement này trích xuất các giá trị `pk=1` và `pk=5` từ category table, còn query bên ngoài tìm các record trong table `posts` có `pk=1` hoặc `pk=5`. Tương tự, nếu muốn tìm tất cả post không thuộc category `Database`, chúng ta phải thực hiện statement sau:
+.SQL
+[source,sql]
+....
+\x SELECT pk FROM categories WHERE title = 'Database';
+....
 
-[source,text]
+.Output
+[source,output]
+....
+Expanded display is off.
+
+ pk
+----
+  1
+  5
+(2 rows)
+....
+
+
+Statement này trích xuất các giá trị `pk=1` và `pk=5` từ table categories; query bên ngoài sau đó tìm các row trong table `posts` có `pk=1` hoặc `pk=5`. Tương tự, nếu muốn tìm tất cả post không thuộc category `Database`, chúng ta phải thực hiện statement sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is on.
@@ -146,11 +321,31 @@ author   | 2
 category | 3
 ....
 
+.SQL
+[source,sql]
+....
+\x SELECT pk, title, content, author, category FROM posts WHERE category NOT IN (SELECT pk FROM categories WHERE title = 'Database');
+....
+
+.Output
+[source,output]
+....
+Expanded display is on.
+
+-[ RECORD 1 ]---------------------
+pk       | 3
+title    | Data types in C++
+content  | Data type in C++ are ..
+author   | 2
+category | 3
+....
+
+
 == Subquery và điều kiện `EXISTS`/`NOT EXISTS`
 
-Statement `EXISTS` được sử dụng khi muốn kiểm tra xem một subquery có trả về kết quả hay không (`TRUE`), còn statement `NOT EXISTS` được sử dụng khi muốn kiểm tra xem một subquery không trả về kết quả (`FALSE`). Ví dụ, nếu muốn viết các điều kiện giống như các điều kiện đã viết trước đó bằng điều kiện `EXISTS`/`NOT EXISTS`, chúng ta phải thực hiện như sau:
+Statement `EXISTS` được dùng để kiểm tra xem một subquery có trả về kết quả hay không (trường hợp có kết quả là `TRUE`), còn statement `NOT EXISTS` được dùng để kiểm tra trường hợp subquery không trả về kết quả (khi đó điều kiện EXISTS là `FALSE`). Ví dụ, nếu muốn viết lại các điều kiện trên bằng `EXISTS`/`NOT EXISTS`, chúng ta phải thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,content,author,category from posts where exists
 (select 1 from categories where title ='Database' and posts.category=pk);
@@ -168,11 +363,42 @@ author     | 1
 category   | 1
 ....
 
-Query trên trả về cùng kết quả với query được viết bằng điều kiện `IN`.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    content,
+    author,
+    category
+FROM posts
+WHERE EXISTS (SELECT 1 FROM categories WHERE title = 'Database' AND posts.category = pk);
+....
+
+.Output
+[source,output]
+....
+-[ RECORD 1 ]------------------------
+pk         | 1
+title      | Indexing PostgreSQL
+content    | Btree in PostgreSQL is....
+author     | 1
+category   | 1
+-[ RECORD 2 ]------------------------
+pk         | 2
+title      | Indexing Mysql
+content    | Btree in Mysql is....
+author     | 1
+category   | 1
+....
+
+
+Query trên trả về cùng kết quả với query dùng điều kiện `IN`.
 
 Tương tự, nếu muốn tìm tất cả post không thuộc category `Database` bằng điều kiện `NOT EXISTS`, chúng ta phải viết như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,content,author,category from posts where not
 exists (select 1 from categories where title ='Database' and posts.
@@ -185,4 +411,29 @@ author   | 2
 category | 3
 ....
 
-Cả hai query được viết bằng điều kiện `IN` và bằng điều kiện `EXISTS` đều được gọi là query semi-join, và chúng ta sẽ xem xét các join trong section tiếp theo.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    content,
+    author,
+    category
+FROM posts
+WHERE NOT EXISTS (SELECT 1 FROM categories WHERE title = 'Database' AND posts. category = pk);
+....
+
+.Output
+[source,output]
+....
+-[ RECORD 1 ]------------------
+pk       | 3
+title    | Data types in C++
+content  | Data type in C++ are ..
+author   | 2
+category | 3
+....
+
+
+Cả query dùng điều kiện `IN` lẫn query dùng điều kiện `EXISTS` đều được gọi là query semi-join. Trong phần tiếp theo, chúng ta sẽ xem xét các join.

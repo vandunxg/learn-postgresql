@@ -2,20 +2,20 @@
 
 * *Role là gì?*
 
-  Một role có thể là một user đơn lẻ hoặc một group user có quyền truy cập cluster và các database của cluster. Role là unit cơ bản để grant access và định nghĩa permission. Xem section *Understanding roles* để biết thêm chi tiết.
+  Một role có thể là một user đơn lẻ hoặc một nhóm user có quyền truy cập cluster và các database trong cluster. Role là đơn vị cơ bản để cấp quyền truy cập và định nghĩa privilege. Xem phần *Tìm hiểu về role* để biết thêm chi tiết.
 
-* *Clause `INHERITS` làm gì?*
+* *Clause `INHERITS` dùng để làm gì?*
 
-  Clause `INHERITS` khiến một role inherit, tức là nhận được ngay lập tức và một cách dynamic toàn bộ permission được grant cho role mà nó inherit. Không có clause `INHERITS`, role vẫn có permission của role mà nó thuộc về, nhưng cần `SET ROLE` tường minh để sử dụng các permission đó. Xem section *Roles that inherit from other roles* để biết thêm chi tiết.
+  Clause `INHERITS` khiến một role kế thừa, tức là role đó ngay lập tức và theo cơ chế động nhận toàn bộ privilege được cấp cho role mà nó kế thừa. Không có clause `INHERITS`, role vẫn có privilege của role mà nó là thành viên, nhưng cần thực hiện `SET ROLE` một cách tường minh để sử dụng các privilege đó. Xem phần *Role kế thừa từ role khác* để biết thêm chi tiết.
 
 * *Access Control List (ACL) là gì?*
 
-  ACL là specification của một tập permission gắn với một database object, và là cách PostgreSQL implement và lưu trữ permission. Xem section *ACLs* để biết thêm chi tiết.
+  ACL là đặc tả về một tập hợp privilege gắn với một database object, đồng thời là cách PostgreSQL triển khai và lưu trữ các privilege đó. Xem phần *ACLs* để biết thêm chi tiết.
 
-* *Các statement để thêm permission cho một role hoặc xóa permission khỏi một role là gì?*
+* *Các statement dùng để cấp privilege cho một role hoặc thu hồi privilege khỏi một role là gì?*
 
-  Statement `GRANT` thêm permission cho một role, còn statement `REVOKE` xóa permission khỏi một role. Keyword đặc biệt `ALL` có thể được dùng để grant hoặc revoke tất cả permission có sẵn cho object, trong khi có thể chỉ định nhiều permission cùng lúc ở cả hai command. Xem section *Granting and revoking permissions* để biết thêm chi tiết.
+  Statement `GRANT` dùng để cấp privilege cho một role, còn statement `REVOKE` dùng để thu hồi privilege khỏi một role. Có thể dùng keyword đặc biệt `ALL` để cấp hoặc thu hồi toàn bộ privilege có sẵn cho object; đồng thời, có thể chỉ định nhiều privilege cùng lúc trong cả hai command. Xem phần *Cấp và thu hồi privilege* để biết thêm chi tiết.
 
 * *Row-Level Security (RLS) là gì?*
 
-  RLS là cách hạn chế result set của một query tùy thuộc vào role đang execute query đó. RLS có thể được áp dụng cho cả read query và write query. Xem section *RLS* để biết thêm chi tiết.
+  RLS là cơ chế hạn chế result set của một query tùy thuộc vào role thực thi query đó. RLS có thể được áp dụng cho cả query đọc lẫn query ghi. Xem phần *RLS* để biết thêm chi tiết.

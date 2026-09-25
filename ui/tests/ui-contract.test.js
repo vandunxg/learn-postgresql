@@ -86,12 +86,57 @@ test('nested AsciiDoc contents lists have dedicated readable formatting', () => 
 test('SQL highlighting styles functions and operators', () => {
   const highlighter = read('ui/src/js/syntax-highlight.js');
   const code = read('ui/src/css/code.css');
+  const copyCode = read('ui/src/js/copy-code.js');
 
   assert.match(highlighter, /count|sum|coalesce/);
   assert.match(highlighter, /token-function/);
   assert.match(highlighter, /'operator'/);
   assert.match(code, /\.token-function/);
   assert.match(code, /\.token-operator/);
+  assert.match(code, /\.token-prompt/);
+  assert.match(code, /\.code-output/);
+  assert.match(copyCode, /output: 'Output'/);
+});
+
+test('copy toolbar omits its language label when the block already has a title', () => {
+  const source = read('ui/src/js/copy-code.js');
+  const children = [];
+  const toolbar = {
+    className: '',
+    setAttribute() {},
+    appendChild(child) { children.push(child); },
+  };
+  const pre = { parentNode: { insertBefore(node) { this.node = node; } } };
+  const code = { className: 'language-output', textContent: 'INSERT 0 1' };
+  const block = {
+    querySelector(selector) {
+      if (selector === 'pre') return pre;
+      if (selector === 'pre code') return code;
+      if (selector === '.code-toolbar') return null;
+      if (selector === '.title') return {};
+      return null;
+    },
+  };
+  const context = {
+    document: {
+      readyState: 'complete',
+      querySelectorAll() { return [block]; },
+      createElement() {
+        return {
+          className: '',
+          setAttribute() {},
+          appendChild(child) { children.push(child); },
+          addEventListener() {},
+          textContent: '',
+        };
+      },
+    },
+  };
+
+  vm.runInNewContext(source, context);
+
+  assert.equal(children.length, 1);
+  assert.equal(children[0].className, 'copy-code-button');
 });
 
 test('unknown source languages receive generic syntax highlighting', () => {
@@ -102,10 +147,11 @@ test('unknown source languages receive generic syntax highlighting', () => {
   assert.match(highlighter, /token-plain/);
 });
 
-test('syntax highlighter decorates source and literal blocks at runtime', () => {
+test('syntax highlighter decorates SQL, console, and output blocks at runtime', () => {
   const nodes = [
-    { className: 'language-text', textContent: 'EXPLAIN SELECT 1;', innerHTML: '' },
-    { className: '', textContent: 'plain output', innerHTML: '' },
+    { className: 'language-sql', textContent: 'SELECT count(*) FROM users;', innerHTML: '', closest: () => null },
+    { className: 'language-console', textContent: 'forumdb=> SELECT 1;', innerHTML: '', closest: () => null },
+    { className: 'language-output', textContent: 'SELECT 1;\n(1 row)', innerHTML: '', closest: () => null },
   ];
   const context = {
     document: {
@@ -120,7 +166,10 @@ test('syntax highlighter decorates source and literal blocks at runtime', () => 
   vm.runInNewContext(read('ui/src/js/syntax-highlight.js'), context);
 
   assert.match(nodes[0].innerHTML, /token-keyword/);
-  assert.match(nodes[1].innerHTML, /token-plain/);
+  assert.match(nodes[1].innerHTML, /token-prompt/);
+  assert.match(nodes[1].innerHTML, /token-keyword/);
+  assert.match(nodes[2].innerHTML, /token-plain/);
+  assert.doesNotMatch(nodes[2].innerHTML, /token-keyword/);
 });
 
 test('Antora build creates the component version index alias', () => {
@@ -137,8 +186,8 @@ test('front matter does not turn cover or contents entries into page headings', 
   const frontMatter = read('content/modules/ROOT/pages/front-matter.adoc');
 
   assert.doesNotMatch(frontMatter, /^== (Learn PostgreSQL|Ấn bản thứ hai|Chương (14|15|16|17|18|19):|Các sách khác|Mục lục tra cứu)/m);
-  assert.match(frontMatter, /^\* Chương 14: Logging và Auditing/m);
-  assert.match(frontMatter, /^\* Chương 19: Các công cụ và extension hữu ích/m);
+  assert.match(frontMatter, /^\* Chương 14: Logging và auditing —/m);
+  assert.match(frontMatter, /^\* Chương 19: Các công cụ và extension hữu ích —/m);
 });
 
 test('playbook consumes the local UI bundle', () => {

@@ -1,13 +1,13 @@
 = Tóm tắt
 
-PostgreSQL có một query planner và optimizer dựa trên cost rất phức tạp, luôn cố gắng cung cấp access nhanh nhất tới underlying data.
+PostgreSQL có một query planner và optimizer dựa trên cost rất phức tạp, luôn cố gắng chọn cách truy cập nhanh nhất vào data bên dưới.
 
-Nhờ command `EXPLAIN`, database administrator có thể monitor query để theo dõi cost và thời gian thực thi, rồi quyết định cách cải thiện chúng để có kết quả nhanh hơn. Thông thường, tạo index là lựa chọn ít can thiệp nhất trong query tuning, và PostgreSQL có một index interface rất phong phú, expressive, cho phép tạo single-column, multi-column và partial index thuộc nhiều type và technology khác nhau. Khi index không đủ, query rewriting có thể là một giải pháp khả dĩ để thực hiện query tuning.
+Nhờ command `EXPLAIN`, database administrator có thể theo dõi query, cost và thời gian thực thi, từ đó quyết định cách cải thiện query nhằm đạt kết quả nhanh hơn. Thông thường, tạo index là lựa chọn ít can thiệp nhất khi query tuning, và PostgreSQL có một cơ chế index rất phong phú, linh hoạt, cho phép tạo single-column index, multi-column index và partial index với nhiều loại và công nghệ khác nhau. Khi index chưa đủ, query rewriting có thể là một giải pháp khả thi cho việc query tuning.
 
-Cost mà planner sử dụng dựa trên statistical data cần được giữ cho up to date nhiều nhất có thể. Dù daemon auto-analyze hướng tới việc này, DBA luôn có thể dựa vào command `ANALYZE` thủ công để cập nhật statistics.
+Cost mà planner sử dụng được tính dựa trên statistics, vì vậy statistics cần được cập nhật kịp thời nhất có thể. Mặc dù daemon auto-analyze hướng tới mục tiêu này, DBA vẫn luôn có thể dùng command `ANALYZE` thủ công để cập nhật statistics.
 
-Hiểu một query plan, biết những node nào tham gia và chúng tác động thế nào đến query execution, hiểu khi nào statistics đã out of date, cũng như có khả năng thử nghiệm các query access method khác nhau là những công việc phức tạp mà mọi DBA đều nên học.
+Việc hiểu một query plan, xác định những node nào tham gia và chúng tác động ra sao đến query execution, nhận biết khi nào statistics đã lỗi thời, cũng như thử nghiệm các query access method khác nhau đều là những việc phức tạp mà mọi DBA nên học cách thực hiện.
 
-Chúng ta cũng đã tìm hiểu extension auto-explain, có thể dùng để tự động hóa việc thu thập thông tin về các plan do optimizer chọn, nhờ đó DBA dễ dàng kiểm tra query nào đang chạy kém.
+Chúng ta cũng đã tìm hiểu extension auto-explain, có thể dùng để tự động hóa việc thu thập thông tin về các plan do optimizer lựa chọn, nhờ đó DBA có thể dễ dàng xác định query nào đang chạy kém.
 
-Điều quan trọng cần nhấn mạnh là performance tuning là một trong những công việc phức tạp nhất trong database administration và không có silver bullet hay giải pháp one-size-fits-all, vì vậy cần có kinh nghiệm và rất nhiều thực hành. Trong chapter tiếp theo, chúng ta sẽ bắt đầu tích lũy kinh nghiệm đó bằng cách thử thực hiện logging và auditing.
+Điều quan trọng cần nhấn mạnh là performance tuning là một trong những công việc phức tạp nhất trong database administration và không có silver bullet hay giải pháp one-size-fits-all; vì vậy, công việc này đòi hỏi kinh nghiệm và rất nhiều thực hành. Trong chương tiếp theo, chúng ta sẽ bắt đầu tích lũy kinh nghiệm đó bằng cách thử triển khai logging và auditing.

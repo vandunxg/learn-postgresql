@@ -1,21 +1,21 @@
 = Kiểm tra kiến thức
 
-* Nếu `myfield` là một field `varchar(200)` của table `mytable`, statement `create index on mytable(myfield)` có cải thiện query với điều kiện `where` dạng `like foo%` không?
+* Nếu `myfield` là một field kiểu `varchar(200)` trong table `mytable`, statement `create index on mytable(myfield)` có giúp cải thiện query có điều kiện `where` dạng `like foo%` không?
 
-  Không, statement trên sẽ không cải thiện query với điều kiện `where` dạng `like ‘foo%'`; để làm được điều đó, chúng ta phải dùng `create index on mytable using btree(my field varchar_pattern_ops);`. Xem mục *Tìm hiểu extension pg_trgm* để biết thêm chi tiết.
+  Không, statement trên sẽ không giúp cải thiện query có điều kiện `where` dạng `like ‘foo%'`; để làm được điều đó, chúng ta phải dùng `create index on mytable using btree(my field varchar_pattern_ops);`. Xem mục *Khám phá extension pg_trgm* để biết thêm chi tiết.
 
-* Có thể dùng index với mọi loại query `like` và `ilike` không?
+* Có thể dùng index cho mọi loại query `like` và `ilike` không?
 
-  Có, có thể dùng `pg_trgm`. Xem mục *Tìm hiểu extension pg_trgm* để biết thêm chi tiết.
+  Có, có thể sử dụng `pg_trgm`. Xem mục *Khám phá extension pg_trgm* để biết thêm chi tiết.
 
 * Point-in-time recovery (PITR) là gì?
 
   Trong phạm vi retention, point-in-time recovery là khả năng khôi phục về bất kỳ thời điểm nào trong quá khứ. Xem mục *Disaster recovery với pgbackrest* để biết thêm chi tiết.
 
-* PostgreSQL có tool nào giúp chúng ta quản lý continuous backup và point-in-time recovery không?
+* PostgreSQL có công cụ nào giúp quản lý continuous backup và point-in-time recovery không?
 
-  Có, PostgreSQL có một số tool giúp quản lý continuous backup và PITR, một trong số đó có tên là pgbackrest. Xem mục *Disaster recovery với pgbackrest* để biết thêm chi tiết.
+  Có, PostgreSQL có một số công cụ giúp quản lý continuous backup và PITR; pgbackrest là một trong số đó. Xem mục *Disaster recovery với pgbackrest* để biết thêm chi tiết.
 
-* Có thể kết nối trực tiếp đến một PostgreSQL server khác không?
+* Có thể kết nối trực tiếp tới một PostgreSQL server khác không?
 
-  Có, bằng extension PostgreSQL foreign data wrapper. Xem mục *Sử dụng foreign data wrapper và extension postgres_fdw* để biết thêm chi tiết.
+  Có, bằng extension foreign data wrapper của PostgreSQL. Xem mục *Sử dụng foreign data wrappers và extension postgres_fdw* để biết thêm chi tiết.

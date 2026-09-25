@@ -1,9 +1,9 @@
 = Tóm tắt
 
-Trong chapter này, chúng ta đã học rằng PostgreSQL cung cấp một infrastructure rất phong phú để quản lý permission gắn với role. Bên trong, PostgreSQL quản lý permission cho các database object khác nhau bằng ACL, và mỗi ACL chứa thông tin về tập permission, user được grant permission, và user đã grant permission đó. Đối với tabular data, thậm chí có thể định nghĩa permission theo column và permission theo row để ngăn user truy cập các subset cụ thể của data.
+Trong chương này, chúng ta đã học rằng PostgreSQL cung cấp một hạ tầng phong phú để quản lý privilege gắn với role. Về mặt nội bộ, PostgreSQL quản lý privilege cho nhiều database object khác nhau bằng ACL, và mỗi ACL chứa thông tin về tập privilege, role được cấp các privilege đó và role đã cấp các privilege đó. Đối với data dạng bảng, thậm chí có thể định nghĩa privilege theo column và theo row để ngăn user truy cập vào những tập con cụ thể của data.
 
-Permission được grant bởi các nested role theo cách inherit động hoặc theo yêu cầu, cho bạn tùy chọn fine-tune cách một role sử dụng privilege.
+Privilege được các role lồng nhau cấp theo cơ chế kế thừa động hoặc theo yêu cầu, cho phép bạn tinh chỉnh cách một role sử dụng privilege.
 
-Cuối cùng, khi được configure phù hợp, server có thể xử lý network connection qua SSL, qua đó encrypt toàn bộ network traffic và data.
+Cuối cùng, nếu được cấu hình phù hợp, server có thể xử lý các network connection qua SSL, qua đó mã hóa toàn bộ lưu lượng mạng và dữ liệu.
 
-Trong chapter tiếp theo, bạn sẽ học toàn bộ về transaction và cách PostgreSQL quản lý chúng trong một scenario concurrent, cung cấp sự ổn định vững chắc cho data.
+Trong chương tiếp theo, bạn sẽ tìm hiểu đầy đủ về transaction và cách PostgreSQL quản lý chúng trong môi trường đồng thời, qua đó mang lại tính ổn định cao cho dữ liệu.

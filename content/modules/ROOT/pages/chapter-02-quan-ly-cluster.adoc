@@ -1,77 +1,104 @@
 = Quản lý cluster
 
-Một PostgreSQL cluster là collection gồm nhiều database, tất cả cùng chạy dưới một PostgreSQL service hoặc instance.
+Một PostgreSQL cluster là tập hợp nhiều database cùng chạy dưới một PostgreSQL service hoặc instance.
 
-Quản lý một cluster nghĩa là có khả năng start, stop, take control và lấy thông tin về status của một PostgreSQL instance.
+Quản lý một cluster bao gồm việc start, stop, kiểm soát và xem trạng thái của một PostgreSQL instance.
 
-Xét từ góc nhìn operating system, PostgreSQL là một service có thể được start, stop và dĩ nhiên là monitor. Như đã thấy trong chương trước, thông thường khi install PostgreSQL, bạn cũng nhận được một tập hợp các tool và script dành riêng cho operating system để tích hợp PostgreSQL với service management của operating system. Thông thường, bạn sẽ tìm thấy system service file hoặc các tool dành riêng cho operating system khác, chẳng hạn `pg_ctl cluster`, được ship cùng Debian GNU/Linux và các derivative của nó.
+Xét từ góc nhìn của operating system, PostgreSQL là một service có thể start, stop và dĩ nhiên có thể được monitor. Như đã thấy ở chương trước, khi cài PostgreSQL, bạn thường cũng nhận được một bộ tool và script dành cho operating system để tích hợp PostgreSQL với hệ thống quản lý service. Thông thường, bạn sẽ tìm thấy system service file hoặc các tool khác dành riêng cho operating system, chẳng hạn `pg_ctl cluster`, được cung cấp cùng Debian GNU/Linux và các bản phân phối dẫn xuất.
 
-PostgreSQL đi kèm một tool cụ thể tên là `pg_ctl`, giúp quản lý cluster và các process đang chạy liên quan. Section này giới thiệu cách sử dụng cơ bản của `pg_ctl` và các process bạn có thể gặp trong một cluster đang chạy. Operating system đang dùng service management system nào không quan trọng; `pg_ctl` luôn sẵn có cho PostgreSQL administrator để take control một database instance.
+PostgreSQL đi kèm một tool chuyên dụng tên là `pg_ctl`, dùng để quản lý cluster và các process liên quan đang chạy. Phần này giới thiệu cách dùng cơ bản của `pg_ctl` và các process bạn có thể gặp trong một cluster đang chạy. Không quan trọng operating system dùng hệ thống quản lý service nào; `pg_ctl` luôn sẵn có cho PostgreSQL administrator để kiểm soát một database instance.
 
 == pg_ctl
 
-Command-line utility `pg_ctl` cho phép bạn thực hiện nhiều action khác nhau trên một cluster, chủ yếu là initialize, start, restart, stop, v.v. `pg_ctl` nhận command cần execute làm argument đầu tiên, sau đó là các argument cụ thể khác; các command chính như sau:
+Command-line utility `pg_ctl` cho phép thực hiện nhiều thao tác trên một cluster, chủ yếu là initialize, start, restart và stop. `pg_ctl` nhận command cần thực thi làm argument đầu tiên, sau đó là các argument tương ứng; các command chính gồm:
 
-* `start`, `stop` và `restart` thực hiện action tương ứng trên cluster.
-* `status` báo cáo status hiện tại (đang running hay không) của cluster.
-* `initdb` (hoặc viết ngắn là `init`) thực hiện initialization của cluster, có thể xóa mọi data đã tồn tại trước đó.
-* `reload` khiến PostgreSQL server reload configuration, hữu ích khi bạn muốn áp dụng các configuration change.
-* `promote` được dùng khi cluster đang chạy như một replica server (cụ thể là một standby node) và từ thời điểm đó phải được tách khỏi primary ban đầu để trở nên độc lập (replication sẽ được giải thích trong các chương sau).
+* `start`, `stop` và `restart` thực hiện thao tác tương ứng trên cluster.
+* `status` báo cáo trạng thái hiện tại của cluster (cluster hiện có đang chạy hay không).
+* `initdb` (hoặc dạng viết ngắn là `init`) thực hiện khởi tạo cluster và có thể xóa toàn bộ data hiện có.
+* `reload` khiến PostgreSQL server reload configuration, hữu ích khi bạn muốn áp dụng các thay đổi về configuration.
+* `promote` được dùng khi cluster đang chạy như một replica server (cụ thể là một standby node) và từ thời điểm đó cluster phải được tách khỏi primary ban đầu để hoạt động độc lập (replication sẽ được giải thích trong các chương sau).
 
-Nói chung, `pg_ctl` chủ yếu tương tác với postmaster (process đầu tiên được launch bên trong một cluster); đến lượt nó, postmaster “redirect” command tới các process khác đang tồn tại. Chẳng hạn, khi `pg_ctl` start một server instance, nó khiến process postmaster chạy; process này sau đó hoàn tất mọi hoạt động startup, bao gồm launch các utility process khác (như đã giải thích ngắn gọn trong chương trước). Mặt khác, khi `pg_ctl` stop một cluster, nó gửi một halt command tới postmaster; đến lượt mình, postmaster yêu cầu các process đang active khác thoát và chờ chúng hoàn tất.
+Nói chung, `pg_ctl` chủ yếu tương tác với postmaster (process đầu tiên được khởi chạy bên trong một cluster); sau đó, postmaster chuyển tiếp command tới các process khác đang tồn tại. Chẳng hạn, khi `pg_ctl` start một server instance, nó khởi chạy process postmaster; process này sau đó hoàn tất mọi hoạt động startup, bao gồm khởi chạy các utility process khác (như đã giải thích ngắn gọn ở chương trước). Ngược lại, khi `pg_ctl` stop một cluster, nó gửi halt command tới postmaster; postmaster sau đó yêu cầu các process active khác thoát và chờ chúng hoàn tất.
 
-`pg_ctl` cần biết vị trí của `PGDATA`, và bạn có thể chỉ định vị trí này bằng cách set một environment variable tên là `PGDATA` hoặc chỉ định trên command line thông qua flag `-D`.
-
-[quote]
-____
-Process postmaster chỉ là process đầu tiên liên quan đến PostgreSQL được launch bên trong instance; trên một số system có một process tên là “postmaster”, trong khi trên các operating system khác chỉ có các process tên là “postgres”. Process đầu tiên được launch, bất kể tên của nó là gì, được gọi là postmaster. Tên postmaster chỉ đơn giản là một tên dùng để nhận diện một process giữa các process khác (cụ thể là process đầu tiên được launch trong cluster).
-
-____
-Tương tác với status của một cluster (ví dụ để stop cluster) là action không phải user nào cũng cần có khả năng thực hiện; thông thường, chỉ operating system administrator mới cần có khả năng tương tác với các service, bao gồm PostgreSQL.
-
-Để giảm thiểu side effect của privilege escalation, PostgreSQL không cho phép chạy cluster bởi các privileged user như `root`. Vì vậy, PostgreSQL được chạy bởi một “normal” user, thường có tên là `postgres` trên mọi operating system. Unprivileged user này sở hữu directory `PGDATA` và chạy process postmaster, do đó cũng chạy tất cả process do chính postmaster launch. `pg_ctl` phải được chạy bởi chính unprivileged operating system user sẽ chạy cluster.
+`pg_ctl` cần biết vị trí của `PGDATA`. Bạn có thể chỉ định vị trí này bằng cách thiết lập environment variable có tên là `PGDATA`, hoặc chỉ định trên command line bằng flag `-D`.
 
 [quote]
 ____
-Nếu bạn đang sử dụng Docker image, PostgreSQL đã chạy sẵn dưới dạng main service. Điều này có nghĩa là việc thực hiện command `stop` hoặc `restart` sẽ buộc bạn thoát khỏi container vì container bị shutdown.
+Process postmaster chỉ là process đầu tiên liên quan đến PostgreSQL được khởi chạy bên trong instance; trên một số hệ thống, process này có tên là “postmaster”, trong khi trên các operating system khác, process chỉ có tên là “postgres”. Process đầu tiên được khởi chạy, bất kể tên là gì, được gọi là postmaster. Tên postmaster đơn giản chỉ được dùng để nhận diện một process giữa các process khác, cụ thể là process đầu tiên được khởi chạy trong cluster.
+
+____
+Không phải user nào cũng cần quyền thao tác trên cluster (ví dụ stop cluster); thông thường, chỉ operating system administrator mới cần quyền tương tác với các service, trong đó có PostgreSQL.
+
+Để giảm thiểu tác động phụ của privilege escalation, PostgreSQL không cho phép chạy cluster bằng các privileged user như `root`. Vì vậy, PostgreSQL chạy dưới một user thông thường, thường có tên `postgres` trên mọi operating system. Unprivileged user này sở hữu directory `PGDATA` và chạy process postmaster, do đó cũng chạy mọi process do postmaster khởi chạy. `pg_ctl` phải được chạy bởi chính unprivileged operating system user dùng để chạy cluster.
+
+[quote]
+____
+Nếu đang sử dụng Docker image, PostgreSQL đã chạy sẵn dưới dạng main service. Điều này có nghĩa là chạy command `stop` hoặc `restart` sẽ khiến bạn thoát khỏi container vì container bị shutdown.
 
 Ngoài ra, trong Docker container, PostgreSQL service đã chạy sẵn mà không cần can thiệp thủ công.
 
 ____
-Command `status` chỉ query cluster để lấy thông tin, nên khá an toàn để bắt đầu tìm hiểu chuyện gì đang xảy ra:
+Command `status` chỉ query cluster để lấy thông tin, nên khá an toàn khi dùng để bắt đầu tìm hiểu điều gì đang xảy ra:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_ctl status
 pg_ctl: server is running (PID: 1)
 /usr/lib/postgresql/16/bin/postgres
 ....
 
-Command báo cáo rằng server đang running, với Process Identifier (PID) bằng một (con số này sẽ khác trên machine của bạn). Ngoài ra, command báo cáo executable file được dùng để launch server; trong ví dụ trên là `/usr/lib/postgresql/16/bin/postgres`.
+.Command
+[source,bash]
+....
+pg_ctl status
+....
 
-Nếu server không running vì bất kỳ lý do nào, command `pg_ctl` sẽ báo một message thích hợp cho biết nó không thể tìm thấy một instance PostgreSQL đã được start:
+.Output
+[source,output]
+....
+pg_ctl: server is running (PID: 1)
+/usr/lib/postgresql/16/bin/postgres
+....
 
-[source,text]
+
+Command báo cáo rằng server đang chạy, với Process Identifier (PID) là 1 (con số này sẽ khác trên máy của bạn). Ngoài ra, command còn báo cáo executable file dùng để khởi chạy server; trong ví dụ trên là `/usr/lib/postgresql/16/bin/postgres`.
+
+Nếu server không chạy vì bất kỳ lý do nào, command `pg_ctl` sẽ báo một thông báo phù hợp cho biết không tìm thấy PostgreSQL instance nào đã được khởi động:
+
+[source,console,role="transcript"]
 ....
 $ pg_ctl status
 pg_ctl: no server running
 ....
 
-Để báo cáo status của cluster, `pg_ctl` cần biết database đang lưu data của chính nó ở đâu, tức là `PGDATA` nằm ở đâu trên disk. Có hai cách để cho `pg_ctl` biết vị trí của `PGDATA`:
+.Command
+[source,bash]
+....
+pg_ctl status
+....
 
-* Set một environment variable tên là `PGDATA`, chứa path tới data directory.
-* Dùng command-line flag `-D` để chỉ định path tới data directory.
+.Output
+[source,output]
+....
+pg_ctl: no server running
+....
+
+
+Để báo cáo trạng thái của cluster, `pg_ctl` cần biết database đang lưu data của chính nó ở đâu, tức là `PGDATA` nằm ở đâu trên disk. Có hai cách để cho `pg_ctl` biết vị trí `PGDATA`:
+
+* Thiết lập một environment variable có tên `PGDATA`, chứa đường dẫn tới data directory.
+* Dùng command-line flag `-D` để chỉ định đường dẫn tới data directory.
 
 [quote]
 ____
-Hầu hết command liên quan đến PostgreSQL cluster đều tìm giá trị của `PGDATA` dưới dạng environment variable hoặc dưới dạng command-line option `-D`.
+Hầu hết command liên quan đến PostgreSQL cluster đều tìm giá trị `PGDATA` từ một environment variable hoặc từ command-line flag `-D`.
 
 ____
-Trong các example trước, không có `PGDATA` nào được chỉ định vì giả định rằng giá trị của `PGDATA` đã được chỉ định bởi một environment variable.
+Trong các ví dụ trước, `PGDATA` không được chỉ định vì chúng ta giả định rằng giá trị `PGDATA` này đã được thiết lập trong một environment variable.
 
-Có thể dễ dàng kiểm tra điều này, chẳng hạn trong Docker container:
+Bạn có thể dễ dàng kiểm tra điều này, chẳng hạn trong Docker container:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ echo $PGDATA
 /postgres/16/data
@@ -80,9 +107,25 @@ pg_ctl: server is running (PID: 1)
 /usr/lib/postgresql/16/bin/postgres
 ....
 
-Nếu setup của bạn không có environment variable `PGDATA`, bạn luôn có thể set thủ công trước khi launch `pg_ctl` hoặc bất kỳ command nào khác liên quan đến cluster:
-
+.Command
 [source,bash]
+....
+echo $PGDATA
+pg_ctl status
+....
+
+.Output
+[source,output]
+....
+/postgres/16/data
+pg_ctl: server is running (PID: 1)
+/usr/lib/postgresql/16/bin/postgres
+....
+
+
+Nếu môi trường của bạn không có environment variable `PGDATA`, bạn luôn có thể thiết lập nó thủ công trước khi chạy `pg_ctl` hoặc bất kỳ command nào khác liên quan đến cluster:
+
+[source,console,role="transcript"]
 ....
 $ export PGDATA=/postgres/16/data
 $ pg_ctl status
@@ -90,9 +133,24 @@ pg_ctl: server is running (PID: 1)
 /usr/lib/postgresql/16/bin/postgres
 ....
 
-Command-line argument được chỉ định bằng `-D` luôn có precedence so với mọi environment variable `PGDATA`. Vì vậy, nếu bạn không set hoặc cấu hình sai variable `PGDATA` nhưng truyền đúng value trên command line, mọi thứ vẫn hoạt động:
+.Command
+[source,bash]
+....
+export PGDATA=/postgres/16/data
+pg_ctl status
+....
 
-[source,text]
+.Output
+[source,output]
+....
+pg_ctl: server is running (PID: 1)
+/usr/lib/postgresql/16/bin/postgres
+....
+
+
+Command-line argument được chỉ định bằng `-D` luôn được ưu tiên hơn mọi environment variable `PGDATA`. Vì vậy, ngay cả khi không thiết lập hoặc cấu hình sai environment variable `PGDATA`, nếu bạn truyền đúng giá trị trên command line thì thao tác vẫn hoạt động bình thường:
+
+[source,console,role="transcript"]
 ....
 $ export PGDATA=/postgres/data          # wrong PGDATA!
 $ pg_ctl status -D /postgres/16/data
@@ -100,16 +158,31 @@ pg_ctl: server is running (PID: 1)
 /usr/lib/postgresql/16/bin/postgres "-D" "/postgres/16/data"
 ....
 
-Các concept về `PGDATA` và optional argument `-D` tương tự với hầu hết command “low-level” tác động lên một cluster. Điều này cho thấy rằng với cùng một tập executable, bạn có thể chạy nhiều PostgreSQL instance trên cùng một machine, miễn là giữ `PGDATA` directory của từng instance riêng biệt.
+.Command
+[source,bash]
+....
+export PGDATA=/postgres/data          # wrong PGDATA!
+pg_ctl status -D /postgres/16/data
+....
+
+.Output
+[source,output]
+....
+pg_ctl: server is running (PID: 1)
+/usr/lib/postgresql/16/bin/postgres "-D" "/postgres/16/data"
+....
+
+
+Các khái niệm liên quan đến `PGDATA` và argument tùy chọn `-D` cũng áp dụng tương tự cho hầu hết command “low-level” tác động lên một cluster. Điều này cho thấy rằng với cùng một tập executable, bạn có thể chạy nhiều PostgreSQL instance trên cùng một máy, miễn là giữ directory `PGDATA` của từng instance riêng biệt.
 
 [quote]
 ____
-Không sử dụng cùng một `PGDATA` directory cho nhiều version PostgreSQL. Dù trên test machine của riêng bạn, việc có một `PGDATA` directory duy nhất lần lượt được dùng bởi PostgreSQL 16 và PostgreSQL 15 có thể rất hấp dẫn, cách này sẽ không hoạt động như mong đợi và bạn có nguy cơ mất toàn bộ data. May mắn là PostgreSQL đủ thông minh để nhận ra `PGDATA` đã được tạo và sử dụng bởi một version khác, rồi từ chối operation; nhưng hãy cẩn thận, không chia sẻ cùng một `PGDATA` directory cho các instance khác nhau.
+Không sử dụng cùng một `PGDATA` directory cho nhiều version của PostgreSQL. Dù việc dùng một `PGDATA` directory duy nhất luân phiên cho PostgreSQL 16 và PostgreSQL 15 trên máy kiểm thử của bạn có vẻ hấp dẫn, cách này sẽ không hoạt động như mong đợi và bạn có nguy cơ mất toàn bộ data. May mắn là PostgreSQL đủ thông minh để nhận ra `PGDATA` đã được tạo và sử dụng bởi một version khác, sau đó từ chối thực hiện thao tác này; nhưng hãy cẩn thận, không chia sẻ cùng một `PGDATA` directory cho các instance khác nhau.
 
 ____
-`pg_ctl` có thể được dùng để start và stop một cluster thông qua các command tương ứng. Ví dụ, bạn có thể start một instance bằng command `start` (giả sử environment variable `PGDATA` đã được set):
+`pg_ctl` có thể dùng để start và stop một cluster bằng các command tương ứng. Ví dụ, bạn có thể start một instance bằng command `start` (giả sử environment variable `PGDATA` đã được thiết lập):
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_ctl start
 waiting for server to start....
@@ -124,32 +197,68 @@ done
 server started
 ....
 
+.Command
+[source,bash]
+....
+pg_ctl start
+....
+
+.Output
+[source,output]
+....
+waiting for server to start....
+[27765] LOG:   starting PostgreSQL 16.0 on x
+86_64-pc-linux-gnu, compiled by gcc (GCC) 12.1.0, 64-bit
+[27765] LOG:   listening on IPv6 address "::1", port 5432
+[27765] LOG: listening on IPv4 address "127.0.0.1", port 5432 [27765]
+LOG: listening on Unix socket "/tmp/.s.PGSQL.5432"
+[27768] LOG:   database system was shut down at 2023-07-19 07:20:24 EST
+[27765] LOG:   database system is ready to accept connections
+done
+server started
+....
+
+
 [quote]
 ____
-Các command `start`, `stop` và `restart` không hoạt động trên Docker image từ repository của cuốn sách này vì các container đó đang chạy PostgreSQL như main process; do đó, việc stop (hoặc restart) sẽ khiến container thoát. Tương tự, không cần start service vì service được tự động start ngay khi container start.
+Các command `start`, `stop` và `restart` không hoạt động trên Docker image từ repository của cuốn sách này vì các container đó chạy PostgreSQL dưới dạng main process; do đó, stop (hoặc restart) sẽ khiến container thoát. Tương tự, không cần start service vì service tự động start ngay khi container start.
 
 ____
-Command `pg_ctl` launch process postmaster; process này in ra một vài log line trước khi redirect log tới log file phù hợp. Message `server started` ở cuối xác nhận server đã start. Trong quá trình startup, PID của postmaster được báo cáo trong cặp square bracket; trong ví dụ trên, postmaster là operating system process số 27765.
+Command `pg_ctl` khởi chạy process postmaster; process này ghi ra một vài log line trước khi chuyển log sang log file phù hợp. Thông báo `server started` ở cuối xác nhận server đã khởi động. Trong quá trình startup, PID của postmaster được hiển thị trong cặp dấu ngoặc vuông; trong ví dụ trên, postmaster là operating system process số 27765.
 
-Bây giờ, nếu chạy lại `pg_ctl` để kiểm tra server, bạn sẽ thấy server đã được start:
+Nếu bây giờ chạy lại `pg_ctl` để kiểm tra server, bạn sẽ thấy server đã được khởi động:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_ctl status
 pg_ctl: server is running (PID: 27765)
 /usr/pgsql-16/bin/postgres
 ....
 
-Như bạn có thể thấy, server hiện đang running và `pg_ctl` hiển thị PID của postmaster đang chạy (27765), cũng như executable command line (trong trường hợp này là `/usr/pgsql-16/bin/postgres`).
+.Command
+[source,bash]
+....
+pg_ctl status
+....
+
+.Output
+[source,output]
+....
+pg_ctl: server is running (PID: 27765)
+/usr/pgsql-16/bin/postgres
+....
+
+
+Như bạn có thể thấy, server hiện đang chạy và `pg_ctl` hiển thị PID của postmaster (27765), cùng với command line của executable (trong trường hợp này là `/usr/pgsql-16/bin/postgres`).
 
 [quote]
 ____
-Nhớ rằng: process postmaster là process đầu tiên được start trong cluster. Cả backend process và postmaster đều được chạy từ executable `postgres`, và postmaster chỉ là root của toàn bộ PostgreSQL process, với mục đích chính là giữ tất cả process khác dưới sự kiểm soát.
+Hãy nhớ rằng process postmaster là process đầu tiên được khởi động trong cluster. Cả backend process lẫn postmaster đều chạy từ executable `postgres`, và postmaster chỉ là root của toàn bộ PostgreSQL process, với mục đích chính là giữ mọi process khác dưới sự kiểm soát.
 
 ____
-Bây giờ cluster đang running, hãy stop cluster. Như bạn có thể hình dung, `stop` là command dùng để chỉ dẫn `pg_ctl` action cần thực hiện:
+Bây giờ cluster đang chạy, hãy stop cluster. Như bạn có thể hình dung, `stop` là command yêu cầu `pg_ctl` thực hiện thao tác tương ứng:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_ctl stop
 waiting for server to shut down....
@@ -168,48 +277,101 @@ done
 server stopped
 ....
 
-Trong khi shutdown, system in ra một số message để thông báo cho administrator biết chuyện gì đang diễn ra; ngay khi server stop, message `server stopped` xác nhận cluster không còn running.
+.Command
+[source,bash]
+....
+pg_ctl stop
+....
 
-Shutdown một cluster có thể khó xử lý hơn nhiều so với start cluster, và vì lý do đó, bạn có thể truyền thêm argument cho command `stop` để `pg_ctl` hành động tương ứng.
+.Output
+[source,output]
+....
+waiting for server to shut down....
+[27765] LOG:     received fast shutdown request
+[27765] LOG:     aborting any active transactions
+[27765] LOG: background worker "logical replication launcher" (PID 27771)
+exited with exit code 1
+[27766] LOG:     shutting down
+[27766] LOG:     checkpoint starting: shutdown immediate
+[27766] LOG: checkpoint complete: wrote 0 buffers (0.0%); 0 WAL file(s)
+added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.035
+s; sync files=0, longest=0.000 s, average=0.000 s; distance=0 kB,
+estimate=237 kB; lsn=0/1529DC8, redo lsn=0/1529DC8
+[27765] LOG:     database system is shut down
+done
+server stopped
+....
 
-Có ba cách stop một cluster:
 
-* *smart mode* nghĩa là PostgreSQL cluster sẽ nhẹ nhàng chờ tất cả client đã connect disconnect, rồi mới shutdown cluster.
-* *fast mode* sẽ lập tức disconnect mọi client và shutdown server mà không cần chờ.
-* Chế độ immediate sẽ abort mọi PostgreSQL process, bao gồm cả client connection, và shutdown cluster theo cách dirty; nghĩa là server sẽ cần thực hiện một số hoạt động cụ thể khi restart để dọn dẹp dữ liệu dirty đó (sẽ nói thêm về việc này trong các chapter tiếp theo).
+Trong khi shutdown, hệ thống in ra một số thông báo để administrator biết chuyện gì đang diễn ra; ngay khi server dừng, thông báo `server stopped` xác nhận cluster không còn chạy.
 
-Trong mọi trường hợp, một khi stop command được phát hành, server sẽ không chấp nhận bất kỳ incoming connection mới nào từ client, và tùy vào stop mode bạn đã chọn, các connection hiện có sẽ bị terminate. Stop mode mặc định, nếu không được chỉ định, là fast; mode này buộc client phải disconnect ngay lập tức nhưng bảo đảm data integrity.
+Shutdown một cluster có thể khó xử lý hơn nhiều so với việc start cluster, vì vậy bạn có thể truyền thêm argument cho command `stop` để `pg_ctl` hành động tương ứng.
+
+Có ba cách để stop một cluster:
+
+* *smart mode* nghĩa là PostgreSQL cluster sẽ chờ tất cả client đang kết nối ngắt kết nối rồi mới shutdown cluster.
+* *fast mode* sẽ lập tức ngắt kết nối mọi client và shutdown server mà không chờ.
+* *immediate mode* sẽ abort mọi PostgreSQL process, bao gồm cả client connection, và shutdown cluster theo kiểu dirty; nghĩa là khi restart, server sẽ cần thực hiện một số hoạt động cụ thể để dọn dẹp data còn ở trạng thái dirty đó (sẽ nói thêm về việc này trong các chương tiếp theo).
+
+Trong mọi trường hợp, sau khi thực hiện stop command, server sẽ không chấp nhận bất kỳ connection mới nào từ client; tùy vào stop mode đã chọn, các connection hiện có sẽ bị ngắt. Nếu không được chỉ định, stop mode mặc định là fast; mode này buộc client ngắt kết nối ngay lập tức nhưng bảo đảm tính toàn vẹn của data.
 
 Nếu muốn thay đổi stop mode, bạn có thể dùng flag `-m` và chỉ định tên mode như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_ctl stop -m smart
 waiting for server to shut down........................ done
 server stopped
 ....
 
-Trong ví dụ trước, command `pg_ctl` sẽ chờ, in ra một dấu chấm mỗi giây cho đến khi tất cả client disconnect khỏi server. Trong lúc đó, nếu bạn thử connect tới cùng cluster từ một client khác, bạn sẽ nhận được error vì server đã bước vào quy trình stopping:
+.Command
+[source,bash]
+....
+pg_ctl stop -m smart
+....
 
-[source,text]
+.Output
+[source,output]
+....
+waiting for server to shut down........................ done
+server stopped
+....
+
+
+Trong ví dụ trên, command `pg_ctl` sẽ chờ và in ra một dấu chấm mỗi giây cho đến khi tất cả client ngắt kết nối khỏi server. Trong lúc đó, nếu bạn thử kết nối tới cùng cluster từ một client khác, bạn sẽ nhận được lỗi vì server đã bắt đầu shutdown:
+
+[source,console,role="transcript"]
 ....
 $ psql
 psql: error: could not connect to server: FATAL:  the database system is
 shutting down
 ....
 
-Có thể chỉ định chữ cái đầu tiên của stop mode thay vì viết cả từ; chẳng hạn, `s` cho smart, `i` cho immediate và `f` cho fast.
+.Command
+[source,bash]
+....
+psql
+....
+
+.Output
+[source,output]
+....
+psql: error: could not connect to server: FATAL:  the database system is
+shutting down
+....
 
 
-== Các PostgreSQL process
+Bạn có thể chỉ định chữ cái đầu tiên của stop mode thay vì viết cả từ; chẳng hạn, `s` cho smart, `i` cho immediate và `f` cho fast.
 
-Bạn đã biết postmaster là root của mọi PostgreSQL process, nhưng như đã giải thích trong Chapter 1, *Introduction to PostgreSQL*, PostgreSQL sẽ khởi chạy nhiều process khác nhau khi startup. Các process này chịu trách nhiệm giữ cho cluster hoạt động và ở trạng thái tốt.
+== Các process của PostgreSQL
 
-Phần này cung cấp một cái nhìn tổng quan về các process chính bạn có thể tìm thấy trong một cluster đang chạy, giúp bạn nhận diện từng process và mục đích tương ứng của chúng.
+Bạn đã biết postmaster là root của mọi PostgreSQL process, nhưng như đã giải thích trong Chương 1, *Giới thiệu về PostgreSQL*, PostgreSQL sẽ khởi chạy nhiều process khác nhau khi startup. Các process này chịu trách nhiệm duy trì cluster hoạt động ổn định.
 
-Nếu kiểm tra một cluster đang chạy từ góc nhìn của operating system, bạn sẽ thấy một nhóm process gắn với PostgreSQL:
+Phần này trình bày tổng quan về các process chính bạn có thể tìm thấy trong một cluster đang chạy, giúp bạn nhận diện từng process và vai trò của chúng.
 
-[source,text]
+Nếu quan sát một cluster đang chạy từ góc nhìn của operating system, bạn sẽ thấy một nhóm process của PostgreSQL:
+
+[source,console,role="transcript"]
 ....
 $ pstree -p postgres
 postgres(1)─┬─postgres(34)
@@ -219,7 +381,24 @@ postgres(1)─┬─postgres(34)
             └─postgres(39)
 ....
 
-[source,text]
+.Command
+[source,bash]
+....
+pstree -p postgres
+....
+
+.Output
+[source,output]
+....
+postgres(1)─┬─postgres(34)
+            ├─postgres(35)
+            ├─postgres(37)
+            ├─postgres(38)
+            └─postgres(39)
+....
+
+
+[source,console,role="transcript"]
 ....
 $ ps -C postgres -af
 postgres           1         0   0 11:08 ?            00:00:00 postgres
@@ -233,28 +412,49 @@ postgres          39         1   0 11:08 ?            00:00:00 postgres: logical
 replication launcher
 ....
 
+.Command
+[source,bash]
+....
+ps -C postgres -af
+....
+
+.Output
+[source,output]
+....
+postgres           1         0   0 11:08 ?            00:00:00 postgres
+postgres          34         1   0 11:08 ?            00:00:00 postgres: checkpointer
+postgres          35         1   0 11:08 ?            00:00:00 postgres: background
+writer
+postgres          37         1   0 11:08 ?            00:00:00 postgres: walwriter
+postgres          38         1   0 11:08 ?            00:00:00 postgres: autovacuum
+launcher
+postgres          39         1   0 11:08 ?            00:00:00 postgres: logical
+replication launcher
+....
+
+
 [quote]
 ____
-Các PID được báo cáo trong những ví dụ này là PID của Docker container, trong đó PostgreSQL process đầu tiên có PID bằng `1`. Trên các máy khác, bạn sẽ nhận được các PID khác.
+Các PID được báo cáo trong những ví dụ này là PID của Docker container, trong đó PostgreSQL process đầu tiên có PID bằng `1`. Trên các máy khác, PID sẽ khác.
 
 ____
-Như bạn có thể thấy, process có PID `1` là process spawn một số child process, do đó đây là PostgreSQL process đầu tiên và chính được khởi chạy; vì vậy, nó thường được gọi là postmaster. Các process khác gồm:
+Như bạn có thể thấy, process có PID `1` spawn một số child process, nên đây là process PostgreSQL đầu tiên và là process chính được khởi chạy; vì vậy, nó thường được gọi là postmaster. Các process khác gồm:
 
-* *checkpointer* là process chịu trách nhiệm thực thi các checkpoint, tức những thời điểm database bảo đảm rằng toàn bộ data thực sự được lưu bền vững trên disk.
+* *checkpointer* là process chịu trách nhiệm thực hiện các checkpoint, tức những thời điểm database bảo đảm toàn bộ data thực sự được lưu bền vững trên disk.
 * *background writer* chịu trách nhiệm hỗ trợ đẩy data từ memory ra permanent storage.
-* *walwriter* chịu trách nhiệm ghi Write-Ahead Logs (WAL), các log cần thiết để bảo đảm data reliability ngay cả khi database crash.
+* *walwriter* chịu trách nhiệm ghi Write-Ahead Logs (WAL), những log cần thiết để bảo đảm độ tin cậy của data ngay cả khi database gặp crash.
 * *logical replication launcher* là process chịu trách nhiệm xử lý logical replication.
 
-Tùy vào configuration chính xác của cluster, có thể có các process khác đang hoạt động:
+Tùy vào configuration cụ thể của cluster, có thể có các process khác đang hoạt động:
 
-* *Background workers:* Đây là các process có thể được user tùy chỉnh để thực hiện các background task.
-* *WAL receiver và/hoặc WAL sender:* Đây là các process tham gia nhận data từ hoặc gửi data tới một cluster khác trong các replication scenario.
+* *Background workers:* Đây là các process mà user có thể tùy chỉnh để thực hiện các background task.
+* *WAL receiver và/hoặc WAL sender:* Đây là các process tham gia nhận data từ hoặc gửi data tới một cluster khác trong các kịch bản replication.
 
-Nhiều concept và mục đích của danh sách process trước sẽ trở nên rõ ràng hơn khi bạn tiếp tục đi qua các chapter của sách, nhưng hiện tại, chỉ cần biết rằng PostgreSQL còn có một vài process khác luôn active bất kể có incoming client connection hay không.
+Nhiều khái niệm và vai trò của các process trên sẽ trở nên rõ ràng hơn khi bạn tiếp tục đọc các chương của sách, nhưng hiện tại, chỉ cần biết rằng PostgreSQL còn có một vài process khác luôn hoạt động, bất kể có connection từ client đến hay không.
 
-Khi một client connect tới cluster của bạn, một process mới sẽ được spawn: process này, được gọi là backend process, chịu trách nhiệm phục vụ request của client (nghĩa là execute query và trả về result). Bạn có thể xem và đếm các connection bằng cách kiểm tra process list:
+Khi một client kết nối tới cluster, một process mới sẽ được spawn. Process này được gọi là backend process và chịu trách nhiệm xử lý request của client (tức là thực thi query và trả về result). Bạn có thể xem và đếm các connection bằng cách kiểm tra danh sách process:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ ps -C postgres -af
 UID             PID       PPID   C STIME TTY                 TIME CMD
@@ -272,8 +472,33 @@ postgres     40       1    0 04:35 ?             00:00:00 postgres: postgres pos
 [local] idle
 ....
 
-Nếu so sánh danh sách trước với danh sách vừa rồi, bạn sẽ thấy có thêm một process với PID `40`: đây là một backend process. Cụ thể, process này đại diện cho một client connection tới database có tên `postgres`.
+.Command
+[source,bash]
+....
+ps -C postgres -af
+....
 
-PostgreSQL dùng cách tiếp cận process cho concurrency thay vì cách tiếp cận multi-thread. Có nhiều lý do cho việc này; đáng chú ý nhất là isolation và portability mà cách tiếp cận multi-process mang lại. Hơn nữa, trên phần cứng và phần mềm hiện đại, việc fork một process không còn là một thao tác quá tốn kém.
+.Output
+[source,output]
+....
+UID             PID       PPID   C STIME TTY                 TIME CMD
+postgres          1          0   0 11:08 ?              00:00:00 postgres
+postgres         34          1   0 11:08 ?              00:00:00 postgres: checkpointer
+postgres         35          1   0 11:08 ?              00:00:00 postgres: background
+writer
+postgres         37          1   0 11:08 ?              00:00:00 postgres: walwriter
+postgres         38          1   0 11:08 ?              00:00:00 postgres: autovacuum
+launcher
+postgres         39          1   0 11:08 ?              00:00:00 postgres: logical
+replication launcher
 
-Vì vậy, một khi PostgreSQL đang chạy, có một cây process bắt nguồn từ postmaster. Mục đích của postmaster là spawn process mới khi cần xử lý các database connection mới, đồng thời monitor toàn bộ maintenance process để bảo đảm cluster đang hoạt động tốt.
+postgres     40       1    0 04:35 ?             00:00:00 postgres: postgres postgres
+[local] idle
+....
+
+
+Nếu so sánh danh sách trước với danh sách vừa rồi, bạn sẽ thấy thêm một process có PID `40`: đây là một backend process. Cụ thể, process này đại diện cho một client connection tới database có tên `postgres`.
+
+PostgreSQL dùng cách tiếp cận dựa trên process cho concurrency thay vì cách tiếp cận multi-thread. Có nhiều lý do cho lựa chọn này; đáng chú ý nhất là isolation và portability mà cách tiếp cận multi-process mang lại. Hơn nữa, trên phần cứng và phần mềm hiện đại, fork một process không còn là thao tác quá tốn kém.
+
+Vì vậy, khi PostgreSQL đang chạy, có một cây process bắt nguồn từ postmaster. Mục đích của postmaster là tạo process mới khi cần xử lý các database connection mới, đồng thời theo dõi toàn bộ maintenance process để bảo đảm cluster hoạt động tốt.

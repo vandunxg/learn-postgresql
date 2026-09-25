@@ -1,10 +1,10 @@
 = Sử dụng `ilike`
 
-Trong PostgreSQL, có thể thực hiện một query `like` không phân biệt chữ hoa chữ thường bằng cách sử dụng operator `ilike`.
+Trong PostgreSQL, bạn có thể dùng operator `like` để thực hiện query `ilike` mà không phân biệt chữ hoa chữ thường.
 
-Trong trường hợp này, query của chúng ta sẽ trở thành như sau:
+Khi đó, query sẽ như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from categories where description ilike '%DISCUSS%';
    pk |   title   |              description
@@ -14,4 +14,23 @@ forumdb=> select * from categories where description ilike '%DISCUSS%';
 (2 rows)
 ....
 
-Đây là cách PostgreSQL giải quyết vấn đề query `like` không phân biệt chữ hoa chữ thường mà chúng ta đã gặp trước đó.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories
+WHERE description ilike '%DISCUSS%';
+....
+
+.Output
+[source,output]
+....
+   pk |   title   |              description
+----+----------+------------------------------
+    1 | Database | Database related discussions
+    2 | Unix      | Unix and Linux discussions
+(2 rows)
+....
+
+
+Đây là cách PostgreSQL giải quyết vấn đề với query `like` không phân biệt chữ hoa chữ thường mà chúng ta đã gặp trước đó.

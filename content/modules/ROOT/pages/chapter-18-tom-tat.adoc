@@ -1,6 +1,6 @@
 = Tóm tắt
 
-Trong chapter này, chúng ta đã thảo luận về logical replication. Chúng ta đã thấy logical replication dựa trên concept reverse engineering, bắt đầu bằng việc phân tích các WAL segment để extract những logical command cần được chuyển tới replica server. Chúng ta đã thấy logical replication hữu ích khi muốn replicate một phần database và khi muốn thực hiện hot migration giữa các version PostgreSQL khác nhau. Logical replication thực hiện được điều này vì nó không replicate data ở dạng binary mà thay vào đó extract các logical DML command từ WAL file, sau đó replicate chúng trên replica server.
-Chúng ta đã thấy cách tạo một logical replica trong thực tế và đã đề cập đến một số vấn đề có thể xảy ra khi làm việc với logical replication.
+Trong chương này, chúng ta đã thảo luận về logical replication. Chúng ta đã thấy logical replication dựa trên ý tưởng reverse engineering, bắt đầu bằng việc phân tích các WAL segment để trích xuất những lệnh logical cần được chuyển đến replica server. Chúng ta đã thấy logical replication hữu ích khi muốn replicate một phần database hoặc thực hiện hot migration giữa các phiên bản PostgreSQL khác nhau. Logical replication thực hiện được điều này vì nó không replicate dữ liệu ở dạng binary; thay vào đó, nó trích xuất các lệnh DML ở dạng logical từ WAL file rồi replicate chúng trên replica server.
+Chúng ta cũng đã tìm hiểu cách tạo một logical replica trong thực tế và đề cập đến một số vấn đề có thể phát sinh khi làm việc với logical replication.
 
-Trong chapter tiếp theo, chúng ta sẽ nói về những tool và extension hữu ích. Chúng ta sẽ xem tool nào phù hợp nhất để giúp công việc của một PostgreSQL DBA trở nên dễ dàng hơn.
+Trong chương tiếp theo, chúng ta sẽ tìm hiểu về một số công cụ và extension hữu ích. Chúng ta sẽ xem xét công cụ nào phù hợp nhất để giúp công việc của PostgreSQL DBA trở nên dễ dàng hơn.

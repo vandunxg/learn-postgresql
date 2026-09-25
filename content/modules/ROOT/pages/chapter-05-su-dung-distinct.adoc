@@ -1,10 +1,10 @@
 = Sử dụng `distinct`
 
-Bây giờ chúng ta sẽ thảo luận về một loại query khác: query `distinct`. Tuy nhiên, trước tiên chúng ta cần giới thiệu một function rất hữu ích khác dành cho DBA, gọi là function `coalesce`. Function `coalesce`, khi nhận hai hoặc nhiều parameter, sẽ trả về giá trị đầu tiên không phải `NULL`.
+Bây giờ, chúng ta sẽ tìm hiểu một loại query khác: query `distinct`. Tuy nhiên, trước hết cần giới thiệu một function khác rất hữu ích cho DBA, đó là function `coalesce`. Khi nhận từ hai đối số trở lên, function `coalesce` trả về giá trị đầu tiên khác `NULL`.
 
-Ví dụ, hãy sử dụng function `coalesce` với giá trị test:
+Ví dụ, hãy thử function `coalesce` với giá trị kiểm thử sau đây:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select coalesce(NULL,'test');
    coalesce
@@ -13,25 +13,68 @@ forumdb=> select coalesce(NULL,'test');
 (1 row)
 ....
 
-Trong query trên, function `coalesce` trả về `test` vì argument đầu tiên là `NULL` còn argument thứ hai không phải `NULL`.
+.SQL
+[source,sql]
+....
+SELECT coalesce(NULL, 'test');
+....
 
-Bây giờ, hãy insert một category mới:
+.Output
+[source,output]
+....
+   coalesce
+----------
+   test
+(1 row)
+....
 
-[source,text]
+
+Trong query trên, function `coalesce` trả về `test` vì đối số đầu tiên là `NULL`, còn đối số thứ hai không phải `NULL`.
+
+Bây giờ, hãy thêm một category mới:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into categories (title) values ('New Category');
 INSERT 0 1
 ....
 
-Sau đó hãy thực hiện query sau:
+.SQL
+[source,sql]
+....
+INSERT INTO categories (title)
+VALUES ('New Category');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 1
+....
+
+
+Tiếp theo, hãy thực hiện query sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=# \pset null (NULL)
 Null display is "(NULL)".
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+\pset NULL (NULL)
+....
+
+.Output
+[source,output]
+....
+Null display is "(NULL)".
+....
+
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,description from categories;
  pk |            title             |              description
@@ -43,11 +86,34 @@ forumdb=> select pk,title,description from categories;
 (4 rows)
 ....
 
-Trong ví dụ trên, field `description` có giá trị `NULL` đối với title `New Category`.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    description
+FROM categories;
+....
 
-Bây giờ hãy thử sử dụng function `coalesce` để hiển thị giá trị `No Description` thay vì `NULL`.
+.Output
+[source,output]
+....
+ pk |            title             |              description
+ ----+-----------------------+----------------------------
+  1 | Database                     | Database related discussions
+  2 | Unix                         | Unix and Linux discussions
+  3 | Programming Languages       | All about programming languages
+  4 | New Category                | (NULL)
+(4 rows)
+....
 
-[source,text]
+
+Trong ví dụ trên, column `description` có giá trị `NULL` trong row có title là `New Category`.
+
+Bây giờ, hãy thử dùng function `coalesce` để hiển thị giá trị `No Description` thay cho `NULL`.
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,coalesce(description,'No description') from
 categories;
@@ -60,11 +126,34 @@ categories;
 (4 rows)
 ....
 
-Trong đoạn code trên, function `coalesce` biến mọi giá trị `NULL` thành string `No description`. Một điểm khác ở function `coalesce` không thân thiện với người dùng là tên của field được tạo khi gọi một function không phải là tên mà chúng ta mong muốn. Trong trường hợp này, field thứ hai của result set được gọi là `coalesce`, không phải tên mà chúng ta thích; đó là vì nếu làm việc trong một team, tên dễ đọc đối với con người sẽ được ưu tiên.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    coalesce(description, 'No description')
+FROM categories;
+....
 
-Trong PostgreSQL, có thể gán alias cho bất kỳ field nào trong một query. Ví dụ, chúng ta có thể gán alias cho field `coalesce` như sau:
+.Output
+[source,output]
+....
+ pk |            title             |               coalesce
+ ----+-----------------------+----------------------------
+  1 | Database                     | Database related discussions
+  2 | Unix                         | Unix and Linux discussions
+  3 | Programming Languages       | All about programming languages
+  4 | New Category                | No description
+(4 rows)
+....
 
-[source,text]
+
+Trong đoạn code trên, function `coalesce` chuyển mọi giá trị `NULL` thành chuỗi `No description`. Một điểm khác khiến việc dùng function `coalesce` kém thân thiện với người dùng là tên column được gán khi gọi function không phải là tên chúng ta mong muốn. Trong trường hợp này, column thứ hai trong result set có tên `coalesce`, trong khi chúng ta muốn một tên dễ đọc hơn; khi làm việc trong một nhóm, tên dễ đọc được ưu tiên.
+
+Trong PostgreSQL, có thể gán alias cho bất kỳ column nào trong query. Ví dụ, chúng ta có thể gán alias cho column `coalesce` như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,coalesce(description,'No description') as
 description from categories;
@@ -77,11 +166,34 @@ description from categories;
 (4 rows)
 ....
 
-Bây giờ result set có field `description` thay vì field `coalesce`.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    coalesce(description, 'No description') AS description
+FROM categories;
+....
 
-Nếu muốn sử dụng alias có khoảng trắng hoặc chữ in hoa, chúng ta phải đặt alias trong dấu ngoặc kép `""`, như trong ví dụ sau:
+.Output
+[source,output]
+....
+ pk |            title             |              description
+ ----+-----------------------+---------------------------------
+  1 | Database                     | Database related discussions
+  2 | Unix                         | Unix and Linux discussions
+  3 | Programming Languages       | All about programming languages
+  4 | New Category                | No description
+(4 rows)
+....
 
-[source,text]
+
+Khi đó, result set có column `description` thay cho column `coalesce`.
+
+Nếu muốn dùng alias có khoảng trắng hoặc chữ hoa, phải đặt alias trong dấu ngoặc kép `""`, như trong ví dụ sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,coalesce(description,'No description') as
 "Description" from categories;
@@ -94,18 +206,55 @@ forumdb=> select pk,title,coalesce(description,'No description') as
 (4 rows)
 ....
 
-Result set không có alias là `Description` (chữ in hoa), mà có alias là `description` (chữ thường), điều này có vẻ không đúng. Bây giờ hãy insert một record khác như sau:
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    coalesce(description, 'No description') AS "Description"
+FROM categories;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |           title           |              Description
+----+---------------------------+---------------------------------
+  1 | Database                  | Database related discussions
+  2 | Unix                      | Unix and Linux discussions
+  3 | Programming Languages    | All about programming languages
+  4 | New Category             | No description
+(4 rows)
+....
+
+
+Result set không có alias là `Description` (chữ hoa), mà lại có alias là `description` (chữ thường), dường như không đúng. Bây giờ, hãy insert một row khác như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into categories (title,description) values
 ('Database','PostgreSQL');
 INSERT 0 1
 ....
 
-Và hãy thực hiện query này:
+.SQL
+[source,sql]
+....
+INSERT INTO categories (title, description)
+VALUES ('Database', 'PostgreSQL');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 1
+....
+
+
+Tiếp theo, hãy thực hiện query này:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select title from categories order by title;
             title
@@ -118,9 +267,31 @@ forumdb=> select title from categories order by title;
 (5 rows)
 ....
 
-Như có thể thấy trong query trên, có 2 record có cùng giá trị `Database`; nếu muốn hiển thị tất cả các giá trị distinct, chúng ta phải sử dụng clause `DISTINCT`:
+.SQL
+[source,sql]
+....
+SELECT title
+FROM categories
+ORDER BY title;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+            title
+-----------------------
+ Database
+ Database
+ New Category
+ Programming Languages
+ Unix
+(5 rows)
+....
+
+
+Như có thể thấy trong query trên, có 2 row có cùng giá trị `Database`; nếu muốn chỉ hiển thị các giá trị không trùng lặp, chúng ta phải dùng clause `DISTINCT`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select distinct title from categories order by title;
             title
@@ -132,4 +303,25 @@ forumdb=> select distinct title from categories order by title;
 (4 rows)
 ....
 
-Trong query trên, chúng ta đã sử dụng statement `select distinct`. Statement `select distinct` được dùng để chỉ trả về các giá trị distinct (khác nhau). Về bên trong, statement `distinct` thực hiện việc sort dữ liệu đối với các table lớn, nghĩa là nếu một query sử dụng statement `distinct`, query đó có thể chậm hơn khi số lượng record tăng lên.
+.SQL
+[source,sql]
+....
+SELECT DISTINCT title
+FROM categories
+ORDER BY title;
+....
+
+.Output
+[source,output]
+....
+            title
+-----------------------
+ Database
+ New Category
+ Programming Languages
+ Unix
+(4 rows)
+....
+
+
+Trong query trên, chúng ta đã sử dụng statement `select distinct`. Statement `select distinct` chỉ trả về các giá trị không trùng lặp. Với các table lớn, việc dùng `distinct` có thể khiến PostgreSQL phải sort dữ liệu. Vì vậy, query dùng `distinct` có thể chậm hơn khi số lượng row tăng lên.

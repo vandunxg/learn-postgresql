@@ -1,33 +1,33 @@
 = Auto-explain
 
-Auto-explain là một extension giúp DBA có được ý tưởng về các query chậm và execution plan của chúng. Về cơ bản, auto-explain được trigger khi một query đang chạy chậm hơn threshold được chỉ định, sau đó dump execution plan của query vào PostgreSQL logs (xem *Chapter 14, Logging and Auditing* để biết thêm chi tiết).
+Auto-explain là một extension giúp DBA nắm được các query chậm và execution plan tương ứng. Về cơ bản, auto-explain được kích hoạt khi một query chạy lâu hơn threshold đã chỉ định, sau đó ghi execution plan của query vào log PostgreSQL (xem *Chapter 14, Logging and Auditing* để biết thêm chi tiết).
 
 [quote]
 ____
-*Lưu ý:* Docker image cho chapter này đã được cấu hình sẵn auto-explain và log machinery.
+*Lưu ý:* Docker image của chương này đã được cấu hình sẵn auto-explain và hệ thống log.
 
 ____
-Bằng cách này, DBA có thể nắm được các query chậm và execution plan của chúng mà không cần chạy lại các query đó. Nhờ vậy, DBA có thể inspect execution plan và quyết định có áp dụng index hay không, áp dụng ở đâu, hoặc thực hiện phân tích sâu hơn.
+Nhờ đó, DBA có thể xác định các query chậm và execution plan tương ứng mà không cần chạy lại các query đó. DBA có thể kiểm tra execution plan để quyết định có áp dụng index hay không, áp dụng ở đâu hoặc thực hiện phân tích sâu hơn.
 
-Module auto-explain được cấu hình thông qua một tập option parameter `auto_explain` có thể được thêm vào PostgreSQL configuration (file `postgresql.conf`), nhưng cần nhớ rằng để activate module, bạn cần restart cluster.
+Module auto-explain được cấu hình thông qua các parameter option thuộc `auto_explain`, có thể thêm vào configuration của PostgreSQL (file `postgresql.conf`). Tuy nhiên, cần nhớ rằng bạn phải restart cluster để kích hoạt module.
 
-Module auto-explain có thể thực hiện gần như những việc mà một command `EXPLAIN` thủ công có thể làm, bao gồm `EXPLAIN ANALYZE`, nhưng nó phải được cấu hình đúng.
+Module auto-explain có thể thực hiện gần như mọi việc mà một lệnh `EXPLAIN` thủ công có thể làm, bao gồm cả `EXPLAIN ANALYZE`, nhưng phải được cấu hình đúng.
 
-Tất cả setting của auto-explain đều nằm trong namespace `auto_explain`, do đó mọi parameter đều có prefix bắt đầu bằng `auto_explain.`; các setting chính như sau:
+Tất cả setting của auto-explain đều nằm trong namespace `auto_explain`, vì vậy mọi parameter đều có prefix `auto_explain.`. Các setting chính gồm:
 
-* `auto_explain.log_min_duration` là threshold thời gian mà một statement phải mất trước khi được log. Bất kỳ statement nào cần nhiều thời gian hơn setting này sẽ xuất hiện trong cluster logs cùng output `EXPLAIN` của nó.
-* `auto_explain.log_format` và `auto_explain.log_level` kiểm soát format của output, dưới dạng text, JSON, YAML, XML, và level mà output đó sẽ được log (ví dụ: INFO).
+* `auto_explain.log_min_duration` là threshold thời gian mà một statement phải vượt qua trước khi được log. Bất kỳ statement nào mất nhiều thời gian hơn giá trị này sẽ xuất hiện trong log của cluster cùng với output `EXPLAIN` tương ứng.
+* `auto_explain.log_format` và `auto_explain.log_level` kiểm soát format của output (text, JSON, YAML hoặc XML) và level dùng để log output đó (ví dụ: INFO).
 * `auto_explain.log_verbose`, nếu được bật, cung cấp thông tin chi tiết hơn trong output.
-* `auto_explain.sample_rate` là một value từ 0 đến 1 cho biết sampling rate của một session. Ví dụ, 0.5 nghĩa là cứ hai statement thì một statement được log.
-* `auto_explain.log_nested_statements` là một boolean value quyết định liệu các statement “inner” có phải được log riêng hay không. Ví dụ, nếu option này được bật khi log một function call, các statement cũng xảy ra bên trong function sẽ được log và explain.
-* `auto_explain.log_analyze` là một boolean value cho biết statement được log có phải đồng thời report các value của `EXPLAIN ANALYZE`, chủ yếu là timing thực tế, hay không. Hãy lưu ý rằng việc lấy thông tin timing theo từng node có thể yêu cầu nhiều resource và vì vậy có thể làm chậm toàn bộ query. Khi parameter này được bật, có thể bật các setting khác để cung cấp cùng thông tin mà `EXPLAIN ANALYZE` cung cấp:
-* `auto_explain.log_buffers`, khi được bật, cung cấp thông tin về việc sử dụng buffer.
+* `auto_explain.sample_rate` là một giá trị từ 0 đến 1, cho biết sampling rate của một session. Ví dụ, 0.5 nghĩa là trung bình một nửa số statement sẽ được log.
+* `auto_explain.log_nested_statements` là một giá trị boolean quyết định các statement bên trong có được log riêng hay không. Ví dụ, nếu option này được bật khi log một function call, các statement được thực thi bên trong function cũng sẽ được log kèm execution plan.
+* `auto_explain.log_analyze` là một giá trị boolean cho biết statement được log có đồng thời báo cáo các giá trị do `EXPLAIN ANALYZE` cung cấp, chủ yếu là timing thực tế, hay không. Hãy lưu ý rằng việc lấy thông tin timing của từng node có thể yêu cầu nhiều tài nguyên và vì vậy có thể làm chậm toàn bộ query. Khi parameter này được bật, có thể bật thêm các setting khác để cung cấp cùng thông tin mà `EXPLAIN ANALYZE` cung cấp:
+* `auto_explain.log_buffers`, khi được bật, cung cấp thông tin về mức sử dụng buffer.
 * `auto_explain.log_wal`, khi được bật, cung cấp thông tin về WAL do một query tạo ra.
 * `auto_explain.log_timing`, khi được bật, cung cấp thông tin timing theo từng node.
-* `auto_explain.log_triggers`, khi được bật, cung cấp thông tin về các lần thực thi trigger bên trong một statement.
-* `auto_explain.log_settings`, khi được bật, report các setting khác với cluster-wide configuration.
+* `auto_explain.log_triggers`, khi được bật, cung cấp thông tin về các lần trigger được thực thi bên trong một statement.
+* `auto_explain.log_settings`, khi được bật, báo cáo các setting khác với configuration áp dụng trên toàn cluster.
 
-Để install và configure module, hãy bắt đầu đơn giản bằng cách thêm hai setting sau vào cluster configuration trong `postgresql.conf`:
+Để cài đặt và cấu hình module, trước hết hãy thêm hai setting sau vào configuration của cluster trong `postgresql.conf`:
 
 [source,text]
 ....
@@ -35,11 +35,11 @@ Tất cả setting của auto-explain đều nằm trong namespace `auto_explain
    auto_explain.log_min_duration = '100ms'
 ....
 
-Dòng đầu tiên bảo PostgreSQL load library liên quan đến module auto-explain, trong khi dòng thứ hai instrument module để trigger bất cứ khi nào một query mất hơn 100 millisecond mới hoàn tất. Tất nhiên, bạn có thể tăng hoặc giảm query duration, tùy nhu cầu.
+Dòng đầu tiên yêu cầu PostgreSQL load library liên quan đến module auto-explain, còn dòng thứ hai cấu hình module để kích hoạt mỗi khi một query mất hơn 100 millisecond mới hoàn tất. Tất nhiên, bạn có thể tăng hoặc giảm thời lượng query tùy nhu cầu.
 
-Với configuration đó, giờ có thể thực thi một query khá dài như sau (giả sử bạn đã drop/disable các index được tạo trong section trước):
+Với configuration đó, bạn có thể chạy một query khá dài như sau (giả sử bạn đã xóa hoặc disable các index được tạo trong phần trước):
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \timing
    forumdb=> SELECT count(*)
@@ -55,9 +55,27 @@ Với configuration đó, giờ có thể thực thi một query khá dài như 
    Time: 142.629 ms
 ....
 
-Query mất 142 millisecond, đủ lâu để trigger auto-explain, và thực tế trong PostgreSQL logs, bạn có thể thấy như sau:
+.SQL
+[source,sql]
+....
+\timing SELECT count(*) FROM posts p JOIN users u ON u.pk = p.author WHERE u.username = 'fluca1978' AND daterange(CURRENT_DATE - 20, CURRENT_DATE) @> p.created_on::date;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+       count
+   -------
+          20
+   (1 row)
+
+   Time: 142.629 ms
+....
+
+
+Query mất 142 millisecond, đủ lâu để auto-explain được kích hoạt. Trong log của PostgreSQL, bạn có thể thấy như sau:
+
+[source,console,role="transcript"]
 ....
    $ tail /postgres/16/data/log/postgresql.log
    INFO:       duration: 139.933 ms    plan:
@@ -81,11 +99,42 @@ Query mất 142 millisecond, đủ lâu để trigger auto-explain, và thực t
    ...
 ....
 
-Đó chính xác là output mà một command `EXPLAIN` thông thường sẽ tạo ra cho cùng query.
+.Command
+[source,bash]
+....
+tail /postgres/16/data/log/postgresql.log
+....
 
-Điểm hay của cách tiếp cận này là bạn không phải lo lắng hoặc nhớ thực thi `EXPLAIN` trên các query hay các query đã thu thập; bạn chỉ cần inspect logs để tìm execution plan của những query chậm. Sau khi đã sửa các query như query trước đó, chẳng hạn bằng cách tạo index, bạn có thể tăng threshold của auto-explain để bắt các query chậm hơn và lặp lại quy trình.
+.Output
+[source,output]
+....
+   INFO:       duration: 139.933 ms    plan:
+   Query Text: SELECT count(*)
+   FROM forum.posts p
+   JOIN forum.users u ON u.pk = p.author
+   WHERE u.username = 'fluca1978'
+   AND        daterange( CURRENT_DATE - 20, CURRENT_DATE ) @> p.created_on::date;
+   Aggregate        (cost=13803.59..13803.60 rows=1 width=8)
+    Output: count(*)
+    ->       Gather   (cost=1008.30..13803.58 rows=2 width=0)
+               Workers Planned: 2
+               ->   Hash Join   (cost=8.30..12803.38 rows=1 width=0)
+                      Inner Unique: true
+                      Hash Cond: (p.author = u.pk)
+                -> Parallel Seq Scan on forum.posts p                 (cost=0.00..12792.33
+   rows=1042 width=4)
 
-Để minh họa sự khác biệt trong output khi chạy query với `auto_explain.log_analyze` được bật, sau đây là output được tạo ra cho chính query đó:
+
+
+   ...
+....
+
+
+Đó chính xác là output mà một lệnh `EXPLAIN` thông thường sẽ tạo ra cho cùng query.
+
+Ưu điểm của cách tiếp cận này là bạn không cần lo lắng hay nhớ phải chạy `EXPLAIN` trên các query, kể cả những query đã được thu thập; bạn chỉ cần kiểm tra log để tìm execution plan của các query chậm. Sau khi đã sửa các query như query trước đó, chẳng hạn bằng cách tạo index, bạn có thể tăng threshold của auto-explain để bắt các query chậm hơn rồi lặp lại quy trình.
+
+Để minh họa sự khác biệt trong output khi chạy query với `auto_explain.log_analyze` được bật, dưới đây là output được tạo ra từ chính query đó:
 
 [source,text]
 ....
@@ -137,4 +186,4 @@ Query mất 142 millisecond, đủ lâu để trigger auto-explain, và thực t
   ...
 ....
 
-Như bạn có thể thấy, output giờ đây bao gồm cùng thông tin mà `EXPLAIN ANALYZE` sẽ report.
+Như bạn có thể thấy, output giờ đây bao gồm cùng thông tin mà `EXPLAIN ANALYZE` sẽ cung cấp.

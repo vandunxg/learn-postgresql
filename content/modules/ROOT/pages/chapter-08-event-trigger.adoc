@@ -1,47 +1,44 @@
 = Event trigger
 
-Rule và trigger hoạt động như các statement DML, nghĩa là chúng được kích hoạt bởi một thứ làm thay đổi data nhưng không làm thay đổi data layout hoặc các property của table. PostgreSQL cung cấp cái gọi là event trigger, là các trigger đặc biệt fire trên các statement DDL. Vì vậy, mục đích của event trigger là quản lý và phản ứng với các event sẽ thay đổi data structure thay vì data content. Trigger có thể được sử dụng theo nhiều cách để enforce các policy cụ thể trên các database.
+Rule và trigger xử lý các statement DML, tức các thao tác làm thay đổi dữ liệu nhưng không thay đổi cấu trúc dữ liệu hoặc thuộc tính của table. PostgreSQL cung cấp event trigger, một loại trigger đặc biệt được kích hoạt bởi các statement DDL. Vì vậy, event trigger được dùng để quản lý và phản ứng với các event làm thay đổi cấu trúc dữ liệu thay vì nội dung dữ liệu. Event trigger có thể được dùng theo nhiều cách để thực thi các policy cụ thể trên database.
 
-Sau khi được fire, event trigger nhận một event và một command tag, cả hai đều hữu ích cho việc introspection và cung cấp thông tin về thứ đã fire trigger. Cụ thể, command tag chứa mô tả của command (ví dụ `CREATE` hoặc `ALTER`), còn event chứa category đã fire trigger, cụ thể gồm các event sau:
+Sau khi được kích hoạt, event trigger nhận một event và một command tag. Cả hai đều hữu ích cho việc introspection vì cung cấp thông tin về điều gì đã kích hoạt trigger. Cụ thể, command tag chứa mô tả của command (ví dụ `CREATE` hoặc `ALTER`), còn event cho biết nhóm event đã kích hoạt trigger, gồm các event sau:
 
-* `ddl_command_start` và `ddl_command_end` lần lượt chỉ thời điểm bắt đầu và hoàn tất của DDL command.
-* `sql_drop` chỉ thời điểm một command `DROP` sắp hoàn tất.
-* `table_rewrite` chỉ thời điểm một lần rewrite toàn bộ table sắp bắt đầu.
+* `ddl_command_start` và `ddl_command_end` lần lượt cho biết thời điểm bắt đầu và kết thúc của command DDL.
+* `sql_drop` cho biết thời điểm một command `DROP` sắp hoàn tất.
+* `table_rewrite` cho biết thời điểm một lần rewrite toàn bộ table sắp bắt đầu.
 
-Cũng như DML trigger, có các command cụ thể để tạo, xóa và sửa đổi một event trigger:
+Tương tự trigger DML, event trigger có các command riêng để tạo, xóa và sửa đổi:
 
-* `CREATE EVENT TRIGGER` để thêm một event trigger mới.
+* `CREATE EVENT TRIGGER` để tạo một event trigger mới.
 * `DROP EVENT TRIGGER` để xóa một trigger hiện có.
 * `ALTER EVENT TRIGGER` để sửa đổi một trigger hiện có.
 
-Dưới đây là synopsis để tạo một event trigger mới:
+Dưới đây là cú pháp để tạo một event trigger mới:
 
-[source,text]
+[source,sql]
 ....
-   CREATE EVENT TRIGGER name
-        ON event
-        [ WHEN filter_variable IN (filter_value [, ... ]) [ AND ... ] ]
-        EXECUTE { FUNCTION | PROCEDURE } function_name()
+CREATE EVENT TRIGGER name ON event [ WHEN filter_variable IN (filter_value [, ... ]) [ AND ... ] ] EXECUTE { FUNCTION | PROCEDURE } function_name()
 ....
 
-Tương tự các trigger đối tác DML, event trigger được gắn với một tên mnemonic và một function để thực thi khi chúng được fire. Tuy nhiên, không giống trigger thông thường, event trigger không chỉ định table mà chúng được gắn vào; thực tế là event trigger không liên quan đến bất kỳ table cụ thể nào mà liên quan đến các command DDL.
+Giống như các DML trigger tương ứng, event trigger có một tên gợi nhớ và một function sẽ được thực thi khi event trigger được kích hoạt. Tuy nhiên, không giống trigger thông thường, event trigger không gắn với một table cụ thể. Thực tế, event trigger không liên quan đến bất kỳ table cụ thể nào mà liên quan đến các command DDL.
 
-Event trigger phải được database administrator tạo và có database scope, nghĩa là chúng tồn tại và hoạt động trong database nơi chúng được định nghĩa.
+Event trigger phải do database administrator tạo và có phạm vi hoạt động ở cấp database, nghĩa là mỗi event trigger chỉ tồn tại và hoạt động trong database nơi nó được định nghĩa.
 
-Có một vài special function có thể giúp developer thực hiện introspection bên trong event trigger để hiểu chính xác event nào đã fire trigger. Các function quan trọng nhất như sau:
+Một số function đặc biệt có thể giúp developer thực hiện introspection bên trong event trigger để xác định chính xác event nào đã kích hoạt trigger. Các function quan trọng nhất gồm:
 
-* `pg_event_trigger_commands()`, trả về một tuple cho mỗi command đã được thực thi trong DDL statement.
-* `pg_event_trigger_dropped_objects()`, báo cáo một tuple cho mỗi object bị drop trong cùng DDL statement.
+* `pg_event_trigger_commands()` trả về một tuple cho mỗi command được thực thi trong một statement DDL.
+* `pg_event_trigger_dropped_objects()` báo cáo một tuple cho mỗi object bị drop trong cùng một statement DDL.
 
-Cùng với các utility function nói trên, điều quan trọng là phải đọc kỹ tài liệu về event trigger để hiểu khi nào một command sẽ fire event trigger và khi nào không. Việc giải thích event trigger chi tiết hơn nằm ngoài phạm vi của section này; thay vào đó, chúng ta sẽ xem một ví dụ thực tế trong section tiếp theo. Để biết thêm thông tin về event trigger, hãy tham khảo tài liệu chính thức hoặc cuốn sách PostgreSQL 11 Server-Side Programming của Packt.
+Bên cạnh các utility function nói trên, điều quan trọng là đọc kỹ tài liệu về event trigger để hiểu khi nào một command kích hoạt event trigger và khi nào không. Phần giải thích chi tiết hơn về event trigger nằm ngoài phạm vi của phần này; thay vào đó, chúng ta sẽ xem một ví dụ thực tế trong phần tiếp theo. Để biết thêm thông tin về event trigger, hãy tham khảo tài liệu chính thức hoặc cuốn sách PostgreSQL 11 Server-Side Programming của Packt.
 
 == Ví dụ về event trigger
 
-Để hiểu rõ hơn cách event trigger hoạt động, hãy xây dựng một ví dụ đơn giản về một trigger ngăn mọi command dạng `ALTER TABLE` trong một database.
+Để hiểu rõ hơn cách event trigger hoạt động, hãy xây dựng một ví dụ đơn giản về event trigger dùng để ngăn mọi command `ALTER TABLE` trong một database.
 
-Bước đầu tiên là định nghĩa một function sẽ được thực thi khi trigger được fire; function này cần kiểm tra các property của DDL statement để hiểu liệu nó có được gọi bằng một command `ALTER TABLE` hay không. Việc introspection được thực hiện bằng special function `pg_event_trigger_ddl_commands()`, function này trả về một tuple cho mỗi DDL statement được thực thi trong cùng command. Các tuple đó chứa một field tên là `command_tag`, báo cáo command group (chữ hoa), và `object_type`, báo cáo object type (chữ thường) mà DDL statement được thực thi trên đó. Function phải trả về một trigger type, cụ thể là event trigger type; do đó, function có thể được định nghĩa như sau:
+Bước đầu tiên là định nghĩa function sẽ được thực thi khi trigger được kích hoạt. Function này cần kiểm tra các thuộc tính của DDL statement để xác định DDL statement đó có phải là một command `ALTER TABLE` hay không. Việc introspection được thực hiện bằng function đặc biệt `pg_event_trigger_ddl_commands()`; function này trả về một tuple cho mỗi statement DDL được thực thi trong cùng command. Các tuple này chứa field `command_tag`, cho biết nhóm command (chữ hoa), và `object_type`, cho biết kiểu object (chữ thường) mà DDL statement tác động lên. Function phải trả về kiểu trigger, cụ thể là kiểu event trigger; vì vậy, có thể định nghĩa function như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE OR REPLACE FUNCTION
    f_avoid_alter_table()
@@ -63,19 +60,66 @@ Bước đầu tiên là định nghĩa một function sẽ được thực thi 
    CREATE FUNCTION
 ....
 
-Như bạn có thể thấy, nếu function phát hiện command đã thực thi có tag `ALTER TABLE` và object type là table, nó raise một exception, khiến toàn bộ statement thất bại.
+.Command
+[source,bash]
+....
+code$
+code$
+....
 
-Khi function đã được tạo, có thể gắn nó vào một event trigger, nhưng vì event trigger xử lý các statement DDL nên chỉ superuser mới có thể tạo event trigger; do đó, trước tiên hãy kết nối với database `forum` bằng superuser:
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION
+   f_avoid_alter_table()
+    RETURNS EVENT_TRIGGER
+   AS
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   DECLARE
+   event_tuple record;
+   BEGIN
+      FOR event_tuple IN SELECT * FROM 		                         pg_event_trigger_ddl_
+   commands() LOOP
+           IF event_tuple.command_tag = 'ALTER TABLE' AND event_tuple.object_
+   type = 'table' THEN
+                 RAISE EXCEPTION 'Cannot execute an ALTER TABLE!';
+             END IF;
+        END
+   LANGUAGE plpgsql;
+   CREATE FUNCTION
+....
+
+
+Như bạn có thể thấy, nếu function phát hiện command đã thực thi có tag `ALTER TABLE` và object type là table, function sẽ phát sinh một exception, khiến toàn bộ statement thất bại.
+
+Sau khi tạo function, có thể gắn function đó vào một event trigger. Tuy nhiên, vì event trigger xử lý các statement DDL nên chỉ superuser mới có thể tạo event trigger. Do đó, trước tiên hãy kết nối với database `forum` với quyền superuser:
+
+[source,console,role="transcript"]
 ....
    forumdb=> \q
    postgres@learn_postgresql:~$ psql forumdb
 ....
 
-Sau đó hãy thực thi:
+.Command
+[source,bash]
+....
+psql forumdb
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+\q
+....
+
+
+Tiếp theo, hãy thực thi:
+
+[source,console,role="transcript"]
 ....
    psql (15.2 (Debian 15.2-1.pgdg110+1))
    Type "help" for help.
@@ -84,33 +128,83 @@ Sau đó hãy thực thi:
    forumdb=#
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+psql (15.2 (Debian 15.2-1.pgdg110+1))
+   Type "help" FOR help.
+....
+
+
+[source,console,role="transcript"]
 ....
    forumdb=# CREATE EVENT TRIGGER tr_avoid_alter_table ON ddl_command_end
    EXECUTE FUNCTION forum.f_avoid_alter_table();
    CREATE EVENT TRIGGER
 ....
 
-Hãy nhớ rằng chúng ta đã kết nối với database `forumdb` bằng user `postgres`, vì vậy phải chỉ định schema nơi user `postgres` có thể tìm thấy function `f_avoid_alter_table()`.
+.SQL
+[source,sql]
+....
+CREATE EVENT TRIGGER tr_avoid_alter_table ON ddl_command_end
+   EXECUTE FUNCTION forum.f_avoid_alter_table();
+....
 
-Tại thời điểm này, trigger đang active và function sẽ được fire cho mỗi DDL command khi system tiến gần đến cuối một command.
+.Output
+[source,output]
+....
+   CREATE EVENT TRIGGER
+....
 
-Bây giờ có thể kiểm tra trigger và xem user có được phép thực thi `ALTER TABLE` hay không:
 
-[source,text]
+Lưu ý rằng chúng ta đã kết nối với database `forumdb` bằng user `postgres`, vì vậy phải chỉ định schema để user `postgres` có thể tìm thấy function `f_avoid_alter_table()`.
+
+Lúc này, trigger đang hoạt động và function sẽ được kích hoạt cho mỗi command DDL khi hệ thống gần hoàn tất command đó.
+
+Bây giờ, có thể kiểm tra trigger để xem user có được phép thực thi `ALTER TABLE` hay không:
+
+[source,console,role="transcript"]
 ....
    forumdb=> ALTER TABLE tags ADD COLUMN thumbs_up int DEFAULT 0;
    ERROR:    Cannot execute an ALTER TABLE!
    CONTEXT:    PL/pgSQL function f_avoid_alter_table() line 9 at RAISE
 ....
 
-Như chúng ta có thể thấy, một exception được raise ngay khi command `ALTER TABLE` được thực thi, và chúng ta có behavior này không chỉ với non-superuser (như vừa thấy) mà cả superuser; đó là vì event trigger chúng ta viết intercept command alter table và sửa đổi behavior của nó:
+.SQL
+[source,sql]
+....
+ALTER TABLE tags ADD COLUMN thumbs_up int DEFAULT 0;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   ERROR:    Cannot execute an ALTER TABLE!
+   CONTEXT:    PL/pgSQL function f_avoid_alter_table() line 9 at RAISE
+....
+
+
+Như có thể thấy, exception được phát sinh ngay khi command `ALTER TABLE` được thực thi. Hành vi này xảy ra không chỉ với non-superuser (như vừa thấy) mà cả với superuser, vì event trigger chúng ta viết đã chặn command ALTER TABLE và thay đổi cách command đó hoạt động:
+
+[source,console,role="transcript"]
 ....
    forumdb=# ALTER TABLE forum.tags ADD COLUMN thumbs_up int DEFAULT 0;
    ERROR:    Cannot execute an ALTER TABLE!
    CONTEXT:    PL/pgSQL function forum.f_avoid_alter_table() line 9 at RAISE
 ....
 
-Mặc dù event trigger có thể được sử dụng như trong ví dụ trước để ngăn user thực thi các command cụ thể, một chiến lược tốt hơn là tránh việc thực thi command không phù hợp bằng permission khi có thể. Event trigger rất phức tạp và được dùng để cung cấp hỗ trợ cho những thứ như logical replication, auditing và các infrastructure khác.
+.SQL
+[source,sql]
+....
+ALTER TABLE forum.tags ADD COLUMN thumbs_up int DEFAULT 0;
+....
+
+.Output
+[source,output]
+....
+   ERROR:    Cannot execute an ALTER TABLE!
+   CONTEXT:    PL/pgSQL function forum.f_avoid_alter_table() line 9 at RAISE
+....
+
+
+Mặc dù có thể dùng event trigger như trong ví dụ trên để ngăn user thực thi các command cụ thể, nếu có thể thì nên dùng permission để ngăn các command không phù hợp. Event trigger rất phức tạp và được dùng để hỗ trợ những tính năng như logical replication, auditing và các infrastructure khác.

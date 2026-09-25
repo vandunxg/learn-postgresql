@@ -1,13 +1,13 @@
 = Tài liệu tham khảo
 
-* Tài liệu chính thức về thiết lập Wal level: https://www.postgresql.org/docs/current/runtime-config-wal.html#GUC-WAL-LEVEL
+* Tài liệu chính thức về cấu hình wal_level: https://www.postgresql.org/docs/current/runtime-config-wal.html#GUC-WAL-LEVEL
 * Tài liệu chính thức về command `pg_basebackup`: https://www.postgresql.org/docs/current/app-pgbasebackup.html
-* Tài liệu chính thức về replica monitoring: https://www.postgresql.org/docs/current/monitoring-stats.html#PG-STAT-REPLICATION-VIEW
+* Tài liệu chính thức về giám sát replica: https://www.postgresql.org/docs/current/monitoring-stats.html#PG-STAT-REPLICATION-VIEW
 * Tài liệu chính thức về replica configuration: https://www.postgresql.org/docs/current/runtime-config-replication.html
 * Tài liệu chính thức về High Availability, Load Balancing, and Replication: https://www.postgresql.org/docs/current/high-availability.html
 
 == Tìm hiểu thêm trên Discord
 
-Để tham gia Discord community của cuốn sách này — nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới — hãy theo QR code bên dưới:
+Để tham gia cộng đồng Discord của cuốn sách này — nơi bạn có thể chia sẻ phản hồi, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới — hãy quét mã QR bên dưới:
 
 https://discord.gg/jYWCjF6Tku

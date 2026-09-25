@@ -2,20 +2,20 @@
 
 * *Transaction là gì?*
 
-  Transaction là một unit công việc được xác nhận hoặc loại bỏ toàn bộ. Một transaction có thể được tạo bởi một statement hoặc nhiều statement, và có thể là implicit hoặc explicit. Xem section *Giới thiệu transaction* để biết thêm chi tiết.
+  Transaction là một đơn vị công việc mà toàn bộ được commit hoặc bị loại bỏ. Một transaction có thể gồm một statement hoặc nhiều statement, và có thể là implicit hoặc explicit. Xem phần *Giới thiệu transaction* để biết thêm chi tiết.
 
-* *`xid` là gì và nó gặp vấn đề nào?*
+* *`xid` là gì và nó gặp phải vấn đề nào?*
 
-  `xid` là transaction identifier, một number đại diện duy nhất cho một transaction trong toàn bộ cluster. Vì được lưu dưới dạng counter, value này gặp vấn đề gọi là xid wraparound, vấn đề được giải quyết bằng freezing của VACUUM và autovacuum. Xem section *Thông tin thêm về transaction identifier – vấn đề XID wraparound* để biết thêm chi tiết.
+  `xid` là transaction identifier, một số dùng để định danh duy nhất một transaction trong toàn bộ cluster. Vì đây là một counter, giá trị này gặp phải vấn đề gọi là xid wraparound; vấn đề này được giải quyết bằng cơ chế tuple freeze do VACUUM và autovacuum thực hiện. Xem phần *Thêm về transaction identifier – vấn đề xid wraparound* để biết thêm chi tiết.
 
 * *MVCC là gì?*
 
-  MVCC là một technique theo đó, tại một thời điểm nhất định, nhiều version của một tuple có thể tồn tại trong một database. Tùy thuộc vào các transaction đang chạy và commit status của chúng, một version khác nhau sẽ được sử dụng. Xem section *Giải thích MVCC* để biết thêm chi tiết.
+  MVCC là một kỹ thuật cho phép nhiều version của một tuple cùng tồn tại trong database tại một thời điểm nhất định. Tùy thuộc vào các transaction đang chạy và trạng thái commit của chúng, version được sử dụng sẽ khác nhau. Xem phần *Giải thích MVCC* để biết thêm chi tiết.
 
 * *WAL là gì và tại sao nó quan trọng?*
 
-  WAL là intent log của một database; trước khi thực hiện bất kỳ modification nào lên storage, PostgreSQL ghi các thay đổi vào WAL. Nhờ vậy, write sẽ nhanh hơn và không có data nào bị mất trong trường hợp crash. Xem section *Cách PostgreSQL xử lý persistency và consistency: WAL* để biết thêm chi tiết.
+  WAL là write-ahead log của database; trước khi thực hiện bất kỳ thay đổi nào trên storage, PostgreSQL ghi các thay đổi đó vào WAL. Nhờ vậy, thao tác ghi sẽ nhanh hơn và data không bị mất khi xảy ra crash. Xem phần *Cách PostgreSQL xử lý persistency và consistency: WALs* để biết thêm chi tiết.
 
 * *Checkpoint là gì?*
 
-  Checkpoint là một thời điểm tại đó cluster đồng bộ data trong memory với data trên disk, bảo đảm storage phản ánh các thay đổi mới nhất. Sau khi checkpoint hoàn tất, các WAL segment cũ có thể được recycle. Xem section *Checkpoint* để biết thêm chi tiết.
+  Checkpoint là thời điểm cluster đồng bộ data trong memory với data trên disk, bảo đảm storage phản ánh những thay đổi mới nhất. Sau khi checkpoint hoàn tất, các WAL segment cũ có thể được recycle. Xem phần *Checkpoint* để biết thêm chi tiết.

@@ -1,15 +1,22 @@
 = Kiểm tra kiến thức
 
-* Trên PostgreSQL 15 và PostgreSQL, có thể thực hiện DDL với tư cách một user thông thường không?
+* Trong PostgreSQL 15 và PostgreSQL, một user thông thường có thể thực hiện DDL không?
 
-  Không, không thể. Xem phần PostgreSQL và public schema để biết thêm chi tiết.
+  Không. Xem phần PostgreSQL và public schema để biết thêm chi tiết.
 
-* Command `psql` nào dùng để liệt kê tất cả database cùng với kích thước của chúng?
+* Lệnh `psql` nào dùng để liệt kê tất cả database cùng với kích thước tương ứng?
 
-[source,text]
+[source,console,role="transcript"]
 ....
   postgres=# \l+
 ....
+
+.SQL
+[source,sql]
+....
+\l+
+....
+
 
   Xem phần Xác nhận kích thước database để biết thêm chi tiết.
 
@@ -17,38 +24,42 @@
 
 [source,sql]
 ....
-  create table mytable (id integer,city_name varchar(60));
+CREATE TABLE mytable (id integer, city_name varchar(60));
 ....
 
-  Câu hỏi là, query sau có hiển thị tất cả record mà field `city_name` là null không?
+  Liệu query sau có hiển thị tất cả row có giá trị NULL trong column `city_name` không?
 
 [source,sql]
 ....
-  select * from mytable where city_name = '';
+SELECT *
+FROM mytable
+WHERE city_name = '';
 ....
 
   Không. Query đúng là:
 
 [source,sql]
 ....
-  select * from mytable where city_name is null;
+SELECT *
+FROM mytable
+WHERE city_name IS NULL;
 ....
 
   Xem phần Giá trị `NULL` để biết thêm chi tiết.
 
-* Có thể tạo một database mới, lấy một database hiện có làm điểm bắt đầu không?
+* Có thể tạo database mới dựa trên một database hiện có không?
 
-  Có. Chúng ta có thể sử dụng option `TEMPLATE`.
+  Có. Có thể sử dụng tùy chọn `TEMPLATE`.
 
   Xem phần Tạo database mới từ một template đã sửa đổi để biết thêm chi tiết.
 
-* Query sau có phải là cách tốt nhất để xóa tất cả record trong table có tên `mytable` không?
+* Query sau có phải là cách tốt nhất để xóa tất cả row trong table có tên `mytable` không?
 
 [source,sql]
 ....
-  delete from mytable;
+DELETE FROM mytable;
 ....
 
-  Không. Cách tốt nhất để xóa toàn bộ record trong một table là sử dụng statement `TRUNCATE`.
+  Không. Cách tốt nhất để xóa toàn bộ row trong một table là sử dụng statement `TRUNCATE`.
 
   Xem phần Xóa dữ liệu để biết thêm chi tiết.

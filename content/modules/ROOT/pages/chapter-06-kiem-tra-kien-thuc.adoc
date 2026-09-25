@@ -1,42 +1,42 @@
 = Kiểm tra kiến thức
 
-* Hãy xem xét hai query sau:
+* Xem xét hai query sau:
 
 .. `select category,count(*) from posts group by category order by category;`
 .. `select category, count(*) over (partition by category) from posts order by category;`
 
-  Query nào trong hai query có số record lớn hơn?
+  Trong hai query, query nào trả về nhiều row hơn?
 
-  Query thứ hai có số record lớn hơn.
+  Query thứ hai trả về nhiều row hơn.
 
-  Xem section Using basic statement window functions để biết thêm chi tiết.
+  Để biết thêm chi tiết, xem phần Sử dụng window function trong các statement cơ bản.
 
-* Hãy xem xét hai query sau:
+* Xem xét hai query sau:
 
 .. `select category,count(*) from posts group by category order by category;`
 .. `select distinct category, count(*) over (partition by category) from posts order by category;`
 
-  Query nào trong hai query có số record lớn hơn?
+  Trong hai query, query nào trả về nhiều row hơn?
 
-  Hai query có cùng số record.
+  Hai query trả về cùng số row.
 
-  Xem section Using basic statement window functions để biết thêm chi tiết.
+  Để biết thêm chi tiết, xem phần Sử dụng window function trong các statement cơ bản.
 
-* Query nào trong hai query sau đúng về semantic?
+* Về mặt ngữ nghĩa, query nào trong hai query sau là đúng?
 
 .. `select category,row_number() over w,title from posts WINDOW w as (partition by category order by title) order by category;`
 .. `select category,row_number() over w,title from posts WINDOW w as (partition by category) order by category;`
 
-  Query thứ nhất đúng về semantic vì function `row_number()` phụ thuộc vào `order by`.
+  Query thứ nhất đúng về mặt ngữ nghĩa vì function `row_number()` phụ thuộc vào `order by`.
 
-  Xem section The row number function để biết thêm chi tiết.
+  Để biết thêm chi tiết, xem phần Function ROW_NUMBER.
 
-* Có thể lấy value đầu tiên trong một partition không?
+* Có thể lấy giá trị đầu tiên trong một partition không?
 
-  Có, chúng ta có thể làm vậy bằng function `first_value()`. Xem section `FIRST_VALUE` để biết thêm chi tiết.
+  Có. Có thể thực hiện việc này bằng function `first_value()`. Để biết thêm chi tiết, xem phần `FIRST_VALUE`.
 
-* Có thể tính tổng tăng dần từng row trong một table không?
+* Có thể tính tổng lũy kế cho từng row trong một table không?
 
-  Có, chúng ta có thể làm vậy bằng clause `BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`.
+  Có. Có thể thực hiện việc này bằng clause `BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW`.
 
-  Xem section Using advanced statement window functions để biết thêm chi tiết.
+  Để biết thêm chi tiết, xem phần Sử dụng window function trong các statement nâng cao.

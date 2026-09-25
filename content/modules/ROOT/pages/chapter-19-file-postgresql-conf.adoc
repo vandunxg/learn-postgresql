@@ -1,10 +1,10 @@
 = File postgresql.conf
 
-Đối với file `postgresql.conf`, chúng ta phải đặt `wal_level` thành `replica` hoặc `logical`. Điều quan trọng là WAL level không được đặt thành `minimal`, vì PITR không thể thực hiện nếu `wal_level=minimal`. Chúng ta cũng cần cho PostgreSQL biết command sẽ gửi WAL segment đến repository server của `pgbackrest`.
+Trong file `postgresql.conf`, `wal_level` phải được đặt thành `replica` hoặc `logical`. Điều quan trọng là WAL level không được đặt thành `minimal`, vì không thể thực hiện PITR khi `wal_level=minimal`. Ngoài ra, cần cho PostgreSQL biết command dùng để gửi các WAL segment đến repository server của `pgbackrest`.
 
-Hãy thêm các dòng sau vào cuối file `postgresql.conf`:
+Thêm các dòng sau vào cuối file `postgresql.conf`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 #PGBACKREST
 archive_mode = on
@@ -12,9 +12,30 @@ wal_level = replica #logical if we have some logical replications
 archive_command = 'pgbackrest --stanza=pg1 archive-push %p'
 ....
 
-Với dòng thứ hai, chúng ta nói cho PostgreSQL biết rằng các WAL segment sẽ được archive vào stanza `pg1` của repository server bằng command `pgbackrest`. Sau khi restart PostgreSQL, các dòng mới này sẽ có hiệu lực. Với tư cách root user, hãy restart PostgreSQL service:
+.Command
+[source,bash]
+....
+PGBACKREST
+....
 
-[source,text]
+.Output
+[source,output]
+....
+archive_mode = on
+wal_level = replica #logical if we have some logical replications
+archive_command = 'pgbackrest --stanza=pg1 archive-push %p'
+....
+
+
+Dòng thứ hai cho PostgreSQL biết rằng các WAL segment sẽ được archive vào stanza `pg1` trên repository server bằng command `pgbackrest`. Sau khi restart PostgreSQL, các dòng mới sẽ có hiệu lực. Với quyền root, hãy restart PostgreSQL service:
+
+[source,console,role="transcript"]
 ....
 # systemctl restart postgresql
+....
+
+.Command
+[source,bash]
+....
+systemctl restart postgresql
 ....

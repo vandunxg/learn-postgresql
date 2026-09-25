@@ -1,28 +1,41 @@
 = Lệnh COPY
 
-Lệnh `COPY` về mặt thiết kế không phải là một backup facility, nhưng nó rất hiệu quả trong việc bulk loading data và vì vậy cũng hiệu quả trong restore backup như đã đề cập. Tuy nhiên, bản thân command này có thể được dùng để load data theo hai chiều: nhờ `COPY`, bạn có thể extract data từ một table (tức là thực hiện dump) hoặc load data vào một table (tức là thực hiện restore). Ngoài ra, `COPY` có thể tương tác với external program; nghĩa là nó có thể gửi (hoặc nhận) data trực tiếp từ một process khác.
+Xét về thiết kế, `COPY` không phải là một công cụ backup, nhưng nó rất hiệu quả để bulk load data và do đó cũng hiệu quả trong việc restore backup như đã đề cập. Tuy nhiên, command này có thể được dùng để load data theo cả hai chiều: với `COPY`, bạn có thể extract data từ một table (tức là thực hiện dump) hoặc load data vào một table (tức là thực hiện restore). Ngoài ra, `COPY` có thể tương tác với external program; nghĩa là nó có thể gửi (hoặc nhận) data trực tiếp từ một process khác.
 
-`COPY` có hai operating mode chính:
+`COPY` có hai chế độ hoạt động chính:
 
-* `COPY TO` lấy data ra khỏi một table và gửi nó tới một file trên filesystem hoặc tới một external application hay process khác.
-* `COPY FROM` load data từ một file trên filesystem hoặc một external application và insert data vào table được chỉ định.
+* `COPY TO` lấy data từ một table và gửi data đó tới một file trên filesystem hoặc tới một external application hay process khác.
+* `COPY FROM` load data từ một file trên filesystem hoặc một external application rồi insert data vào table được chỉ định.
 
 [quote]
 ____
-Khi làm việc với external file hoặc program, command `COPY` yêu cầu superuser privilege (hoặc ít nhất user phải thuộc group `pg_write_server_files`). Vì lý do này, các ví dụ trong section này sẽ được chạy dưới user `postgres` superuser.
+Khi làm việc với file hoặc program bên ngoài, command `COPY` yêu cầu superuser privilege (hoặc ít nhất user phải thuộc group `pg_write_server_files`). Vì lý do này, các ví dụ trong phần này sẽ được chạy bằng user `postgres`, một superuser.
 
 ____
-Ví dụ đơn giản, hãy giả sử chúng ta cần extract toàn bộ data từ table `categories`; đây là loại command `COPY TO`, như được chỉ ra dưới đây:
+Trong một ví dụ đơn giản, giả sử chúng ta cần extract toàn bộ data từ table `categories`; đây là command dạng `COPY TO`, như minh họa dưới đây:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# COPY forum.categories TO '/tmp/categories.backup.txt';
 COPY 5
 ....
 
-Trong ví dụ trên, nội dung của table được ghi vào local file `/tmp/categories.backup.txt`, và nội dung file chỉ gồm các tuple, không có SQL instruction cụ thể nào:
+.SQL
+[source,sql]
+....
+COPY forum.categories TO '/tmp/categories.backup.txt';
+....
 
-[source,text]
+.Output
+[source,output]
+....
+COPY 5
+....
+
+
+Trong ví dụ trên, nội dung của table được ghi vào local file `/tmp/categories.backup.txt`; file chỉ chứa các tuple, không chứa bất kỳ SQL instruction cụ thể nào:
+
+[source,console,role="transcript"]
 ....
 $ cat /tmp/categories.backup.txt
 5         Software engineering           Software engineering discussions
@@ -32,9 +45,26 @@ $ cat /tmp/categories.backup.txt
 4         A.I       Machine Learning discussions
 ....
 
-Command `COPY` hỗ trợ rất nhiều option cho phép user định nghĩa field delimiter, việc có table header (tức column name), quoting character, v.v. Nhờ vậy, việc tự xây dựng một tập data comma separated values (CSV) trở nên rất đơn giản:
+.Command
+[source,bash]
+....
+cat /tmp/categories.backup.txt
+....
 
-[source,text]
+.Output
+[source,output]
+....
+5         Software engineering           Software engineering discussions
+1         Database               Database related discussions
+2         Unix      Unix and Linux discussions
+3         Programming Languages          All about programming languages
+4         A.I       Machine Learning discussions
+....
+
+
+Command `COPY` hỗ trợ rất nhiều option, cho phép user xác định field delimiter, có thêm table header (tức column name) hay không, chọn quoting character, v.v. Nhờ đó, việc tự xây dựng một tập data ở dạng comma-separated values (CSV) trở nên rất đơn giản:
+
+[source,console,role="transcript"]
 ....
 forumdb=# COPY forum.categories TO '/tmp/categories.csv'
 WITH ( HEADER on, DELIMITER ';' );
@@ -49,20 +79,61 @@ pk;title;description
 4;A.I;Machine Learning discussions
 ....
 
-Như bạn có thể thấy từ ví dụ trên, hiện mọi field đều được phân tách bằng dấu chấm phẩy, và row đầu tiên trong file là danh sách column của table. Cần lưu ý rằng `COPY` đã có sẵn một CSV format được định nghĩa, có thể chỉ định bằng option `FORMAT csv`:
+.Command
+[source,bash]
+....
+cat /tmp/categories.csv
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+COPY forum.categories TO '/tmp/categories.csv'
+WITH (HEADER ON, DELIMITER ';');
+....
+
+.Output
+[source,output]
+....
+COPY 5
+
+pk;title;description
+5;Software engineering;Software engineering discussions
+1;Database;Database related discussions
+2;Unix;Unix and Linux discussions
+3;Programming Languages;All about programming languages
+4;A.I;Machine Learning discussions
+....
+
+
+Như có thể thấy trong ví dụ trên, mọi field đều được phân tách bằng dấu chấm phẩy và row đầu tiên trong file là danh sách column của table. Cần lưu ý rằng `COPY` có sẵn một CSV format được định nghĩa, có thể chỉ định bằng option `FORMAT csv`:
+
+[source,console,role="transcript"]
 ....
 forumdb=# COPY forum.categories TO '/tmp/categories.csv'
 WITH ( FORMAT csv );
 COPY 5
 ....
 
-Có một CSV file chứa data nghĩa là `COPY FROM` có thể load data vào một table. Nói cách khác, `COPY` không chỉ là một bulk loader hiệu quả; nó còn là một tool hữu ích để load data vào database từ các external resource như spreadsheet.
+.SQL
+[source,sql]
+....
+COPY forum.categories TO '/tmp/categories.csv'
+WITH (FORMAT csv);
+....
 
-Hãy giả sử chúng ta cần load data trong file `categories.csv` vào một table khác có tên `categories_reloaded`:
+.Output
+[source,output]
+....
+COPY 5
+....
 
-[source,text]
+
+Khi đã có file CSV chứa data, `COPY FROM` có thể load data vào một table. Nói cách khác, `COPY` không chỉ là một bulk loader hiệu quả; nó còn là một tool hữu ích để load data từ các external resource, chẳng hạn như spreadsheet, vào database.
+
+Giả sử chúng ta cần load data từ file `categories.csv` vào một table khác có tên `categories_reloaded`:
+
+[source,console,role="transcript"]
 ....
 forumdb=# CREATE TABLE forum.categories_reloaded( LIKE forum.categories );
 CREATE TABLE
@@ -72,9 +143,26 @@ forumdb=# COPY forum.categories_reloaded
 COPY 5
 ....
 
-Bạn cũng có thể chỉ định một `WHERE` clause để filter những gì sẽ được load; ví dụ, hãy giả sử chúng ta chỉ muốn load các row lẻ:
+.SQL
+[source,sql]
+....
+CREATE TABLE forum.categories_reloaded(LIKE forum.categories);
+COPY forum.categories_reloaded
+    FROM '/tmp/categories.csv'
+    WITH (FORMAT csv);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+CREATE TABLE
+COPY 5
+....
+
+
+Bạn cũng có thể chỉ định một `WHERE` clause để filter data được load; ví dụ, giả sử chúng ta chỉ muốn load các row lẻ:
+
+[source,console,role="transcript"]
 ....
 forumdb=# COPY forum.categories_reloaded
                FROM '/tmp/categories.csv'
@@ -82,9 +170,19 @@ forumdb=# COPY forum.categories_reloaded
           WHERE pk % 2 = 1;
 ....
 
-`COPY TO` không cho phép `WHERE` clause, nhưng có thể copy từ một query để thực hiện việc filter tuple:
+.SQL
+[source,sql]
+....
+COPY forum.categories_reloaded
+         FROM '/tmp/categories.csv'
+    WITH (FORMAT csv)
+    WHERE pk % 2 = 1;
+....
 
-[source,text]
+
+`COPY TO` không cho phép `WHERE` clause, nhưng có thể copy kết quả của một query để filter tuple:
+
+[source,console,role="transcript"]
 ....
 forumdb=# COPY
     ( SELECT * FROM forum.categories
@@ -93,9 +191,20 @@ forumdb=# COPY
     WITH (FORMAT csv);
 ....
 
-Bạn cũng có thể pull tuple từ một external application, như ví dụ đơn giản sau đây minh họa:
+.SQL
+[source,sql]
+....
+COPY
+    (SELECT * FROM forum.categories
+          WHERE pk % 2 = 1)
+    TO '/tmp/categories.odd.csv'
+    WITH (FORMAT csv);
+....
 
-[source,text]
+
+Bạn cũng có thể lấy tuple từ một external application, như minh họa trong ví dụ đơn giản sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=# COPY forum.categories_reloaded
 FROM PROGRAM $CODE$
@@ -104,11 +213,27 @@ done' $CODE$
 WITH (FORMAT csv);
 ....
 
-Trong ví dụ trên, một shell process được khởi chạy; process đó tạo ra 10 tuple ở CSV format. Command `COPY` pull các tuple từ standard output của command rồi insert chúng vào table. Điều này hoạt động như một operating system pipe giữa các PostgreSQL table và external process.
+.SQL
+[source,sql]
+....
+COPY forum.categories_reloaded
+FROM PROGRAM $CODE$
+/bin/bash -c 'for i in {1..10}; do echo "$i,Title$i,A generated row";
+....
 
-Tương tự, bạn cũng có thể gửi data tới một external program, như ví dụ đơn giản sau đây:
+.Output
+[source,output]
+....
+done' $CODE$
+WITH (FORMAT csv);
+....
 
-[source,text]
+
+Trong ví dụ trên, một shell process được khởi chạy; process đó tạo ra 10 tuple ở dạng CSV. Command `COPY` lấy các tuple từ standard output của command rồi insert chúng vào table. Cơ chế này hoạt động như một pipe của operating system giữa các table PostgreSQL và external process.
+
+Tương tự, bạn cũng có thể gửi data tới một external program, như minh họa trong ví dụ đơn giản sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=# COPY forum.categories
            TO PROGRAM $CODE$ awk '{print $2;}' > /tmp/titles.txt $CODE$;
@@ -122,20 +247,46 @@ Programming
 A.I
 ....
 
-Trong ví dụ trên, toàn bộ data trong table được gửi tới `awk(1)`, tool này extract chỉ column thứ hai (tức column `title`) và redirect output của chính nó vào một file. Kết quả cuối cùng là một dạng pseudo filtering đối với nội dung của table.
+.Command
+[source,bash]
+....
+cat /tmp/titles.txt
+....
+
+.SQL
+[source,sql]
+....
+COPY forum.categories
+    TO PROGRAM $CODE$ awk '{print $2;}' > /tmp/titles.txt $CODE$;
+....
+
+.Output
+[source,output]
+....
+COPY 5
+
+Software
+Database
+Unix
+Programming
+A.I
+....
+
+
+Trong ví dụ trên, toàn bộ data trong table được gửi tới `awk(1)`; tool này chỉ extract column thứ hai (tức column `title`) rồi redirect output vào một file. Kết quả cuối cùng là một dạng pseudo-filtering đối với nội dung của table.
 
 [quote]
 ____
-Cần lưu ý rằng `COPY` hỗ trợ single-column list, nghĩa là bạn đã có thể chỉ định những column nào mình đang extract hoặc insert vào.
+Cần lưu ý rằng `COPY` hỗ trợ single-column list, nghĩa là bạn có thể chỉ định những column nào cần extract hoặc insert vào.
 
 ____
-Khi sử dụng `COPY` để làm việc với external file hoặc program, user chạy command phải là superuser hoặc phải thuộc group `pg_write_server_files`.
+Khi sử dụng `COPY` để làm việc với file hoặc program bên ngoài, user chạy command phải là superuser hoặc phải thuộc group `pg_write_server_files`.
 
-Nói cách khác, user không có privilege không thể sử dụng `COPY`. Để xử lý việc này, `psql` cung cấp command thay thế cho `COPY` của riêng nó, có tên là `\copy`, command này stream content (theo cả hai chiều) liên quan đến các file mà `psql` client có thể truy cập. Nhờ vậy, user có thể khai thác `COPY` mà không cần server privilege đặc biệt nào như `pg_write_server`.
+Nói cách khác, user không có privilege không thể sử dụng `COPY`. Để giải quyết vấn đề này, `psql` cung cấp một command thay thế cho `COPY`, có tên là `\copy`; command này stream content (theo cả hai chiều) giữa `psql` client và các file mà client có thể truy cập. Nhờ đó, user có thể sử dụng `COPY` mà không cần server privilege đặc biệt nào như `pg_write_server`.
 
-Vì vậy, để extract data từ một query và đưa nó vào file, user không có privilege nên thực hiện tương tự như sau:
+Vì vậy, user không có privilege muốn extract data từ một query và ghi data đó vào file có thể thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \COPY
 ( SELECT * FROM forum.categories
@@ -145,8 +296,25 @@ WITH (FORMAT csv);
 COPY 3
 ....
 
-Lưu ý việc sử dụng `\copy` thay vì `COPY`.
+.SQL
+[source,sql]
+....
+\COPY
+....
 
-Nhờ có `COPY` và psql wrapper `\copy` của nó, user có thể dễ dàng bulk-load data và extract data từ database.
+.Output
+[source,output]
+....
+( SELECT * FROM forum.categories
+ WHERE pk % 2 = 1 )
+TO '/tmp/categories.odd.csv'
+WITH (FORMAT csv);
+COPY 3
+....
 
-Sau khi đã tìm hiểu logical backup, hãy chuyển sang physical backup.
+
+Lưu ý rằng ví dụ này sử dụng `\copy` thay vì `COPY`.
+
+Nhờ `COPY` và wrapper `\copy` của psql, user có thể dễ dàng bulk-load data và extract data từ database.
+
+Sau khi đã tìm hiểu về logical backup, hãy chuyển sang physical backup.

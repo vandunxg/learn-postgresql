@@ -1,25 +1,32 @@
 = Quản lý table
-Trong phần này, chúng ta sẽ học cách quản lý table trong một database.
+Trong phần này, chúng ta sẽ tìm hiểu cách quản lý table trong database.
 
 PostgreSQL có ba loại table:
 
-* *Temporary tables*: Các table rất nhanh, chỉ hiển thị với user đã tạo chúng.
-* *Unlogged tables*: Các table rất nhanh, được dùng làm support table chung cho tất cả user.
+* *Temporary tables*: Các table này có tốc độ truy cập cao và chỉ hiển thị với user đã tạo chúng.
+* *Unlogged tables*: Các table này có tốc độ truy cập cao và được dùng làm table dùng chung cho mọi user.
 * *Logged tables*: Các table thông thường.
 
-Bây giờ chúng ta sẽ thực hiện các bước sau để tạo một user table từ đầu:
+Tiếp theo, chúng ta sẽ thực hiện các bước sau để tạo một table cho user từ đầu:
 
-. Hãy connect đến `forumdb` với tư cách forum user:
+. Kết nối tới `forumdb` bằng user forum:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    postgres@learn_postgresql:~$ psql -U forum forumdb
    forumdb=>
 ....
 
-. Thực thi command sau:
+.Command
+[source,bash]
+....
+psql -U forum forumdb
+....
 
-[source,text]
+
+. Thực thi lệnh sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TABLE myusers (
     pk int GENERATED ALWAYS AS IDENTITY
@@ -32,12 +39,32 @@ Bây giờ chúng ta sẽ thực hiện các bước sau để tạo một user 
    CREATE TABLE
 ....
 
-   Command `CREATE TABLE` tạo một table mới. Command `GENERATED AS IDENTITY` tự động gán một giá trị duy nhất cho một column.
+.SQL
+[source,sql]
+....
+CREATE TABLE myusers (
+    pk int GENERATED ALWAYS AS IDENTITY
+    , username text NOT NULL
+    , gecos text
+    , email text NOT NULL
+    , PRIMARY KEY(pk)
+    , UNIQUE (username)
+   );
+....
+
+.Output
+[source,output]
+....
+   CREATE TABLE
+....
+
+
+   Lệnh `CREATE TABLE` tạo table mới. Lệnh `GENERATED AS IDENTITY` tự động gán một giá trị duy nhất cho một column.
 
 [%start=3]
-. Quan sát những gì đã được tạo trong database bằng command `\d`:
+. Kiểm tra những gì đã được tạo trong database bằng lệnh `\d`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \d myusers
                                   Table "forum.myusers"
@@ -54,7 +81,31 @@ Bây giờ chúng ta sẽ thực hiện các bước sau để tạo một user 
          "myusers_username_key" UNIQUE CONSTRAINT, btree (username)
 ....
 
-   Một điểm cần lưu ý là PostgreSQL đã tạo một unique index. Sau này trong sách, chúng ta sẽ phân tích index chi tiết hơn và tìm hiểu index là gì, có những loại index nào, và cách sử dụng chúng. Hiện tại, chúng ta chỉ cần nói rằng unique index là một index không cho phép chèn các giá trị trùng lặp cho field nơi index được tạo.
+.SQL
+[source,sql]
+....
+\d myusers
+....
+
+.Output
+[source,output]
+....
+                                  Table "forum.myusers"
+     Column    |   Type    | Collation | Nullable |                 Default
+    ----------+---------+-----------+----------+-----------------------
+    -------
+    pk         | integer |               | not null | generated always as
+    identity
+    username | text        |             | not null |
+       gecos     | text     |              |             |
+       email     | text     |              | not null |
+   Indexes:
+         "myusers_pkey" PRIMARY KEY, btree (pk)
+         "myusers_username_key" UNIQUE CONSTRAINT, btree (username)
+....
+
+
+    Lưu ý rằng PostgreSQL đã tạo một unique index. Ở phần sau của sách, chúng ta sẽ phân tích index chi tiết hơn, tìm hiểu index là gì, có những loại nào và cách sử dụng chúng. Hiện tại, chỉ cần biết rằng unique index không cho phép chèn các giá trị trùng lặp vào column mà index đó áp dụng.
 
 [quote]
 ____
@@ -62,28 +113,41 @@ Trong PostgreSQL, primary key được triển khai bằng unique index.
 
 ____
 [%start=4]
-. Sử dụng command sau để xóa một table:
+. Dùng lệnh sau để xóa table:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=>      drop table myusers ;
    DROP TABLE
 ....
 
-   Command trước đó đơn giản là xóa table `users`. Như chúng ta đã thấy, command `CREATE TABLE` có một số option hữu ích:
+.SQL
+[source,sql]
+....
+DROP TABLE myusers;
+....
+
+.Output
+[source,output]
+....
+   DROP TABLE
+....
+
+
+   Lệnh trên chỉ đơn giản là xóa table `users`. Như đã thấy, lệnh `CREATE TABLE` có một số tùy chọn hữu ích:
 
 ** `IF NOT EXISTS`
 ** `TEMP`
 ** `UNLOGGED`
 
-Chúng ta sẽ trình bày từng option trong các subsection sau.
+Chúng ta sẽ trình bày từng tùy chọn trong các tiểu mục sau.
 
-== Option EXISTS
-Option `EXISTS` có thể được dùng cùng các command tạo hoặc xóa entity để kiểm tra object đã tồn tại hay chưa. Một ví dụ sử dụng option này có thể kết hợp với command `CREATE TABLE` hoặc `CREATE DATABASE`. Chúng ta cũng có thể sử dụng option này khi tạo hoặc xóa sequence, index, role và schema.
+== Tùy chọn EXISTS
+Có thể dùng tùy chọn `EXISTS` với các lệnh tạo hoặc xóa object để kiểm tra object đã tồn tại hay chưa. Chẳng hạn, tùy chọn này có thể dùng với lệnh `CREATE TABLE` hoặc `CREATE DATABASE`. Ngoài ra, nó còn dùng được khi tạo hoặc xóa sequence, index, role và schema.
 
-Trường hợp sử dụng rất đơn giản – command tạo hoặc xóa được thực thi nếu clause `EXISTS` là true; ví dụ, nếu muốn tạo một table có tên `users`, nếu table tồn tại, chúng ta phải thực thi SQL statement sau:
+Cách dùng rất đơn giản: lệnh tạo hoặc xóa sẽ được thực thi nếu clause `EXISTS` có giá trị true; chẳng hạn, để tạo table `users` khi table này chưa tồn tại, chúng ta phải thực thi SQL statement sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create table if not exists users (
      pk int GENERATED ALWAYS AS IDENTITY
@@ -97,25 +161,60 @@ NOTICE:    relation "users" already exists, skipping
 CREATE TABLE
 ....
 
-Command được mô tả ở trên sẽ chỉ tạo table `users` nếu table đó chưa tồn tại; nếu không, command sẽ bị bỏ qua. Command `DROP` hoạt động tương tự; command `DROP TABLE` được dùng để xóa table. Option `if exists` cũng tồn tại cho command `DROP TABLE`; ví dụ, nếu muốn xóa table `myusers` nếu nó tồn tại, chúng ta phải thực thi như sau:
+.SQL
+[source,sql]
+....
+CREATE TABLE if NOT EXISTS users (
+     pk int GENERATED ALWAYS AS IDENTITY
+    , username text NOT NULL
+    , gecos text
+    , email text NOT NULL
+    , PRIMARY KEY(pk)
+    , UNIQUE (username)
+);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+NOTICE:    relation "users" already exists, skipping
+CREATE TABLE
+....
+
+
+Lệnh ở trên chỉ tạo table `users` nếu table đó chưa tồn tại; nếu table đã tồn tại thì lệnh sẽ bị bỏ qua. Lệnh `DROP` hoạt động tương tự: lệnh `DROP TABLE` được dùng để xóa table. Tùy chọn `if exists` cũng có trên lệnh `DROP TABLE`; chẳng hạn, để xóa table `myusers` nếu table đó tồn tại, chúng ta phải thực thi như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> drop table if exists myusers;
 NOTICE:    table "myusers" does not exist, skipping
 DROP TABLE
 ....
 
-Bạn có thể thấy command bị bỏ qua vì table không tồn tại. Option này có thể hữu ích vì nếu table không tồn tại, PostgreSQL không chặn bất kỳ instruction nào tiếp theo.
+.SQL
+[source,sql]
+....
+DROP TABLE if EXISTS myusers;
+....
+
+.Output
+[source,output]
+....
+NOTICE:    table "myusers" does not exist, skipping
+DROP TABLE
+....
+
+
+Có thể thấy lệnh đã bị bỏ qua vì table không tồn tại. Tùy chọn này hữu ích vì khi table không tồn tại, PostgreSQL sẽ không ngăn các lệnh tiếp theo.
 
 == Quản lý temporary table
-Sau này trong sách, chúng ta sẽ tìm hiểu session, transaction và concurrency sâu hơn. Hiện tại, bạn chỉ cần biết rằng một session là một tập hợp các transaction, mỗi session được cô lập, và một transaction được cô lập khỏi mọi thứ khác. Nói cách khác, bất kỳ điều gì xảy ra bên trong transaction đều không thể được nhìn thấy từ bên ngoài transaction cho đến khi transaction kết thúc. Vì vậy, chúng ta có thể cần tạo một data structure chỉ hiển thị bên trong transaction đang chạy. Để làm điều này, chúng ta phải sử dụng option `temp`.
+Về sau trong sách, chúng ta sẽ tìm hiểu sâu hơn về session, transaction và concurrency. Hiện tại, chỉ cần biết rằng một session là tập hợp các transaction; mỗi session được cô lập, và mỗi transaction cũng được cô lập khỏi mọi thứ khác. Nói cách khác, mọi thứ xảy ra bên trong transaction đều không thể nhìn thấy từ bên ngoài transaction cho đến khi transaction kết thúc. Vì vậy, đôi khi chúng ta cần tạo một cấu trúc dữ liệu chỉ hiển thị bên trong transaction đang chạy. Để làm vậy, cần dùng tùy chọn `temp`.
 
-Bây giờ chúng ta sẽ tìm hiểu hai khả năng. Khả năng thứ nhất là chúng ta có thể có một table chỉ hiển thị trong session nơi nó được tạo. Khả năng thứ hai là chúng ta có thể có một table chỉ hiển thị trong cùng transaction nơi nó được tạo.
+Có hai khả năng. Thứ nhất, table chỉ hiển thị trong session nơi nó được tạo. Thứ hai, table chỉ hiển thị trong transaction nơi nó được tạo.
 
-Sau đây là ví dụ về khả năng thứ nhất, trong đó một table hiển thị bên trong session:
+Ví dụ dưới đây minh họa khả năng thứ nhất, trong đó table hiển thị bên trong session:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create temp table if not exists temp_users                (
      pk int GENERATED ALWAYS AS IDENTITY
@@ -128,31 +227,64 @@ forumdb=> create temp table if not exists temp_users                (
 CREATE TABLE
 ....
 
-Command trước đó sẽ tạo table `temp_users`, table này chỉ hiển thị bên trong session nơi table được tạo.
+.SQL
+[source,sql]
+....
+CREATE TEMP TABLE if NOT EXISTS temp_users (
+     pk int GENERATED ALWAYS AS IDENTITY
+    , username text NOT NULL
+    , gecos text
+    , email text NOT NULL
+    , PRIMARY KEY(pk)
+    , UNIQUE (username)
+);
+....
 
-Nếu thay vào đó muốn có một table chỉ hiển thị bên trong transaction, chúng ta phải thêm option `on commit drop`. Để làm điều này, chúng ta phải thực hiện như sau:
+.Output
+[source,output]
+....
+CREATE TABLE
+....
+
+
+Lệnh trên tạo table `temp_users`; table này chỉ hiển thị trong session nơi nó được tạo.
+
+Nếu muốn table chỉ hiển thị trong transaction thay vì session, cần thêm tùy chọn `on commit drop`. Thực hiện như sau:
 
 . Bắt đầu một transaction mới.
 . Tạo table `temp_users`.
-. Commit hoặc rollback transaction đã bắt đầu ở Step 1.
+. Commit hoặc rollback transaction đã bắt đầu ở Bước 1.
 
-Hãy bắt đầu với Step 1:
+Bắt đầu với Bước 1:
 
-. Bắt đầu transaction bằng code sau:
+. Bắt đầu transaction bằng lệnh sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=>      begin work;
    BEGIN
    forumdb=*>
 ....
 
-   Ký hiệu `*` có nghĩa là chúng ta đang ở bên trong một transaction block.
+.SQL
+[source,sql]
+....
+BEGIN work;
+....
+
+.Output
+[source,output]
+....
+   BEGIN
+....
+
+
+   Ký hiệu `*` cho biết chúng ta đang ở bên trong một transaction block.
 
 [%start=2]
 . Tạo một table chỉ hiển thị bên trong transaction:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=*>      create temp table if not exists temp_users_transaction (
      pk int GENERATED ALWAYS AS IDENTITY
@@ -165,13 +297,41 @@ Hãy bắt đầu với Step 1:
    CREATE TABLE
 ....
 
-   Bây giờ hãy kiểm tra table hiện diện bên trong transaction nhưng không hiện diện bên ngoài transaction:
+.SQL
+[source,sql]
+....
+CREATE TEMP TABLE if NOT EXISTS temp_users_transaction (
+     pk int GENERATED ALWAYS AS IDENTITY
+     , username text NOT NULL
+     , gecos text
+     , email text NOT NULL
+     , PRIMARY KEY(pk)
+     , UNIQUE (username)
+    ) ON COMMIT DROP;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TABLE
+....
+
+
+   Bây giờ hãy kiểm tra để xác nhận rằng table hiển thị trong transaction nhưng không hiển thị bên ngoài transaction:
+
+[source,console,role="transcript"]
 ....
    forumdb=*> \d temp_users_transaction
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+\d temp_users_transaction
+....
+
+
+[source,output]
 ....
 Table "pg_temp_3.temp_users_transaction"
 Column   |   Type    | Collation | Nullable |                 Default
@@ -189,31 +349,57 @@ Indexes:
 ....
 
 [%start=3]
-. Bạn có thể thấy cấu trúc của table `temp_users_transaction`, vậy bây giờ hãy commit transaction:
+. Sau khi kiểm tra cấu trúc của table `temp_users_transaction`, hãy commit transaction:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=*> commit work;
 COMMIT
 ....
 
-Nếu bạn thực thi lại command DESCRIBE `\d temp_users_transaction`, PostgreSQL sẽ phản hồi như sau:
+.SQL
+[source,sql]
+....
+COMMIT work;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+COMMIT
+....
+
+
+Nếu thực thi lại lệnh DESCRIBE `\d temp_users_transaction`, PostgreSQL sẽ trả về:
+
+[source,console,role="transcript"]
 ....
 forumdb=> \d temp_users_transaction
 Did not find any relation named "temp_users_transaction".
 ....
 
-Điều này xảy ra vì option `on commit drop` sẽ drop table ngay khi transaction hoàn tất.
+.SQL
+[source,sql]
+....
+\d temp_users_transaction
+....
+
+.Output
+[source,output]
+....
+Did not find any relation named "temp_users_transaction".
+....
+
+
+Điều này xảy ra vì tùy chọn `on commit drop` sẽ xóa table ngay khi transaction hoàn tất.
 
 == Quản lý unlogged table
 
-Bây giờ chúng ta sẽ nói về chủ đề unlogged table. Hiện tại, chúng ta chỉ cần lưu ý rằng unlogged table nhanh hơn nhiều so với table classic (còn được gọi là logged table), nhưng không crash-safe. Điều này có nghĩa là tính nhất quán của data không được bảo đảm trong trường hợp xảy ra crash.
+Tiếp theo là unlogged table. Hiện tại, chỉ cần lưu ý rằng unlogged table nhanh hơn nhiều so với table thông thường (còn gọi là logged table), nhưng không crash-safe. Nghĩa là tính nhất quán của dữ liệu không được bảo đảm nếu xảy ra crash.
 
-Đoạn mã sau cho thấy cách tạo một unlogged table:
+Đoạn code sau minh họa cách tạo unlogged table:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create unlogged table if not exists unlogged_users (
       pk int GENERATED ALWAYS AS IDENTITY
@@ -226,15 +412,35 @@ forumdb=> create unlogged table if not exists unlogged_users (
 CREATE TABLE
 ....
 
-Unlogged table là một lựa chọn thay thế nhanh cho permanent table và temporary table. Đổi lại việc tăng performance này là data sẽ bị mất khi server crash. Nếu server crash sau khi reboot, table sẽ rỗng. Trong một số trường hợp, bạn có thể chấp nhận điều này.
+.SQL
+[source,sql]
+....
+CREATE unlogged TABLE if NOT EXISTS unlogged_users (
+      pk int GENERATED ALWAYS AS IDENTITY
+     , username text NOT NULL
+     , gecos text
+     , email text NOT NULL
+     , PRIMARY KEY(pk)
+     , UNIQUE (username)
+);
+....
+
+.Output
+[source,output]
+....
+CREATE TABLE
+....
+
+
+Unlogged table là một lựa chọn nhanh hơn so với table thông thường và temporary table. Đổi lại, dữ liệu sẽ bị mất nếu server crash. Nếu server crash rồi khởi động lại, table sẽ rỗng. Trong một số trường hợp, điều này có thể chấp nhận được.
 
 == Tạo table
 
-Bây giờ chúng ta sẽ tìm hiểu điều gì xảy ra bên trong khi một table mới được tạo. Ngoài ra, đối với table, PostgreSQL gán một object identifier gọi là OID. Chúng ta đã thấy `oid2name` trong Chapter 2, Getting to know your cluster. Bây giờ chúng ta sẽ xem một thứ tương tự. OID đơn giản là một số nhận diện một object bên trong PostgreSQL cluster. Hãy xem mối quan hệ giữa các table được tạo ở SQL level và những gì xảy ra phía sau trong filesystem:
+Tiếp theo, chúng ta sẽ tìm hiểu những gì diễn ra bên trong khi tạo một table mới. Với mỗi table, PostgreSQL cũng gán một object identifier gọi là OID. Chúng ta đã thấy `oid2name` trong Chương 2, *Làm quen với cluster của bạn*. Bây giờ hãy xem một cơ chế tương tự. OID đơn giản là một số dùng để định danh một object bên trong PostgreSQL cluster. Hãy xem mối quan hệ giữa các table được tạo ở cấp SQL và những gì diễn ra trong filesystem:
 
-. Để làm việc này, chúng ta sẽ sử dụng OID và một system table có tên `pg_class`, nơi tập hợp thông tin về tất cả table hiện có trong database. Hãy chạy query sau:
+. Để làm vậy, hãy dùng OID và system table có tên `pg_class`, nơi chứa thông tin về mọi table hiện có trong database. Chạy query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select oid,relname from pg_class where relname='users';
   oid   | relname
@@ -243,38 +449,91 @@ forumdb=> select oid,relname from pg_class where relname='users';
 (1 row)
 ....
 
-Ở đây, field `oid` là field object identifier, còn `relname` đại diện cho relation name của object. Như đã thấy ở đây, database `forumdb` được lưu trong directory `16389`.
+.SQL
+[source,sql]
+....
+SELECT
+    oid,
+    relname
+FROM pg_class
+WHERE relname = 'users';
+....
+
+.Output
+[source,output]
+....
+  oid   | relname
+-------+---------
+ 16389 | users
+(1 row)
+....
+
+
+Trong kết quả này, column `oid` là object identifier, còn `relname` là relation name của object. Như kết quả cho thấy, database `forumdb` được lưu trong thư mục `16389`.
 
 [%start=2]
-. Bây giờ hãy xem table `users` được lưu ở đâu. Để làm việc này, hãy đi đến directory `16386` bằng code sau:
+. Bây giờ hãy xem table `users` được lưu ở đâu. Để làm vậy, hãy chuyển tới thư mục `16386` bằng lệnh sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 postgres@learn_postgresql:~$ cd /var/lib/postgresql/16/main/
 base/16386
 ....
 
-Hoặc nếu bạn đang sử dụng Docker image, hãy thực thi:
+.Command
+[source,bash]
+....
+cd /var/lib/postgresql/16/main/
+....
 
-[source,text]
+.Output
+[source,output]
+....
+base/16386
+....
+
+
+Nếu đang dùng Docker image, hãy thực thi lệnh sau thay cho lệnh trên:
+
+[source,console,role="transcript"]
 ....
 postgres@learn_postgresql:~$ cd /postgres/16/data/base/16386
 ....
 
-[%start=3]
-. Khi đã ở đây, hãy thực thi command sau:
+.Command
+[source,bash]
+....
+cd /postgres/16/data/base/16386
+....
 
-[source,text]
+
+[%start=3]
+. Sau khi tới đây, hãy thực thi lệnh sau:
+
+[source,console,role="transcript"]
 ....
 postgres@learn_postgresql:~/data/base/16386$ ls -l | grep 16389
 -rw------- 1 postgres postgres               0 Jan    3 09:13 16389
 ....
 
-Như bạn có thể thấy, trong directory `16386` có một file tên `16389`. Trong PostgreSQL, mỗi table được lưu trong một hoặc nhiều file. Nếu kích thước table nhỏ hơn 1 GB, table sẽ được lưu trong một file duy nhất. Nếu kích thước table lớn hơn 1 GB, table sẽ được lưu trong hai file và file thứ hai sẽ có tên `16389.1`. Nếu table `users` có kích thước lớn hơn 2 GB, table sẽ được lưu trong ba file có tên `16389`, `16389.1` và `16389.2`; điều tương tự cũng xảy ra với index `users_username_key`.
+.Command
+[source,bash]
+....
+ls -l | grep 16389
+....
+
+.Output
+[source,output]
+....
+-rw------- 1 postgres postgres               0 Jan    3 09:13 16389
+....
+
+
+Như có thể thấy, thư mục `16386` chứa file có tên `16389`. Trong PostgreSQL, mỗi table được lưu trong một hoặc nhiều file. Table nhỏ hơn 1 GB được lưu trong một file duy nhất. Nếu lớn hơn 1 GB, table được lưu trong hai file, trong đó file thứ hai có tên `16389.1`. Nếu table `users` lớn hơn 2 GB, table được lưu trong ba file có tên `16389`, `16389.1` và `16389.2`; điều tương tự cũng áp dụng cho index `users_username_key`.
 
 [quote]
 ____
-Trong PostgreSQL, mỗi table hoặc index được lưu trong một hoặc nhiều file. Khi một table hoặc index vượt quá 1 GB, nó được chia thành các segment có kích thước một gigabyte.
+Trong PostgreSQL, mỗi table hoặc index được lưu trong một hoặc nhiều file. Khi một table hoặc index vượt quá 1 GB, nó được chia thành các segment, mỗi segment có kích thước một gigabyte.
 
 ____
-Trong section này, chúng ta đã học cách quản lý table và đã thấy điều gì xảy ra bên trong. Trong section tiếp theo, chúng ta sẽ học cách thao tác data bên trong table.
+Trong phần này, chúng ta đã học cách quản lý table và tìm hiểu những gì diễn ra bên trong. Ở phần tiếp theo, chúng ta sẽ học cách thao tác với dữ liệu trong table.

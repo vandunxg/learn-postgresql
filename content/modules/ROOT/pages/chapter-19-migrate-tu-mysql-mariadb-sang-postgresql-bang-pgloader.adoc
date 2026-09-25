@@ -1,17 +1,17 @@
-= Migrate từ MySQL/MariaDB sang PostgreSQL bằng pgloader
+= Di chuyển từ MySQL/MariaDB sang PostgreSQL bằng pgloader
 
-Trong section này, chúng ta sẽ xem cách migrate một database từ thế giới MySQL/MariaDB sang thế giới PostgreSQL theo một cách rất đơn giản. Tool chúng ta sẽ sử dụng có tên là pgloader. Có thể tìm thấy tài liệu tham khảo để biết thêm thông tin về section này tại https://pgloader.io.
+Trong phần này, chúng ta sẽ xem cách di chuyển một database từ MySQL/MariaDB sang PostgreSQL theo cách rất đơn giản. Công cụ chúng ta sử dụng có tên là pgloader. Tài liệu tham khảo thêm về phần này có tại https://pgloader.io.
 
-Có hai Docker container dành cho section này, một container chứa MariaDB server và một container chứa PostgreSQL server. MariaDB server có tên mariadb-source chứa một bản sao của database forumdb được sử dụng trong Chapter 4; PostgreSQL server có tên pg-destination chứa một database forumdb trống. Mục tiêu của chúng ta là migrate toàn bộ nội dung của database forumdb từ mariadb-source server sang postgresql-destination server bằng pgloader tool.
+Phần này sử dụng hai Docker container: một container chạy MariaDB server và một container chạy PostgreSQL server. MariaDB server có tên mariadb-source chứa bản sao của database forumdb được sử dụng trong Chapter 4; PostgreSQL server có tên pg-destination chứa một database forumdb rỗng. Mục tiêu là di chuyển toàn bộ nội dung của database forumdb từ mariadb-source server sang postgresql-destination server bằng pgloader.
 
-Hãy mở hai Bash terminal và thực thi lệnh sau trong terminal thứ nhất:
+Mở hai Bash terminal, rồi thực thi lệnh sau trong terminal thứ nhất:
 
 [source,text]
 ....
 chapter19$ bash run-pg-docker-mariadb.sh
 ....
 
-Sau khi container đã khởi động, hãy thực thi statement dưới đây bằng LearnPostgreSQL làm password:
+Sau khi container khởi động, hãy thực thi statement dưới đây và dùng LearnPostgreSQL làm password:
 
 [source,text]
 ....
@@ -27,9 +27,9 @@ statement.
 MariaDB [forumdb]>
 ....
 
-Bây giờ chúng ta đang ở bên trong database forumdb và có thể thực hiện query trên đó:
+Hiện chúng ta đang ở trong database forumdb và có thể chạy query trên database này:
 
-[source,text]
+[source,output]
 ....
 MariaDB [forumdb]> show tables;
 +-------------------+
@@ -44,7 +44,7 @@ MariaDB [forumdb]> show tables;
 5 rows in set (0.000 sec)
 ....
 
-[source,text]
+[source,output]
 ....
 MariaDB [forumdb]> select * from categories;
 +----+-----------------------+---------------------------------+
@@ -57,7 +57,7 @@ MariaDB [forumdb]> select * from categories;
 3 rows in set (0.002 sec)
 ....
 
-[source,text]
+[source,output]
 ....
 MariaDB [forumdb]> select * from users;
 +----+-----------+----------------+---------------------+
@@ -69,34 +69,60 @@ MariaDB [forumdb]> select * from users;
 2 rows in set (0.001 sec)
 ....
 
-Như có thể thấy, database này giống database chúng ta đã sử dụng trong Chapter 4, Basic Statements.
+Như có thể thấy, đây là database chúng ta đã sử dụng trong Chapter 4, Basic Statements.
 
-Bây giờ hãy chuyển sang Bash terminal thứ hai và thực thi:
+Bây giờ, chuyển sang Bash terminal thứ hai và thực thi:
 
 [source,text]
 ....
 chapter19$ bash run-pg-docker-postgresql.sh
 ....
 
-Sau khi container khởi động, hãy thực thi:
+Sau khi container khởi động, thực thi:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 postgres@pg-destination:~$ psql forumdb
 ....
 
-Như thấy dưới đây, PostgreSQL database của chúng ta đang trống:
+.Command
+[source,bash]
+....
+psql forumdb
+....
 
-[source,text]
+
+Như kết quả dưới đây cho thấy, PostgreSQL database đang trống:
+
+[source,console,role="transcript"]
 ....
 postgres@pg-destination:~$ psql forumdb
 forumdb=# \d
 Did not find any relations.
 ....
 
-Bây giờ hãy thoát khỏi psql client và thực thi pgloader command:
+.Command
+[source,bash]
+....
+psql forumdb
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+\d
+....
+
+.Output
+[source,output]
+....
+Did not find any relations.
+....
+
+
+Bây giờ, thoát khỏi psql client và chạy command pgloader:
+
+[source,console,role="transcript"]
 ....
 forumdb=# \q
 ppostgres@pg-destination:~$ pgloader mysql://root:LearnPostgreSQL@mariadb-
@@ -130,14 +156,67 @@ COPY Threads Completion               0            4                          0.
         Total import time             ✓            5      0.2 kB              0.184s
 ....
 
-Bằng command đơn giản trên, chúng ta đã migrate MariaDB database forumdb vào PostgreSQL database forumdb. Bây giờ hãy kiểm tra xem mọi thứ đã được migrate chưa; hãy kết nối lại với forumdb trên PostgreSQL server:
+.Command
+[source,bash]
+....
+pgloader mysql://root:LearnPostgreSQL@mariadb-
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+\q
+....
+
+.Output
+[source,output]
+....
+source/forumdb pgsql://postgres@127.0.0.1/forumdb
+
+
+              table name       errors         rows        bytes        total time
+-----------------------      ---------    ---------    ---------    --------------
+          fetch meta data             0           22                          0.104s
+           Create Schemas             0            0                          0.000s
+         Create SQL Types             0            0                          0.004s
+            Create tables             0           10                          0.056s
+           Set Table OIDs             0            5                          0.020s
+-----------------------      ---------    ---------    ---------    --------------
+       forumdb.categories             0            3      0.1 kB              0.020s
+            forumdb.users             0            2      0.1 kB              0.016s
+     forumdb.j_posts_tags             0            0                          0.012s
+             forumdb.tags             0            0                          0.016s
+            forumdb.posts             0            0                          0.012s
+-----------------------      ---------    ---------    ---------    --------------
+COPY Threads Completion               0            4                          0.024s
+   Index Build Completion             0           11                          0.048s
+           Create Indexes             0           11                          0.092s
+          Reset Sequences             0            4                          0.012s
+             Primary Keys             0            4                          0.004s
+      Create Foreign Keys             0            6                          0.004s
+          Create Triggers             0            0                          0.000s
+          Set Search Path             0            1                          0.000s
+         Install Comments             0            0                          0.000s
+-----------------------      ---------    ---------    ---------    --------------
+        Total import time             ✓            5      0.2 kB              0.184s
+....
+
+
+Với command đơn giản này, chúng ta đã di chuyển MariaDB database forumdb sang PostgreSQL database forumdb. Bây giờ hãy kiểm tra xem mọi thứ đã được di chuyển hay chưa bằng cách kết nối lại với forumdb trên PostgreSQL server:
+
+[source,console,role="transcript"]
 ....
 postgres@pg-destination:~$ psql forumdb
 ....
 
-[source,text]
+.Command
+[source,bash]
+....
+psql forumdb
+....
+
+
+[source,console,role="transcript"]
 ....
 forumdb=# \dn
           List of schemas
@@ -160,9 +239,38 @@ forumdb=# \dt forumdb.*
 (5 rows)
 ....
 
-Như có thể thấy ở trên, MariaDB database có tên forumdb đã được migrate sang PostgreSQL database có tên forumdb. pgloader tự động tạo một schema có tên forumdb, nơi chúng ta có thể tìm thấy tất cả table và data đến từ MariaDB database forumdb ban đầu; bây giờ điều duy nhất chúng ta cần là tạo một user có tên forumdb, user này có đủ permission để sử dụng toàn bộ data vừa import:
+.SQL
+[source,sql]
+....
+\dn \dt forumdb.*
+....
 
-[source,text]
+.Output
+[source,output]
+....
+          List of schemas
+   Name     |       Owner
+---------+-------------------
+ forumdb | postgres
+ public     | pg_database_owner
+(2 rows)
+
+
+                    List of relations
+     Schema     |     Name       | Type    |   Owner
+    ---------+--------------+-------+----------
+     forumdb | categories        | table | postgres
+     forumdb | j_posts_tags | table | postgres
+     forumdb | posts             | table | postgres
+     forumdb | tags              | table | postgres
+     forumdb | users             | table | postgres
+(5 rows)
+....
+
+
+Như có thể thấy ở trên, MariaDB database forumdb đã được di chuyển sang PostgreSQL database forumdb. pgloader tự động tạo một schema forumdb, nơi chứa toàn bộ table và dữ liệu từ database forumdb ban đầu của MariaDB; việc duy nhất còn lại là tạo user forumdb với đủ permission để sử dụng toàn bộ dữ liệu vừa import:
+
+[source,console,role="transcript"]
 ....
 forumdb=# create role forumdb with password 'LearnPostgreSQL' login;
 CREATE ROLE
@@ -176,9 +284,30 @@ GRANT
 
 forumdb=# \q
 ....
-Giờ đây, chúng ta có thể truy cập database `forumdb` của postgresql bằng user có tên `forumdb`:
 
-[source,text]
+.SQL
+[source,sql]
+....
+CREATE role forumdb WITH password 'LearnPostgreSQL' login;
+GRANT usage ON schema forumdb to forumdb;
+GRANT ALL ON ALL tables IN schema forumdb to forumdb;
+\q
+....
+
+.Output
+[source,output]
+....
+CREATE ROLE
+
+
+GRANT
+GRANT
+....
+
+
+Giờ đây, chúng ta có thể dùng user `forumdb` để truy cập database `forumdb` trên PostgreSQL:
+
+[source,console,role="transcript"]
 ....
 postgres@pg-destination:~$ psql -U forumdb forumdb
 
@@ -191,6 +320,38 @@ forumdb=> select * from categories;
 (3 rows)
 
 forumdb=> select * from users;
+    pk | username    |      gecos         |          email
+----+-----------+----------------+---------------------
+     1 | fluca1978 | Luca Ferrari         | fluca1978@gmail.com
+     2 | sscotty71 | Enrico Pirozzi | sscptty71@gmail.com
+(2 rows)
+....
+
+.Command
+[source,bash]
+....
+psql -U forumdb forumdb
+....
+
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories;
+SELECT *
+FROM users;
+....
+
+.Output
+[source,output]
+....
+    pk |          title             |             description
+----+-----------------------+---------------------------------
+     1 | Database                   | Database related discussions
+     2 | Unix                       | Unix and Linux discussions
+     3 | Programming Languages | All about programming languages
+(3 rows)
+
     pk | username    |      gecos         |          email
 ----+-----------+----------------+---------------------
      1 | fluca1978 | Luca Ferrari         | fluca1978@gmail.com

@@ -1,24 +1,24 @@
 = Khám phá các khái niệm cơ bản về replication
 
-Trong PostgreSQL có hai loại kỹ thuật physical replication:
+PostgreSQL có hai kỹ thuật physical replication:
 
-* *Asynchronous replication:* Trong asynchronous replication, primary device (source) gửi một luồng data liên tục đến secondary device (target) mà không nhận bất kỳ return code nào từ target. Kiểu copying này có ưu điểm về tốc độ, nhưng đi kèm rủi ro mất data cao hơn vì data nhận được không được acknowledge.
-* *Synchronous replication:* Trong synchronous replication, một source gửi data đến một target, tức server thứ hai; tại thời điểm này, server xác nhận rằng các thay đổi đã được ghi chính xác. Nếu việc kiểm tra thành công, quá trình truyền hoàn tất.
+* *Asynchronous replication:* Trong asynchronous replication, primary (source) liên tục gửi một luồng data tới secondary (target) mà không nhận mã phản hồi từ target. Cách sao chép này nhanh hơn, nhưng rủi ro mất data cao hơn vì target không xác nhận đã nhận data.
+* *Synchronous replication:* Trong synchronous replication, source gửi data tới target, tức server thứ hai; target xác nhận các thay đổi đã được ghi chính xác. Nếu xác nhận thành công, quá trình truyền hoàn tất.
 
-Cả hai method đều có ưu điểm và nhược điểm, và chúng ta sẽ phân tích chúng trong section Managing streaming replication của chương này.
+Cả hai phương thức đều có ưu và nhược điểm; chúng ta sẽ phân tích chúng trong phần Quản lý streaming replication của chương này.
 
 == Physical replication và WAL
 
-Hãy tóm tắt ngắn gọn những gì chúng ta đã đề cập về MVCC và WAL segment: chúng ta đã thấy PostgreSQL lưu data trên disk bằng WAL segment như thế nào, và như đã thấy trong Chapter 11, Transactions, MVCC, WAL, and Checkpoints, WAL segment chủ yếu được sử dụng khi xảy ra crash. Sau một crash, PostgreSQL truy lại các WAL segment và áp dụng lại chúng vào data, bắt đầu từ checkpoint gần nhất; trong thời gian recovery sau crash, server chuyển sang recovery state.
+Hãy tóm tắt ngắn gọn những gì đã đề cập về MVCC và WAL segment: chúng ta đã thấy PostgreSQL sử dụng WAL segment như thế nào khi lưu data trên disk. Như đã trình bày trong Chapter 11, Transactions, MVCC, WAL, and Checkpoints, các WAL segment chủ yếu được sử dụng khi xảy ra crash. Sau crash, PostgreSQL đọc lại các WAL segment và áp dụng lại chúng lên data, bắt đầu từ checkpoint gần nhất; trong quá trình recovery sau crash, server chuyển sang recovery state.
 
-Dưới đây là phần tóm tắt những thông tin chính về WAL segment:
+Dưới đây là tóm tắt các thông tin chính về WAL segment:
 
-* WAL có size cố định là 16 MB.
-* Theo mặc định, WAL file bị xóa ngay khi cũ hơn checkpoint mới nhất.
-* Chúng ta có thể duy trì thêm WAL segment bằng `wal_keep_segments`.
-* WAL segment được lưu trong `pg_wal` directory như sau:
+* WAL có kích thước cố định là 16 MB.
+* Theo mặc định, các WAL file bị xóa ngay khi chúng cũ hơn checkpoint mới nhất.
+* Chúng ta có thể giữ lại thêm WAL segment bằng `wal_keep_segments`.
+* WAL segment được lưu trong thư mục `pg_wal` như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
   postgres@pg2:~/16/main/pg_wal$ ls -alh
   total 17M
@@ -29,21 +29,39 @@ Dưới đây là phần tóm tắt những thông tin chính về WAL segment:
   drwx------    2 postgres postgres 4.0K May 22 09:52 archive_status
 ....
 
-== Chỉ thị wal_level
+.Command
+[source,bash]
+....
+ls -alh
+....
 
-Chỉ thị `wal_level` thiết lập loại thông tin sẽ được lưu trong WAL segment. Giá trị mặc định là `minimal`. Với giá trị này, mọi thông tin được lưu trong một WAL segment đều có thể hỗ trợ archiving và physical replication.
+.Output
+[source,output]
+....
+  total 17M
+  drwx------    3 postgres postgres 4.0K May 22 09:52 .
+  drwx------ 19 postgres postgres 4.0K May 22 10:18 ..
+  -rw-------    1 postgres postgres          16M May 22 10:18
+  000000010000000000000001
+  drwx------    2 postgres postgres 4.0K May 22 09:52 archive_status
+....
+
+
+== Tham số wal_level
+
+Parameter `wal_level` xác định loại thông tin được lưu trong WAL segment. Giá trị mặc định là `minimal`. Với giá trị này, mọi thông tin được lưu trong một WAL segment đều có thể hỗ trợ archiving và physical replication.
 
 Để biết thêm thông tin, xem https://www.postgresql.org/docs/current/runtime-config-wal.html#GUC-WAL-LEVEL.
 
-Vì vậy, trong chương này, chúng ta sẽ sử dụng giá trị `wal_level=replica`, vốn là giá trị mặc định, còn trong chapter tiếp theo, chúng ta sẽ sử dụng `wal_level=logical`. Cần nhớ rằng phải restart PostgreSQL server mỗi khi thay đổi parameter `wal_level`.
+Vì vậy, trong chương này, chúng ta sẽ sử dụng giá trị `wal_level=replica`, vốn là giá trị mặc định; trong chương tiếp theo, chúng ta sẽ sử dụng `wal_level=logical`. Cần nhớ rằng phải restart PostgreSQL server mỗi khi thay đổi parameter `wal_level`.
 
-== Chuẩn bị setup môi trường cho streaming replication
+== Chuẩn bị môi trường cho streaming replication
 
-Trong section này, chúng ta sẽ chuẩn bị hai server cần thiết để tiếp tục: máy thứ nhất là primary server, máy thứ hai là replica server. Vì vậy, hãy tiến hành cài đặt hai virtual machine. Trong các ví dụ sau, chúng ta sẽ sử dụng hai Debian Linux virtual machine, với 192.168.122.10 là IP của primary server và 192.168.122.11 là IP của replication server. Trong chương này, mọi path đều trỏ đến một PostgreSQL 16 instance được cài đặt trên Debian, chẳng hạn `/var/lib/postgresql/16/main`.
+Trong section này, chúng ta sẽ chuẩn bị hai server cần thiết: server thứ nhất là primary server và server thứ hai là replica server. Vì vậy, hãy cài đặt hai virtual machine. Trong các ví dụ sau, chúng ta sẽ sử dụng hai virtual machine chạy Debian Linux; 192.168.122.10 là IP của primary server và 192.168.122.11 là IP của replica server. Trong chương này, mọi path đều trỏ tới một PostgreSQL 16 instance được cài đặt trên Debian, chẳng hạn `/var/lib/postgresql/16/main`.
 
-. Đối với primary server, chúng ta sẽ thấy output sau:
+. Trên primary server, output sẽ có dạng sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    root@pg1# ip addr
    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN
@@ -69,9 +87,40 @@ Trong section này, chúng ta sẽ chuẩn bị hai server cần thiết để t
    postgres=#
 ....
 
-. Tương tự, đối với replica server, chúng ta sẽ có:
+.Command
+[source,bash]
+....
+   root@pg1# ip addr
+   1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN
+   group default qlen 1000
+        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+        inet 127.0.0.1/8 scope host lo
+           valid_lft forever preferred_lft forever
+        inet6 ::1/128 scope host
+           valid_lft forever preferred_lft forever
+   2: enp1s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel
+   state UP group default qlen 1000
+       link/ether 52:54:00:5c:df:f4 brd ff:ff:ff:ff:ff:ff
+       inet 192.168.122.10/24 brd 192.168.122.255 scope global enp1s0
+          valid_lft forever preferred_lft forever
+       inet6 fe80::5054:ff:fe5c:dff4/64 scope link
+          valid_lft forever preferred_lft forever
 
-[source,text]
+   root@pg1:# su - postgres
+psql
+....
+
+.Output
+[source,output]
+....
+   psql (16)
+   Type "help" for help.
+....
+
+
+. Tương tự, trên replica server, output sẽ có dạng sau:
+
+[source,console,role="transcript"]
 ....
    root@pg2:~# ip addr
    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN
@@ -96,11 +145,41 @@ Trong section này, chúng ta sẽ chuẩn bị hai server cần thiết để t
    postgres=#
 ....
 
-. Hãy kiểm tra xem có connection giữa hai server hay không.
+.Command
+[source,bash]
+....
+   root@pg2:~# ip addr
+   1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN
+   group default qlen 1000
+       link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+       inet 127.0.0.1/8 scope host lo
+          valid_lft forever preferred_lft forever
+       inet6 ::1/128 scope host
+          valid_lft forever preferred_lft forever
+   2: enp1s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel
+   state UP group default qlen 1000
+       link/ether 52:54:00:93:47:18 brd ff:ff:ff:ff:ff:ff
+       inet 192.168.122.11/24 brd 192.168.122.255 scope global enp1s0
+          valid_lft forever preferred_lft forever
+       inet6 fe80::5054:ff:fe93:4718/64 scope link
+          valid_lft forever preferred_lft forever
+   root@pg2:~# su - postgres
+psql
+....
 
-   Sử dụng command `ping`, chúng ta sẽ thực hiện một test đơn giản để kiểm tra node pg1 có thể kết nối đến node pg2 hay không, và node pg2 có thể kết nối đến node pg1 hay không:
+.Output
+[source,output]
+....
+   psql (16)
+   Type "help" for help.
+....
 
-[source,text]
+
+. Hãy kiểm tra connection giữa hai server.
+
+   Bằng command `ping`, hãy kiểm tra xem node pg1 có thể kết nối tới node pg2 và ngược lại hay không:
+
+[source,console,role="transcript"]
 ....
    postgres@pg1:~$ ping 192.168.122.11
    PING 192.168.122.11 (192.168.122.11) 56(84) bytes of data.
@@ -113,4 +192,24 @@ Trong section này, chúng ta sẽ chuẩn bị hai server cần thiết để t
    64 bytes from 192.168.122.10: icmp_seq=2 ttl=64 time=0.359 ms
 ....
 
-Bây giờ mọi thứ đã sẵn sàng, hãy bắt đầu khám phá chi tiết của physical replication.
+.Command
+[source,bash]
+....
+ping 192.168.122.11
+ping 192.168.122.10
+....
+
+.Output
+[source,output]
+....
+   PING 192.168.122.11 (192.168.122.11) 56(84) bytes of data.
+   64 bytes from 192.168.122.11: icmp_seq=1 ttl=64 time=0.292 ms
+   64 bytes from 192.168.122.11: icmp_seq=2 ttl=64 time=0.406 ms
+
+   PING 192.168.122.10 (192.168.122.10) 56(84) bytes of data.
+   64 bytes from 192.168.122.10: icmp_seq=1 ttl=64 time=0.536 ms
+   64 bytes from 192.168.122.10: icmp_seq=2 ttl=64 time=0.359 ms
+....
+
+
+Bây giờ mọi thứ đã sẵn sàng; hãy bắt đầu tìm hiểu chi tiết về physical replication.

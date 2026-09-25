@@ -1,10 +1,10 @@
-= ACLs
+= ACL
 
-PostgreSQL lưu các permission được cấp cho role và object dưới dạng ACL, và khi cần, nó kiểm tra ACL cho một role cụ thể cùng một database object để xác định command hoặc query có thể được thực hiện hay không. Trong section này, bạn sẽ tìm hiểu ACL là gì, chúng được lưu như thế nào và cách diễn giải chúng để hiểu một ACL cung cấp những permission nào.
+PostgreSQL lưu các privilege được cấp cho role trên object dưới dạng ACL. Khi cần, PostgreSQL kiểm tra ACL của một role cụ thể trên một database object để xác định command hoặc query có được phép hay không. Trong phần này, bạn sẽ tìm hiểu ACL là gì, ACL được lưu như thế nào và cách diễn giải ACL để biết những privilege nào được cấp.
 
-Điều quan trọng cần lưu ý là ACL, và do đó cả permission, gắn chặt với role và database object. Điều này có nghĩa là việc cấp một permission cụ thể cho một object không đồng nghĩa grantee role sẽ có cùng permission trong một database khác, ngay cả khi một object có cùng tên và bản chất tồn tại trong database đó. Ví dụ, cho phép một role chạy code PL/Perl trong một database không tự động cho phép role đó chạy code PL/Perl trong các database khác.
+Cần lưu ý rằng ACL, và do đó cả privilege, gắn chặt với role và database object. Vì vậy, cấp một privilege cụ thể trên một object không có nghĩa role nhận privilege đó sẽ có cùng privilege trong một database khác, ngay cả khi database đó chứa một object cùng tên và cùng loại. Ví dụ, cho phép một role chạy code PL/Perl trong một database không tự động cho phép role đó chạy code PL/Perl trong các database khác.
 
-Một ACL là biểu diễn của một nhóm permission với cấu trúc sau:
+ACL là biểu diễn của một tập privilege theo cấu trúc sau:
 
 [source,text]
 ....
@@ -13,46 +13,45 @@ Một ACL là biểu diễn của một nhóm permission với cấu trúc sau:
 
 Trong đó:
 
-* `grantee` là tên của role mà các permission được áp dụng cho.
-* `flags` là string biểu diễn các permission.
-* `grantor` là user đã cấp các permission.
+* `grantee` là tên role được cấp các privilege.
+* `flags` là chuỗi biểu diễn các privilege.
+* `grantor` là role đã cấp các privilege.
 
-Bất cứ khi nào `grantor` và `grantee` có cùng tên, role đó là owner của database object.
+Bất cứ khi nào `grantor` và `grantee` trùng tên, role đó là owner của database object.
 
-Các flag có thể sử dụng trong một ACL được liệt kê trong bảng sau. Như bạn thấy, không phải mọi flag đều áp dụng cho mọi object: ví dụ, permission “delete” cho một function không có ý nghĩa, và permission “execute” cho một table cũng không có ý nghĩa:
-
+Các flag có thể xuất hiện trong ACL được liệt kê trong bảng dưới đây. Như bạn sẽ thấy, không phải flag nào cũng áp dụng cho mọi object: chẳng hạn, privilege “delete” trên một function không có ý nghĩa, còn privilege “execute” trên một table cũng không có ý nghĩa:
 
 [cols="4*", options="header"]
 |===
-| Flag | Mô tả | Statements | Áp dụng cho
-| a | Thêm hoặc insert dữ liệu mới | `INSERT` | Tables và columns
-| r | Đọc hoặc lấy dữ liệu | `SELECT` | Tables, columns và sequences
-| w | Ghi hoặc update dữ liệu | `UPDATE` | Tables
-| d | Xóa dữ liệu | `DELETE` | Tables
-| D | Xóa toàn bộ dữ liệu | `TRUNCATE` | Tables
-| C | Tạo object mới | `CREATE` | Databases, schemas và tablespaces
-| c | Kết nối tới database |  | Databases
-| t | Trigger hoặc phản ứng với thay đổi dữ liệu | `CREATE TRIGGER` | Tables
-| T | Tạo temporary object | `CREATE TEMP` | Tables
-| x | Tham chiếu chéo giữa dữ liệu | `FOREIGN KEY` | Tables
-| X | Thực thi code có thể chạy | `CALL` và `SELECT` | Functions, routines và procedures
-| U | Sử dụng nhiều object khác nhau |  | Sequences, schemas, foreign objects, types và languages
+| Flag | Mô tả | Statement | Áp dụng cho
+| a | Chèn dữ liệu mới | `INSERT` | table và column
+| r | Đọc dữ liệu | `SELECT` | table, column và sequence
+| w | Cập nhật dữ liệu | `UPDATE` | table
+| d | Xóa dữ liệu | `DELETE` | table
+| D | Xóa toàn bộ dữ liệu | `TRUNCATE` | table
+| C | Tạo object mới | `CREATE` | database, schema và tablespace
+| c | Kết nối tới database |  | database
+| t | Tạo trigger phản ứng với thay đổi dữ liệu | `CREATE TRIGGER` | table
+| T | Tạo temporary object | `CREATE TEMP` | table
+| x | Tham chiếu chéo dữ liệu | `FOREIGN KEY` | table
+| X | Thực thi code | `CALL` và `SELECT` | function, routine và procedure
+| U | Sử dụng object |  | sequence, schema, foreign object, type và language
 |===
 
-*Table 10.1: Các flag của ACL*
+*Bảng 10.1: Các flag trong ACL*
 
-Khi đã nắm danh sách các flag khả dĩ, việc decode một ACL như sau sẽ trở nên dễ dàng; ACL này liên quan đến một table object:
+Sau khi đã biết các flag có thể có, việc giải mã một ACL như dưới đây sẽ trở nên dễ dàng. ACL này áp dụng cho một table object:
 
 [source,text]
 ....
    luca=arw/enrico
 ....
 
-Trước hết, hãy xác định các role liên quan: `luca` và `enrico`. `luca` là role đứng trước dấu bằng; do đó, đây là role mà ACL tham chiếu đến, nghĩa là ACL này mô tả các permission mà role `luca` có. Role còn lại, `enrico`, đứng sau dấu gạch chéo và do đó là role đã cấp các permission cho role `luca`. Xét các flag, ACL cung cấp permission append (a), read (r) và write (w). Nội dung trên có thể đọc là “`enrico` đã cấp cho `luca` permission thực hiện `INSERT`, `UPDATE` và `SELECT` trên table.”
+Trước hết, hãy xác định các role liên quan: `luca` và `enrico`. `luca` đứng trước dấu bằng, nên ACL mô tả các privilege mà role `luca` có. `enrico` đứng sau dấu gạch chéo, nên là role đã cấp các privilege cho `luca`. Các flag cho biết ACL cấp các privilege tương ứng với INSERT (a), SELECT (r) và UPDATE (w). Có thể diễn giải như sau: “`enrico` đã cấp cho `luca` privilege thực hiện `INSERT`, `UPDATE` và `SELECT` trên table.”
 
-Bây giờ hãy xem một ví dụ về ACL của một table trong database: có thể dùng command `\dp` đặc biệt của `psql` để lấy thông tin về một table:
+Tiếp theo, hãy xem một ví dụ về ACL của một table trong database. Có thể dùng meta-command đặc biệt `\dp` của `psql` để lấy thông tin về một table:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \dp categories
                                                Access privileges
@@ -66,19 +65,40 @@ Bây giờ hãy xem một ví dụ về ACL của một table trong database: c�
    (1 row)
 ....
 
-Các ACL được báo cáo rõ ràng trong column `Access privileges` của command output. Dòng đầu tiên của ACL nói về owner của table `categories`: vì grantee và grantor giống nhau (`forum`), đây là owner của table. Table owner `forum` có tất cả permission: append (a), read (r), write (w), delete (d), truncate (D), trigger (t) và cross-reference (x). Vì vậy, có thể hiểu dòng này là “table owner có thể làm mọi thứ trên table đó.”
+.SQL
+[source,sql]
+....
+\dp categories
+....
 
-Dòng thứ hai của ACL là dòng đã được decode ở trên, có nghĩa là “`luca` có thể `INSERT`, `UPDATE` và `SELECT` data.” Dòng thứ ba của ACL khó hiểu hơn một chút: grantor vẫn là role `forum`, nhưng không có grantee trước dấu bằng. Điều này có nghĩa là ACL tham chiếu đến mọi role. Vì ACL chỉ chứa permission delete (d), điều đó có nghĩa là mọi role trong database đều có thể delete row khỏi table, như user `forum` mong muốn.
+.Output
+[source,output]
+....
+                                               Access privileges
+    Schema |        Name      | Type    |    Access privileges           | Column privileges
+   | Policies
+   --------+------------+-------+-----------------------+--------------------
+   +----------
+      forum | categories | table | enrico=arwdDxt/forum+|                                          |
+            |                |         | luca=arw/forum            +|                              |
+            |                |         | =d/forum                   |                              |
+   (1 row)
+....
 
-ACL được xử lý để tìm một match. Hãy hình dung role `luca` muốn delete một row khỏi table và do đó phát hành một statement `DELETE`. Statement đó được cho phép hay bị từ chối?
 
-Đọc ACL liên quan đến role `luca` (`luca=arw/forum`), rõ ràng role này không thể delete bất cứ thứ gì khỏi table. Tuy nhiên, có một ACL “catch-all” cho phép mọi role thực hiện operation `DELETE` (`=d/forum`); vì vậy, ngay cả role `luca` cũng được phép xóa tuple.
+Các ACL được hiển thị rõ ràng trong cột `Access privileges` của output từ command. Dòng ACL đầu tiên mô tả owner của table `categories`: vì grantee và grantor trùng nhau (`forum`), đây là owner của table. Table owner `forum` có mọi privilege: append (a), read (r), write (w), delete (d), truncate (D), trigger (t) và cross-reference (x). Vì vậy, có thể hiểu dòng này là: “table owner có thể thực hiện mọi thao tác trên table đó.”
 
-Mặt khác, một role khác (ví dụ `forum_stats`) không được phép thực hiện `INSERT` trên table vì không có permission cụ thể nào cho role đó hoặc cho bất kỳ role nào khác không được chỉ rõ.
+Dòng ACL thứ hai là dòng đã giải mã ở trên, nghĩa là “`luca` có thể thực hiện `INSERT`, `UPDATE` và `SELECT` trên data.” Dòng ACL thứ ba khó hiểu hơn một chút: grantor vẫn là role `forum`, nhưng trước dấu bằng không có grantee. Điều này có nghĩa ACL áp dụng cho mọi role. Vì ACL chỉ chứa privilege delete (d), mọi role trong database đều có thể xóa row khỏi table, đúng như user `forum` mong muốn.
 
-Nhưng các ACL đó được tạo ra như thế nào? Trước hết, tất cả chúng đều được tạo bởi user `enrico`; vì vậy, giả sử user này là người đang kết nối tới database, chuỗi statement `GRANT` sẽ như sau:
+ACL được xử lý để tìm một entry khớp. Hãy hình dung role `luca` muốn xóa một row khỏi table nên phát hành statement `DELETE`. Statement đó sẽ được cho phép hay bị từ chối?
 
-[source,text]
+Khi đọc ACL liên quan đến role `luca` (`luca=arw/forum`), rõ ràng role này không thể xóa bất kỳ thứ gì khỏi table. Tuy nhiên, có một ACL “catch-all” cho phép mọi role thực hiện thao tác `DELETE` (`=d/forum`); vì vậy, ngay cả role `luca` cũng được phép xóa tuple.
+
+Mặt khác, một role khác (chẳng hạn `forum_stats`) không được phép thực hiện `INSERT` trên table vì không có privilege cụ thể nào được cấp cho role đó hoặc cho bất kỳ role nào khác không được chỉ rõ.
+
+Nhưng các ACL đó được tạo ra như thế nào? Trước hết, tất cả chúng đều do user `enrico` tạo. Vì vậy, giả sử user này đang kết nối tới database, chuỗi statement `GRANT` sẽ như sau:
+
+[source,console,role="transcript"]
 ....
    -- generates ACL: luca=arw/forum
    forumdb=> GRANT SELECT, UPDATE, INSERT
@@ -93,13 +113,35 @@ Nhưng các ACL đó được tạo ra như thế nào? Trước hết, tất c�
    GRANT
 ....
 
-Bây giờ, sau khi đã thấy cách PostgreSQL quản lý ACL và cách nó chuyển các command `GRANT` và `REVOKE` thành ACL, đã đến lúc xem các permission mặc định được cấp cho một role.
+.SQL
+[source,sql]
+....
+-- generates ACL: luca=arw/forum
+GRANT SELECT, UPDATE, INSERT
+    ON forum categories
+    TO luca;
+GRANT DELETE ON forum categories
+    TO PUBLIC;
+....
 
-== Default ACLs
+.Output
+[source,output]
+....
+   GRANT
 
-Điều gì xảy ra nếu một object được tạo nhưng không áp dụng `GRANT` hoặc `REVOKE` cho nó? System không lưu ACL cho object đó, như bạn có thể thấy bằng cách tạo một table rỗng đơn giản và kiểm tra privilege của nó:
 
-[source,text]
+   -- generates ACL: =d/forum
+   GRANT
+....
+
+
+Sau khi đã thấy cách PostgreSQL quản lý ACL và chuyển các command `GRANT` và `REVOKE` thành ACL, bây giờ hãy xem các privilege mặc định dành cho một role.
+
+== ACL mặc định
+
+Điều gì xảy ra nếu một object được tạo nhưng không có `GRANT` hoặc `REVOKE` nào được áp dụng cho nó? Hệ thống không lưu ACL cho object đó, như có thể thấy khi tạo một table rỗng đơn giản rồi kiểm tra privilege của nó:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TABLE perm_test( t text );
    CREATE TABLE
@@ -110,7 +152,27 @@ Bây giờ, sau khi đã thấy cách PostgreSQL quản lý ACL và cách nó ch
    Schema |      Name      | Type   | Access privileges | Column privileges |
    Policies
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+CREATE TABLE perm_test(t text);
+\dp perm_test
+....
+
+.Output
+[source,output]
+....
+   CREATE TABLE
+
+
+                                        Access privileges
+   Schema |      Name      | Type   | Access privileges | Column privileges |
+   Policies
+....
+
+
+[source,output]
 ....
 --------+-----------+-------+-------------------+-------------------+-----
 -----
@@ -118,21 +180,21 @@ forum    | perm_test | table |                             |                    
 (1 row)
 ....
 
-Vì không có ACL nào gắn với table, làm thế nào PostgreSQL biết role nào được phép làm gì trên object? Câu trả lời nằm ở default privileges: PostgreSQL áp dụng một tập default privileges cho object và kiểm tra dựa trên danh sách mặc định đó.
+Vì table không gắn với ACL nào, PostgreSQL biết role nào được phép làm gì trên object bằng cách nào? Câu trả lời nằm ở default privileges: PostgreSQL áp dụng một tập default privileges cho object rồi kiểm tra dựa trên tập mặc định đó.
 
-Đáng chú ý nhất là nếu role là owner của object thì role đó có tất cả privilege khả dụng cho object như vậy. Nếu role không phải owner, các permission của `PUBLIC` sẽ được kiểm tra, tức là tất cả permission được gán cho role đặc biệt `PUBLIC` đối với loại object đó sẽ được sử dụng.
+Đáng chú ý nhất là khi một role là owner của object, role đó có mọi privilege khả dụng cho object. Nếu role không phải owner, PostgreSQL sẽ kiểm tra các privilege của `PUBLIC`, tức là dùng mọi privilege được gán cho role đặc biệt `PUBLIC` đối với loại object đó.
 
 Vì lý do bảo mật, danh sách privilege gắn với `PUBLIC` khá ngắn và có thể tóm tắt như sau:
 
-* Permission Execute (X) trên routine.
-* Kết nối đến database và tạo temporary object trong database (cT).
+* Privilege EXECUTE (X) trên routine.
+* Kết nối tới database và tạo temporary object trong database (cT).
 * Sử dụng language, type và domain (U).
 
-Như bạn có thể thấy, theo mặc định, tập privilege của `PUBLIC` không cho phép một role thực hiện điều gì thực sự nguy hiểm, vì vậy cách duy nhất để cấp quyền cho một role thực hiện action trên object là cẩn thận `GRANT` và `REVOKE` permission.
+Như bạn có thể thấy, theo mặc định, tập privilege của `PUBLIC` không cho phép role thực hiện hành động nào thực sự nguy hiểm. Vì vậy, cách duy nhất để cấp cho một role privilege thực hiện một thao tác trên object là cẩn thận dùng `GRANT` và `REVOKE` để quản lý privilege.
 
-Lần đầu tiên thực hiện `GRANT` trên một object, PostgreSQL cũng đưa vào default ACL cho owner của object đó. Trong trường hợp của table foo ở trên, owner sẽ có một ACL như `luca=arwdDxt/luca` (giả sử role `luca` là owner). Vì vậy, giả sử chúng ta cấp permission thao tác data cho `enrico`:
+Lần đầu thực hiện `GRANT` trên một object, PostgreSQL cũng thêm ACL mặc định cho owner của object đó. Với table foo ở trên, owner sẽ có một ACL như `luca=arwdDxt/luca` (giả sử role `luca` là owner). Vì vậy, giả sử cấp cho role `enrico` privilege thao tác data:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \dp perm_test
                                       Access privileges
@@ -159,11 +221,42 @@ forum     | perm_test | table | forum=arwdDxt/forum+|                           
 (1 row)
 ....
 
-Như bạn có thể thấy, sau `GRANT`, ACL gồm hai entry: entry chúng ta vừa cấp cho user `enrico` và entry được áp dụng ngầm cho table owner `luca`.
+.SQL
+[source,sql]
+....
+\dp perm_test GRANT SELECT, INSERT, UPDATE, DELETE ON perm_test TO enrico;
+\dp perm_test
+....
 
-Cũng cần lưu ý rằng ACL lưu những gì một role có thể làm, chứ không phải những gì role không thể làm. Mọi thứ không được liệt kê trong ACL đều bị từ chối. Để hiểu rõ hơn, hãy xem xét việc revoke permission của role `enrico`:
+.Output
+[source,output]
+....
+                                      Access privileges
+Schema |      Name      | Type    | Access privileges | Column privileges |
+Policies
+--------+-----------+-------+-------------------+-------------------+-----
+-----
+forum    | perm_test | table |                             |                          |
+(1 row)
 
-[source,text]
+
+    GRANT
+                                      Access privileges
+Schema |      Name    | Type    |   Access privileges      | Column privileges |
+Policies
+--------+-----------+-------+---------------------+-------------------+---
+-------
+forum     | perm_test | table | forum=arwdDxt/forum+|                               |
+          |            |         | enrico=arwd/forum        |                       |
+(1 row)
+....
+
+
+Như bạn thấy, sau `GRANT`, ACL gồm hai entry: entry vừa cấp cho role `enrico` và entry được ngầm áp dụng cho table owner `luca`.
+
+Cũng cần lưu ý rằng ACL lưu những gì một role có thể làm, chứ không lưu những gì role không thể làm. Mọi thứ không được liệt kê trong ACL đều bị từ chối. Để hiểu rõ hơn, hãy xem việc thu hồi privilege của role `enrico`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> REVOKE TRUNCATE ON perm_test FROM enrico;
 REVOKE
@@ -180,17 +273,48 @@ forum     | perm_test | table | forum=arwdDxt/forum+|                           
 (1 row)
 ....
 
-Như bạn có thể thấy, việc revoke này không thay đổi dòng ACL của role `enrico`. Role đó không có permission này; do đó việc revoke không có tác động lên ACL.
+.SQL
+[source,sql]
+....
+REVOKE TRUNCATE ON perm_test FROM enrico;
+\dp perm_test
+....
 
-Tương tự, revoke permission của `PUBLIC` không ảnh hưởng đến các ACL đã tồn tại. Nếu chúng ta xóa permission `INSERT` khỏi mọi user, `enrico` vẫn giữ permission riêng của mình vì ACL được lưu theo kiểu cộng dồn:
+.Output
+[source,output]
+....
+REVOKE
 
-[source,text]
+
+                                      Access privileges
+Schema |       Name    | Type    |   Access privileges      | Column privileges |
+Policies
+--------+-----------+-------+---------------------+-------------------+---
+-------
+forum     | perm_test | table | forum=arwdDxt/forum+|                               |
+          |            |         | enrico=arwd/forum        |                       |
+(1 row)
+....
+
+
+Như bạn thấy, REVOKE này không thay đổi entry ACL của role `enrico`. Role đó vốn không có privilege này, nên việc thu hồi không ảnh hưởng đến ACL.
+
+Tương tự, thu hồi privilege từ `PUBLIC` không ảnh hưởng đến các ACL đã tồn tại. Nếu xóa privilege `INSERT` khỏi mọi role, `enrico` vẫn giữ privilege riêng vì ACL được lưu theo cách cộng dồn:
+
+[source,console,role="transcript"]
 ....
 forumdb=> REVOKE INSERT ON perm_test FROM PUBLIC;
 
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+REVOKE INSERT ON perm_test FROM PUBLIC;
+....
+
+
+[source,console,role="transcript"]
 ....
 forumdb=> \dp perm_test
                                       Access privileges
@@ -203,19 +327,39 @@ forum     | perm_test | table | forum=arwdDxt/forum+|                           
 (1 row)
 ....
 
-Tóm lại, ACL luôn rỗng đối với một object mới được tạo. Trong tình huống này, object owner có mọi permission khả dụng, còn các role khác có default permission gắn với `PUBLIC`. `GRANT` hoặc `REVOKE` đầu tiên được thực thi trên object đó cũng sẽ tạo explicit owner ACL và, trong trường hợp là `GRANT`, thêm một ACL tương ứng.
+.SQL
+[source,sql]
+....
+\dp perm_test
+....
 
-ACL được lưu dưới dạng privilege đã cấp. Bất kỳ thứ gì không được đặt rõ ràng trong ACL đều mặc nhiên bị từ chối, như thể đã bị revoke.
+.Output
+[source,output]
+....
+                                      Access privileges
+Schema |      Name     | Type    |   Access privileges      | Column privileges |
+Policies
+--------+-----------+-------+---------------------+-------------------+---
+-------
+forum     | perm_test | table | forum=arwdDxt/forum+|                                   |
+         |             |         | enrico=arwd/forum        |                          |
+(1 row)
+....
 
-== Tìm hiểu default ACL
 
-Giờ đã rõ rằng owner của một object có tất cả permission khả dụng liên quan đến object đó. Nhưng các role khác thì sao? Có thể inspect default ACL được cung cấp khi một object được instantiate thông qua special function `acldefault`.
+Tóm lại, ACL luôn rỗng đối với một object mới tạo. Trong trường hợp này, owner của object có mọi privilege khả dụng, còn các role khác có privilege mặc định gắn với `PUBLIC`. `GRANT` hoặc `REVOKE` đầu tiên được thực thi trên object đó cũng tạo ACL tường minh cho owner và, nếu là `GRANT`, thêm một ACL tương ứng.
 
-Function này nhận hai argument: type của object (ví dụ relation/table, function, v.v.) và giá trị OID của role được cho là sẽ tạo object. Function sẽ trả về ACL sẽ có sau khi object được tạo.
+ACL được lưu dưới dạng các privilege đã cấp. Bất cứ thứ gì không được ghi rõ trong ACL đều mặc nhiên bị từ chối, như thể privilege đó đã bị REVOKE.
 
-Ví dụ, để xem permission được cung cấp khi role của bạn tạo một table mới (type `r`, viết tắt của relation), bạn có thể thực hiện query sau:
+== Tìm hiểu ACL mặc định
 
-[source,text]
+Giờ đã rõ owner của một object có mọi privilege khả dụng liên quan đến object đó. Nhưng các role khác thì sao? Có thể xem ACL mặc định được cung cấp khi một object được khởi tạo, thông qua function đặc biệt `acldefault`.
+
+Function này nhận hai argument: type của object (ví dụ relation/table, function, v.v.) và OID của role dự kiến tạo object. Function trả về ACL mà object sẽ có sau khi được tạo.
+
+Ví dụ, để xem privilege được cấp khi role của bạn tạo một table mới (type `r`, viết tắt của relation), bạn có thể thực hiện query sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> SELECT acldefault( 'r', r.oid )
              FROM pg_roles r
@@ -226,9 +370,27 @@ forumdb=> SELECT acldefault( 'r', r.oid )
 (1 row)
 ....
 
-Không có gì mới ở đây, nhưng việc tạo một function (type `f`) thì sao? Bây giờ dễ dàng thấy được điều sau:
+.SQL
+[source,sql]
+....
+SELECT acldefault('r', r.oid)
+FROM pg_roles r
+WHERE r.rolname = CURRENT_ROLE;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+      acldefault
+---------------------
+   {forum=arwdDxt/forum}
+(1 row)
+....
+
+
+Không có gì mới ở đây, nhưng nếu tạo một function (type `f`) thì sao? Lúc này, có thể dễ dàng thấy điều sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> SELECT acldefault( 'f', r.oid )
               FROM pg_roles r
@@ -239,6 +401,24 @@ forumdb=> SELECT acldefault( 'f', r.oid )
 (1 row)
 ....
 
-Lần này có hai ACL được tạo: ACL đầu tiên cấp permission executable cho mọi user, còn ACL sau chỉ rõ owner là role `forum`, cũng với permission executable.
+.SQL
+[source,sql]
+....
+SELECT acldefault('f', r.oid)
+FROM pg_roles r
+WHERE r.rolname = CURRENT_ROLE;
+....
 
-Bạn có thể inspect tất cả default ACL của một user cụ thể bằng OID của user đó và type của object; các type chính là `r` cho table, `c` cho column, `l` cho language và `f` cho routine và procedure. Có những type khác nữa. Hãy tham khảo tài liệu chính thức. Đã đến lúc xem cách thao tác ACL và permission trong thực tế. Trong section tiếp theo, bạn sẽ học cách xử lý permission management.
+.Output
+[source,output]
+....
+          acldefault
+-----------------------
+ {=X/forum,forum=X/forum}
+(1 row)
+....
+
+
+Lần này có hai ACL được tạo: ACL đầu tiên cấp privilege thực thi cho mọi role, còn ACL thứ hai chỉ rõ owner là role `forum`, cũng với privilege thực thi.
+
+Bạn có thể xem mọi ACL mặc định của một role cụ thể bằng OID của role đó và type của object. Các type chính gồm `r` cho table, `c` cho column, `l` cho language và `f` cho routine và procedure. Ngoài ra còn các type khác. Hãy tham khảo tài liệu chính thức. Bây giờ hãy xem cách thao tác với ACL và privilege trong thực tế. Trong phần tiếp theo, bạn sẽ học cách quản lý privilege.

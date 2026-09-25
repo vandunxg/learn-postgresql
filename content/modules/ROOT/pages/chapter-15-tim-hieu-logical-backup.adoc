@@ -1,40 +1,41 @@
 = Tìm hiểu logical backup
 
-PostgreSQL cung cấp mọi tool cần thiết để thực hiện logical backup và restore. Nhiều operating system, bao gồm FreeBSD và Debian GNU/Linux, cung cấp script và wrapper cho các tool backup và restore của PostgreSQL để giúp system administrator lên lịch backup và restore. Các script và wrapper như vậy sẽ không được giải thích ở đây. Để biết thêm thông tin, hãy đọc package documentation về PostgreSQL của operating system bạn đang dùng.
-Có ba ứng dụng chính tham gia vào các thao tác backup và restore: `pg_dump`, `pg_dumpall` và `pg_restore`. Như có thể hình dung từ tên gọi, `pg_dump` và `pg_dumpall` liên quan đến việc trích xuất (dump) nội dung của một database, qua đó tạo ra một backup, còn `pg_restore` là đối tác tương ứng của chúng và cho phép bạn restore một backup hiện có.
+PostgreSQL cung cấp đầy đủ các tool cần thiết để thực hiện logical backup và restore. Nhiều operating system, bao gồm FreeBSD và Debian GNU/Linux, cung cấp script và wrapper cho các tool backup và restore của PostgreSQL để system administrator lên lịch backup và restore. Các script và wrapper này không được giải thích ở đây. Để biết thêm thông tin, hãy đọc package documentation về PostgreSQL của operating system bạn đang sử dụng.
+
+Ba ứng dụng chính phục vụ các thao tác backup và restore là `pg_dump`, `pg_dumpall` và `pg_restore`. Như tên gọi gợi ý, `pg_dump` và `pg_dumpall` dùng để trích xuất (dump) nội dung của một database, qua đó tạo ra một backup; `pg_restore` là ứng dụng tương ứng, cho phép bạn restore một backup hiện có.
 
 [quote]
 ____
-*Lưu ý:* Cần lưu ý rằng version của tool rất quan trọng, và bạn luôn nên dùng các tool khớp với cùng major version của PostgreSQL. Bạn có thể dùng tool từ version mới nhất để thực hiện backup trên các cluster cũ hơn, nhưng điều ngược lại thì không đúng.
+*Lưu ý:* Version của tool rất quan trọng; bạn luôn nên dùng các tool cùng major version với PostgreSQL. Bạn có thể dùng tool từ version mới hơn để thực hiện backup cho các cluster cũ hơn, nhưng không thể làm theo chiều ngược lại.
 
 ____
-Không giống các database engine khác, PostgreSQL không yêu cầu một permission đặc biệt có tên “backup” để dump nội dung của một database: chỉ cần user thực hiện backup có các grant cần thiết để truy cập dữ liệu mà họ muốn backup là đủ. Tương tự, để restore data, user phải có permission đủ để ghi data vào các table. Tuy nhiên, để đơn giản hóa việc quản lý permission, PostgreSQL cung cấp hai role được định nghĩa sẵn đặc biệt là `pg_read_all_data` và `pg_write_all_data`. Có thể grant các role này cho một user cần thực hiện backup và/hoặc restore; chúng sẽ tự động cung cấp cho user mọi quyền cần thiết để truy cập (read) hoặc restore (write) data.
+Không giống các database engine khác, PostgreSQL không yêu cầu một privilege đặc biệt có tên “backup” để dump nội dung của một database: user thực hiện backup chỉ cần có đủ privilege để truy cập data mà họ muốn backup. Tương tự, để restore data, user phải có đủ privilege để ghi data vào các table. Tuy nhiên, để đơn giản hóa việc quản lý privilege, PostgreSQL cung cấp hai role đặc biệt được định nghĩa sẵn là `pg_read_all_data` và `pg_write_all_data`. Có thể grant các role này cho user cần thực hiện backup và/hoặc restore; các role này sẽ tự động cung cấp cho user mọi quyền cần thiết để đọc hoặc ghi data.
 
-Ứng dụng `pg_dump` được dùng để dump một database đơn lẻ bên trong một cluster, `pg_dumpall` cung cấp một cách thuận tiện để dump toàn bộ nội dung cluster, bao gồm các role và các object nội-cluster khác, còn `pg_restore` có thể xử lý output của hai ứng dụng trước để thực hiện restoration.
+Ứng dụng `pg_dump` dùng để dump một database đơn lẻ trong một cluster, `pg_dumpall` cung cấp cách thuận tiện để dump toàn bộ nội dung cluster, bao gồm các role và các object khác ở cấp cluster, còn `pg_restore` có thể xử lý output của hai ứng dụng này để thực hiện restore.
 
 [quote]
 ____
-*Lưu ý:* Hãy nhớ rằng một backup hợp lệ khi và chỉ khi nó có thể được restore. `pg_dump` và `pg_dumpall` sẽ không tạo ra một backup bị corrupt, nhưng storage của bạn có thể vô tình làm hỏng các file backup; vì vậy, để bảo đảm bạn có một backup hợp lệ, bạn luôn nên thử restore nó trên một machine hoặc cluster khác.
+*Lưu ý:* Hãy nhớ rằng một backup chỉ hợp lệ khi có thể restore thành công. `pg_dump` và `pg_dumpall` sẽ không tạo ra backup bị corrupt, nhưng storage có thể vô tình làm hỏng các file backup; vì vậy, để bảo đảm backup hợp lệ, bạn luôn nên thử restore backup đó trên một machine hoặc cluster khác.
 
 ____
-Cả ba command đều có thể hoạt động local hoặc remote trên cluster để backup hoặc restore data. Điều đó có nghĩa là bạn có thể dùng chúng từ một backup machine remote hoặc trên chính server đang chạy cluster. Các ứng dụng này tuân theo cùng quy ước về parameter và variable như `psql`; chẳng hạn, bạn có thể chỉ định username sẽ thực hiện backup (hoặc restore) bằng flag command-line `-U`, cũng như chỉ định remote host nơi cluster đang chạy bằng `-h`, v.v. Nếu không cung cấp parameter nào, ứng dụng giả định cluster đang chạy local và kết nối tới nó bằng user của operating system hiện tại, giống như `psql`.
+Cả ba command đều có thể hoạt động trên cluster local hoặc remote để backup hoặc restore data. Điều đó có nghĩa là bạn có thể dùng chúng từ một backup machine remote hoặc ngay trên server đang chạy cluster. Các ứng dụng này tuân theo cùng quy ước về parameter và variable như `psql`; chẳng hạn, bạn có thể chỉ định username thực hiện backup (hoặc restore) bằng flag command-line `-U`, cũng như chỉ định remote host nơi cluster đang chạy bằng `-h`, v.v. Nếu không cung cấp parameter nào, ứng dụng giả định cluster đang chạy local và kết nối tới cluster bằng user của operating system hiện tại, giống như `psql`.
 
-Trong các subsection tiếp theo, bạn sẽ học cách backup và restore các database của chính mình.
+Ở các subsection tiếp theo, bạn sẽ học cách backup và restore các database của mình.
 
-== Dumping một database đơn lẻ
+== Dump một database đơn lẻ
 
-Để dump, tức là tạo một bản sao backup của một database, bạn cần dùng command `pg_dump`.
+Để dump, tức tạo một bản backup của một database, bạn cần dùng command `pg_dump`.
 
-`pg_dump` cho phép dùng các backup format chính sau đây; chỉ format đầu tiên là phù hợp để restoration mà không cần `pg_restore`:
+`pg_dump` cho phép dùng các backup format chính sau đây; chỉ format đầu tiên phù hợp để restore mà không cần `pg_restore`:
 
-* *Plain text format:* Backup gồm các SQL statement có thể dùng để tái tạo database và được biểu diễn dưới dạng text SQL. Backup tạo ra có thể ở dạng plain text hoặc được compressed ngay trong quá trình tạo.
-* *Directory format:* Backup được đặt trong một directory cụ thể, và mỗi table cùng large object của database được đặt vào một file compressed.
+* *Plain text format:* Backup gồm các SQL statement có thể dùng để tái tạo database và được biểu diễn dưới dạng plain text SQL. Backup tạo ra có thể ở dạng plain text hoặc được compressed ngay trong quá trình tạo.
+* *Directory format:* Backup được đặt trong một directory cụ thể; mỗi table và large object của database được đặt trong một file compressed.
 * *Custom format:* Đây là format đặc thù của PostgreSQL, phù hợp cho selective restore bằng `pg_restore`.
 * *Tar format:* Phiên bản `tar(1)` của directory format nói trên.
 
-Mặc định, `pg_dump` dùng plain text format. Format này tạo ra các SQL statement có thể dùng để dựng lại structure và content của database, đồng thời xuất backup trực tiếp ra standard output. Điều đó có nghĩa là nếu bạn backup một database mà không dùng option cụ thể nào, bạn sẽ thấy một danh sách dài các SQL statement:
+Theo mặc định, `pg_dump` dùng plain text format. Format này tạo ra các SQL statement có thể dùng để dựng lại structure và content của database, đồng thời xuất backup trực tiếp ra standard output. Nghĩa là nếu bạn backup một database mà không chỉ định option cụ thể nào, bạn sẽ thấy một danh sách dài các SQL statement:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_dump forumdb
 -- PostgreSQL database dump
@@ -85,22 +86,80 @@ COPY forum.tags (pk, tag, parent) FROM stdin;
 ...
 ....
 
-Như bạn thấy, `pg_dump` đã tạo ra một tập hợp các SQL statement có thứ tự. Nếu đưa chúng vào một connection interactive, các statement này cho phép bạn dựng lại không chỉ database structure (table và function) mà cả content (data trong table), permission (grant và revoke), cùng các object cần thiết khác. Tất cả dòng bắt đầu bằng hai dấu gạch ngang là SQL comment mà `pg_dump` đã cẩn thận đặt vào để giúp bạn phân tích và hiểu content của backup database.
+.Command
+[source,bash]
+....
+pg_dump forumdb
+....
 
-Có một vài điểm quan trọng cần lưu ý liên quan đến content của backup. Đầu tiên, `pg_dump` đặt một loạt `SET` statement ở ngay đầu backup; các `SET` statement này không bắt buộc đối với backup, nhưng cần thiết để restore từ content của backup này. Nói cách khác, vài dòng đầu tiên của backup không liên quan đến content của backup mà liên quan đến cách sử dụng backup đó.
+.Output
+[source,output]
+....
+-- PostgreSQL database dump
+...
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+...
+CREATE SCHEMA forum;
 
-Một dòng quan trọng trong số các `SET` statement này là dòng sau, được giới thiệu trong các version gần đây của PostgreSQL:
+
+ALTER SCHEMA forum OWNER TO forum;
+
+
+SET default_tablespace = '';
+
+
+SET default_table_access_method = heap;
+
+
+--
+-- Name: categories; Type: TABLE; Schema: forum; Owner: forum
+--
+
+
+CREATE TABLE forum.categories (
+     pk integer NOT NULL,
+     title text NOT NULL,
+     description text
+
+
+
+);
+
+
+...
+COPY forum.tags (pk, tag, parent) FROM stdin;
+1         Operating Systems            \N
+2         Linux     1
+3         Ubuntu    2
+4         Kubuntu 3
+5         Database           \N
+6         Operating Systems            \N
+\.
+
+
+
+...
+....
+
+
+Như bạn thấy, `pg_dump` đã tạo ra một tập hợp các SQL statement theo đúng thứ tự. Nếu đưa chúng vào một connection interactive, các statement này cho phép bạn dựng lại không chỉ database structure (table và function) mà còn cả content (data trong table), privilege (grant và revoke) cùng các object cần thiết khác. Tất cả các dòng bắt đầu bằng hai dấu gạch ngang là SQL comment mà `pg_dump` cẩn thận thêm vào để giúp bạn phân tích và hiểu nội dung của backup database.
+
+Liên quan đến nội dung của backup, có vài điểm quan trọng cần lưu ý. Trước hết, `pg_dump` đặt một loạt `SET` statement ngay đầu backup; các `SET` statement này không bắt buộc để tạo backup nhưng cần thiết khi restore nội dung backup. Nói cách khác, một vài dòng đầu của backup không mô tả nội dung mà mô tả cách sử dụng backup.
+
+Một `SET` statement quan trọng trong số đó là dòng sau, được giới thiệu trong các version gần đây của PostgreSQL:
 
 [source,sql]
 ....
-SELECT pg_catalog.set_config('search_path', '', false);
+SELECT pg_catalog.set_config('search_path', '', FALSE);
 ....
 
-Các dòng như vậy loại bỏ (tức là làm rỗng) variable `search_path`, vốn là danh sách tên schema được dùng để tìm một object chưa được qualify. Tác động của dòng này là mọi object được tạo từ backup trong quá trình restore sẽ không khai thác bất kỳ malicious code nào có thể đã làm nhiễm environment và `search_path` của bạn. Side effect của việc này, như sẽ được trình bày sau, là sau khi restoration, user sẽ có một search path rỗng và sẽ không thể tìm các object chưa được fully qualify bằng tên của chúng.
+Các dòng như vậy loại bỏ (tức làm rỗng) biến `search_path`, vốn là danh sách tên schema dùng để tìm một object chưa được qualify. Nhờ đó, khi restore, các object được tạo từ backup sẽ không khai thác malicious code có thể đã xâm nhập vào environment và `search_path` của bạn. Tác động phụ của việc này, như sẽ trình bày sau, là sau khi restore, user sẽ có một search_path rỗng và không thể tìm các object chưa được fully qualify bằng tên.
 
-Một điểm quan trọng khác về content của backup là theo mặc định, `pg_dump` dùng `COPY` để insert data vào các table đơn lẻ. `COPY` là một PostgreSQL command hoạt động giống `INSERT`, cho phép chỉ định nhiều tuple cùng lúc, và đáng chú ý nhất là được tối ưu cho bulk loading, nhờ đó recovery nhanh hơn. Tuy nhiên, điều này có thể khiến backup không portable giữa các database engine khác nhau. Vì vậy, nếu mục tiêu của bạn là dump content của database để migrate sang engine khác, bạn phải yêu cầu `pg_dump` dùng các `INSERT` statement thông thường thông qua flag command-line `--insert`:
+Một điểm quan trọng khác về content của backup là theo mặc định, `pg_dump` dùng `COPY` để insert data vào từng table. `COPY` là một PostgreSQL command hoạt động tương tự `INSERT`, cho phép chỉ định nhiều tuple cùng lúc và, quan trọng nhất, được tối ưu cho bulk loading, nhờ đó recovery nhanh hơn. Tuy nhiên, điều này có thể khiến backup không portable giữa các database engine khác nhau. Vì vậy, nếu mục tiêu là dump content của database để migrate sang engine khác, bạn phải yêu cầu `pg_dump` dùng các `INSERT` statement thông thường thông qua flag command-line `--insert`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_dump --insert forumdb
 
@@ -116,9 +175,31 @@ INSERT INTO forum.tags OVERRIDING SYSTEM VALUE VALUES (6, 'Operating Systems', N
 ...
 ....
 
-Toàn bộ content của backup vẫn giống nhau, nhưng lần này các table được populate bằng những `INSERT` statement chuẩn. Như có thể hình dung, kết quả cuối cùng portable hơn nhưng cũng dài hơn (và do đó lớn hơn). Tuy nhiên, hãy lưu ý rằng trong ví dụ trước, các `INSERT` statement không chứa danh sách column mà mỗi field value ánh xạ tới; có thể tạo một tập `INSERT` statement portable hoàn toàn bằng cách thay option `--inserts` bằng `--column-inserts`:
+.Command
+[source,bash]
+....
+pg_dump --insert forumdb
+....
 
-[source,text]
+.Output
+[source,output]
+....
+...
+INSERT INTO forum.tags OVERRIDING SYSTEM VALUE VALUES (1, 'Operating Systems', NULL);
+INSERT INTO forum.tags OVERRIDING SYSTEM VALUE VALUES (2, 'Linux', 1);
+INSERT INTO forum.tags OVERRIDING SYSTEM VALUE VALUES (3, 'Ubuntu', 2);
+INSERT INTO forum.tags OVERRIDING SYSTEM VALUE VALUES (4, 'Kubuntu', 3);
+INSERT INTO forum.tags OVERRIDING SYSTEM VALUE VALUES (5, 'Database', NULL);
+INSERT INTO forum.tags OVERRIDING SYSTEM VALUE VALUES (6, 'Operating Systems', NULL);
+
+
+...
+....
+
+
+Toàn bộ content của backup vẫn giống nhau, nhưng lần này các table được populate bằng những `INSERT` statement chuẩn. Như có thể dự đoán, kết quả cuối cùng portable hơn nhưng cũng dài hơn (và do đó lớn hơn). Tuy nhiên, hãy lưu ý rằng trong ví dụ trước, các `INSERT` statement không chứa danh sách column để cho biết mỗi field value tương ứng với column nào; có thể tạo một tập `INSERT` statement hoàn toàn portable bằng cách thay option `--inserts` bằng `--column-inserts`:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump --column-inserts forumdb
 ...
@@ -139,25 +220,67 @@ INSERT INTO forum.tags (pk, tag, parent) OVERRIDING SYSTEM VALUE VALUES
 ...
 ....
 
-Dump content của database là việc hữu ích, nhưng lưu content đó vào một file còn hữu ích hơn nhiều và cho phép thực hiện restoration vào một thời điểm sau đó. Có hai cách chính để lưu output của `pg_dump` vào một file. Một cách là redirect output vào file, như trong ví dụ sau:
+.Command
+[source,bash]
+....
+pg_dump --column-inserts forumdb
+....
 
-[source,text]
+.Output
+[source,output]
+....
+...
+INSERT INTO forum.tags (pk, tag, parent) OVERRIDING SYSTEM VALUE VALUES
+(1, 'Operating Systems', NULL);
+INSERT INTO forum.tags (pk, tag, parent) OVERRIDING SYSTEM VALUE VALUES
+(2, 'Linux', 1);
+INSERT INTO forum.tags (pk, tag, parent) OVERRIDING SYSTEM VALUE VALUES
+(3, 'Ubuntu', 2);
+INSERT INTO forum.tags (pk, tag, parent) OVERRIDING SYSTEM VALUE VALUES
+(4, 'Kubuntu', 3);
+INSERT INTO forum.tags (pk, tag, parent) OVERRIDING SYSTEM VALUE VALUES
+(5, 'Database', NULL);
+INSERT INTO forum.tags (pk, tag, parent) OVERRIDING SYSTEM VALUE VALUES
+(6, 'Operating Systems', NULL);
+
+
+...
+....
+
+
+Dump nội dung của database là việc hữu ích, nhưng lưu nội dung đó vào một file còn hữu ích hơn vì cho phép restore về sau. Có hai cách chính để lưu output của `pg_dump` vào một file. Một cách là redirect output vào file, như trong ví dụ sau:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump --column-inserts forumdb > backup_forumdb.sql
 ....
 
-Cách còn lại (được khuyến nghị) là dùng option `-f` của `pg_dump`, cho phép chỉ định filename nơi content sẽ được đặt vào. Khi đó, command line trước có thể viết lại như sau:
+.Command
+[source,bash]
+....
+pg_dump --column-inserts forumdb > backup_forumdb.sql
+....
 
-[source,text]
+
+Cách còn lại (được khuyến nghị) là dùng option `-f` của `pg_dump`, cho phép chỉ định filename nơi nội dung được ghi vào. Khi đó, command line trước có thể viết lại như sau:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump --column-inserts -f backup_forumdb.sql forumdb
 ....
 
-Cách này có đúng tác động như tạo file `backup_forumdb.sql`; file này chứa cùng SQL content đã được trình bày trong các ví dụ trước.
+.Command
+[source,bash]
+....
+pg_dump --column-inserts -f backup_forumdb.sql forumdb
+....
 
-`pg_dump` cũng cho phép verbose output, tức là in ra các thao tác backup đang thực hiện. Flag command-line `-v` bật verbose output này:
 
-[source,text]
+Cách này có đúng tác động như tạo file `backup_forumdb.sql`; file này chứa cùng nội dung SQL đã được trình bày trong các ví dụ trước.
+
+`pg_dump` cũng cho phép verbose output, tức in ra các thao tác backup đang thực hiện. Flag command-line `-v` bật verbose output này:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump -f backup_forumdb.sql -v forumdb
 pg_dump: last built-in OID is 16383
@@ -175,37 +298,82 @@ pg_dump: creating SEQUENCE "forum.posts_pk_seq"
 ...
 ....
 
-Khi đã chuẩn bị xong backup file, bạn có thể dễ dàng restore nó. Chúng ta sẽ học cách thực hiện việc này trong section tiếp theo.
+.Command
+[source,bash]
+....
+pg_dump -f backup_forumdb.sql -v forumdb
+....
 
-== Restoring một database đơn lẻ
+.Output
+[source,output]
+....
+pg_dump: last built-in OID is 16383
+pg_dump: reading extensions
+...
+pg_dump: creating SCHEMA "forum"
+pg_dump: creating TABLE "forum.categories"
+pg_dump: creating SEQUENCE "forum.categories_pk_seq"
+pg_dump: creating TABLE "forum.delete_posts"
+pg_dump: creating TABLE "forum.j_posts_tags"
+pg_dump: creating TABLE "forum.new_categories"
+pg_dump: creating TABLE "forum.posts"
+pg_dump: creating SEQUENCE "forum.posts_pk_seq"
+...
+...
+....
 
-Nếu backup bạn tạo là plain SQL, bạn không cần gì ngoài một database connection để restore nó: bạn có thể thực thi một loạt statement theo đúng thứ tự để tạo lại content của database.
 
-Cần lưu ý rằng theo mặc định, `pg_dump` không phát hành statement `CREATE DATABASE` trong content backup của nó. Thực tế, giả sử chúng ta tạo một backup file như sau:
+Sau khi chuẩn bị xong file backup, bạn có thể dễ dàng restore file đó. Chúng ta sẽ học cách thực hiện việc này trong section tiếp theo.
 
-[source,text]
+== Restore một database đơn lẻ
+
+Nếu backup bạn tạo là plain SQL, bạn không cần gì ngoài một database connection để restore; chỉ cần thực thi một loạt statement theo đúng thứ tự là có thể tạo lại content của database.
+
+Cần lưu ý rằng theo mặc định, `pg_dump` không phát hành statement `CREATE DATABASE` trong content backup. Giả sử chúng ta tạo một backup file như sau:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump --column-inserts -f backup_forumdb.sql forumdb
 ....
 
-File `backup_forumd.sql` được tạo ra sẽ không bao gồm bất kỳ instruction nào về cách tạo một database mới. Điều này có thể tiện lợi nhưng cũng nguy hiểm: nó có nghĩa là restoration sẽ diễn ra bên trong database mà bạn đang kết nối tới.
+.Command
+[source,bash]
+....
+pg_dump --column-inserts -f backup_forumdb.sql forumdb
+....
+
+
+File `backup_forumd.sql` được tạo ra sẽ không bao gồm bất kỳ lệnh nào về cách tạo một database mới. Điều này có thể tiện lợi nhưng cũng nguy hiểm: restore sẽ diễn ra bên trong database mà bạn đang kết nối tới.
 
 [quote]
 ____
-*Lưu ý:* `pg_dump` đủ thông minh để xác định đúng thứ tự mà các table và object khác phải được dump, bảo đảm dependency của chúng có thể được restore theo đúng thứ tự.
+*Lưu ý:* `pg_dump` đủ thông minh để xác định đúng thứ tự dump các table và object khác, bảo đảm dependency của chúng có thể được restore đúng thứ tự.
 
 ____
-Giả sử chúng ta muốn restore content của database vào một database local khác, đặt tên là `forumdb_restore`. Bước đầu tiên là tạo một database như sau:
+Giả sử muốn restore content của database vào một database local khác có tên `forumdb_restore`. Bước đầu tiên là tạo database như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ psql -c 'CREATE DATABASE forumdb_restore WITH OWNER forum;'
 CREATE DATABASE
 ....
 
-Bây giờ có thể connect tới database đích và yêu cầu `psql` thực thi toàn bộ content của backup file:
+.Command
+[source,bash]
+....
+psql -c 'CREATE DATABASE forumdb_restore WITH OWNER forum;'
+....
 
-[source,text]
+.Output
+[source,output]
+....
+CREATE DATABASE
+....
+
+
+Bây giờ có thể kết nối tới database đích và yêu cầu `psql` thực thi toàn bộ nội dung của backup file:
+
+[source,console,role="transcript"]
 ....
 $ psql -U forum forumdb_restore
 forumdb_restore=> \i backup_forumdb.sql
@@ -241,11 +409,59 @@ INSERT 0 1
 ...
 ....
 
-Bạn sẽ thấy một danh sách output code của command như `INSERT 0 1`, nghĩa là đã xảy ra một `INSERT` đơn lẻ, cũng như xác nhận việc thực thi `ALTER TABLE`, `GRANT` và mọi command khác mà backup chứa. Tùy thuộc vào kích thước backup và performance của machine, restoration có thể mất từ vài giây đến vài phút.
+.Command
+[source,bash]
+....
+psql -U forum forumdb_restore
+....
 
-Sau khi restore hoàn tất, có thể kiểm tra xem backup đã được restore hay chưa, chẳng hạn bằng cách query một table đơn lẻ để lấy data của nó:
+.SQL
+[source,sql]
+....
+\i backup_forumdb.sql
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SET
+SET
+SET
+SET
+CREATE SCHEMA
+ALTER SCHEMA
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+...
+....
+
+
+Bạn sẽ thấy các dòng output của những command như `INSERT 0 1`, cho biết một `INSERT` đơn lẻ đã xảy ra, đồng thời xác nhận việc thực thi `ALTER TABLE`, `GRANT` và mọi command khác mà backup chứa. Tùy thuộc vào kích thước backup và hiệu năng của machine, restore có thể mất từ vài giây đến vài phút.
+
+Sau khi restore hoàn tất, có thể kiểm tra xem backup đã được restore hay chưa, chẳng hạn bằng cách query một table đơn lẻ để lấy data của table đó:
+
+[source,console,role="transcript"]
 ....
 forumdb_test=> SELECT * FROM tags;
 ERROR:    relation "tags" does not exist
@@ -253,9 +469,25 @@ LINE 1: SELECT * FROM tags;
                                 ^
 ....
 
-Khoan đã: điều này không có nghĩa là quy trình backup và restore đã không hoạt động đúng! Hãy nhớ rằng `pg_dump` đã chèn một instruction thích hợp để loại bỏ mọi entry khỏi `search_path`, vì vậy `psql` không biết cách tìm một table tên là `tags`, trong khi nó vẫn có thể tìm một table có fully qualified name như `forum.tags`:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ERROR:    relation "tags" does not exist
+LINE 1: SELECT * FROM tags;
+                                ^
+....
+
+
+Khoan đã: điều này không có nghĩa là quy trình backup và restore không hoạt động đúng! Hãy nhớ rằng `pg_dump` đã chèn một lệnh thích hợp để loại bỏ mọi entry khỏi `search_path`, vì vậy `psql` không biết cách tìm table có tên `tags`, trong khi vẫn có thể tìm table có fully qualified name như `forum.tags`:
+
+[source,console,role="transcript"]
 ....
 forumdb_restore=> SELECT * FROM forum.tags;
 pk |           tag           | parent
@@ -269,9 +501,31 @@ pk |           tag           | parent
 (6 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT *
+FROM forum.tags;
+....
+
+.Output
+[source,output]
+....
+pk |           tag           | parent
+----+-------------------+--------
+ 1 | Operating Systems |
+ 2 | Linux                   |        1
+ 3 | Ubuntu                  |        2
+ 4 | Kubuntu                 |        3
+ 5 | Database              |
+ 6 | Operating Systems |
+(6 rows)
+....
+
+
 Bạn có thể đóng connection rồi khởi động lại để có một `search_path` được thiết lập như bình thường, hoặc tự đặt nó trong connection hiện tại bằng `set_config()`, chẳng hạn:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb_test=> SELECT pg_catalog.set_config('search_path', 'public,
 "$user"', false);
@@ -292,11 +546,39 @@ pk |            tag          | parent
 (6 rows)
 ....
 
-Như bạn thấy, bây giờ connection hoạt động hoàn toàn bình thường.
+.SQL
+[source,sql]
+....
+SELECT pg_catalog.set_config('search_path', 'public, "$user"', FALSE);
+SELECT *
+FROM tags;
+....
 
-Cũng có thể thực hiện backup (và restore) ngay trong chính database đó. Trước hết, `pg_dump` phải bao gồm một option đặc biệt có tên `--create`, instruct application phát hành `CREATE DATABASE` như instruction đầu tiên của restoration:
+.Output
+[source,output]
+....
+    set_config
+-----------------
+   public, "$user"
+(1 row)
 
-[source,text]
+pk |            tag          | parent
+----+-------------------+--------
+ 1 | Operating Systems |
+ 2 | Linux                 |        1
+ 3 | Ubuntu                 |        2
+ 4 | Kubuntu                |        3
+ 5 | Database              |
+ 6 | Operating Systems |
+(6 rows)
+....
+
+
+Như bạn thấy, connection lúc này hoạt động hoàn toàn bình thường.
+
+Cũng có thể thực hiện backup (và restore) ngay trong chính database đó. Trước hết, `pg_dump` phải bao gồm một option đặc biệt có tên `--create`, yêu cầu ứng dụng phát hành `CREATE DATABASE` như instruction đầu tiên của quá trình restore:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump --column-inserts --create -f backup_forumdb.sql forumdb
 $ less backup_forumdb.sql
@@ -315,11 +597,37 @@ ALTER DATABASE forumdb OWNER TO forum;
 ...
 ....
 
-Như bạn thấy, output của `pg_dump` hiện bao gồm việc tạo database, cũng như command đặc biệt `\c` để connect ngay tới database đó. Nói cách khác, khi chạy file này thông qua `psql`, nó sẽ restore toàn bộ content vào đúng database khi database đó chưa tồn tại.
+.Command
+[source,bash]
+....
+pg_dump --column-inserts --create -f backup_forumdb.sql forumdb
+less backup_forumdb.sql
+....
 
-Để kiểm thử việc này, hãy hủy database thân yêu của chúng ta rồi restore nó bằng cách ban đầu connect tới `template1`:
+.Output
+[source,output]
+....
+...
+CREATE DATABASE forumdb WITH TEMPLATE = template0 ENCODING = 'UTF8'
+LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
 
-[source,text]
+
+ALTER DATABASE forumdb OWNER TO forum;
+
+
+\connect forumdb
+
+
+
+...
+....
+
+
+Như bạn thấy, output của `pg_dump` hiện bao gồm việc tạo database, cũng như command đặc biệt `\c` để kết nối ngay tới database đó. Nói cách khác, khi chạy file này qua `psql`, nó sẽ restore toàn bộ content vào đúng database nếu database đó chưa tồn tại.
+
+Để kiểm thử việc này, hãy xóa database thân yêu của chúng ta rồi restore nó bằng cách trước tiên kết nối tới `template1`:
+
+[source,console,role="transcript"]
 ....
 $ psql -c 'DROP DATABASE forumdb';
 DROP DATABASE
@@ -329,40 +637,83 @@ postgres=# \i backup_forumdb.sql
 forumdb=#
 ....
 
-Hãy chú ý rằng command prompt đã thay đổi để phản ánh việc hiện tại chúng ta đang connect tới database `forumdb` đã được restore.
+.Command
+[source,bash]
+....
+psql -c 'DROP DATABASE forumdb';
+psql
+....
 
-Vậy nên dùng version dump và restoration nào? Nếu replicate database trong một cluster khác, chẳng hạn để migrate một staging database sang production, bạn nên bao gồm option `--create` để database engine tự tạo database cho bạn. Nếu migrate content của database vào một database đã tồn tại, tuyệt đối không được có option `--create`, vì không cần setup database; điều này có thể rủi ro vì bạn có thể restore object vào nhầm database, nên cần kiểm tra cẩn thận rằng bạn đang connect tới đúng database trước khi reload backup script.
+.SQL
+[source,sql]
+....
+\i backup_forumdb.sql
+....
+
+.Output
+[source,output]
+....
+DROP DATABASE
+...
+....
+
+
+Hãy chú ý rằng command prompt đã thay đổi, phản ánh việc hiện tại chúng ta đang kết nối tới database `forumdb` đã được restore.
+
+Vậy nên dùng version nào của tool dump và restore? Nếu replicate database trong một cluster khác, chẳng hạn để migrate một staging database sang production, bạn nên bao gồm option `--create` để database engine tự tạo database cho bạn. Nếu migrate content của database vào một database đã tồn tại, tuyệt đối không được dùng option `--create`, vì không cần thiết lập database; điều này có thể gây rủi ro vì bạn có thể restore object vào nhầm database, nên cần kiểm tra cẩn thận rằng bạn đang kết nối tới đúng database trước khi reload backup script.
 
 Nếu migrate content của database sang engine khác, chẳng hạn một relational database khác, bạn nên dùng các option như `--inserts` hoặc `--column-inserts` để làm cho database backup portable hơn.
 
 == Giới hạn lượng data cần backup
 
-`pg_dump` cho phép dùng một tập hợp phong phú các filter và flag để giới hạn lượng data cần backup. Chẳng hạn, bạn có thể quyết định chỉ dump database schema mà không có data nào trong đó; việc này có thể thực hiện bằng flag `-s`. Mặt khác, có thể schema của database đã tồn tại và bạn chỉ cần content của database mà không cần bất kỳ DDL statement nào. Việc này có thể thực hiện bằng option `-a`. Tất nhiên, bạn có thể kết hợp các command `pg_dump` khác nhau để tạo các backup riêng biệt:
+`pg_dump` cho phép dùng một tập hợp phong phú các filter và flag để giới hạn lượng data cần backup. Chẳng hạn, bạn có thể chỉ dump schema của database mà không dump data nào; việc này có thể thực hiện bằng flag `-s`. Ngược lại, có thể schema của database đã tồn tại và bạn chỉ cần content của database mà không cần bất kỳ DDL statement nào; việc này có thể thực hiện bằng option `-a`. Tất nhiên, bạn có thể kết hợp các command `pg_dump` khác nhau để tạo các backup riêng biệt:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_dump -s -f database_structure.sql forumdb
 $ pg_dump -a -f database_content.sql forumdb
 ....
 
-Bạn sẽ có một file tên `database_structure.sql` chứa tất cả các `CREATE TABLE` statement khác nhau, và một file khác chỉ chứa các statement `COPY` (hoặc `INSERT` nếu bạn đã chỉ định `--inserts`).
-Bạn cũng có thể quyết định giới hạn phạm vi backup, theo schema hoặc data, ở một vài table bằng flag command-line `-t`; hoặc ngược lại, loại trừ một số table bằng parameter `-T`. Ví dụ, nếu muốn chỉ backup table `users` và sequence `users_pk_seq`, bạn có thể làm như sau:
+.Command
+[source,bash]
+....
+pg_dump -s -f database_structure.sql forumdb
+pg_dump -a -f database_content.sql forumdb
+....
 
-[source,text]
+
+Bạn sẽ có một file tên `database_structure.sql` chứa mọi `CREATE TABLE` statement, và một file khác chỉ chứa các statement `COPY` (hoặc `INSERT` nếu bạn đã chỉ định `--inserts`).
+Bạn cũng có thể quyết định giới hạn phạm vi backup, theo schema hoặc data, đối với một số table bằng flag command-line `-t`; hoặc ngược lại, loại trừ một số table bằng parameter `-T`. Ví dụ, nếu chỉ muốn backup table `users` và sequence `users_pk_seq`, bạn có thể làm như sau:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump -f users.sql -t forum.users -t forum.user_pk_seq forumdb
 ....
 
-File `users.sql` được tạo sẽ chỉ chứa lượng data đủ để tạo lại các thành phần liên quan đến user, không hơn. Mặt khác, nếu muốn loại trừ table `users` khỏi backup, bạn có thể làm tương tự như sau:
+.Command
+[source,bash]
+....
+pg_dump -f users.sql -t forum.users -t forum.user_pk_seq forumdb
+....
 
-[source,text]
+
+File `users.sql` được tạo sẽ chỉ chứa đủ data để tạo lại các thành phần liên quan đến user, không hơn. Ngược lại, nếu muốn loại trừ table `users` khỏi backup, bạn có thể làm tương tự như sau:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump -f users.sql -T forum.users -T forum.user_pk_seq forumdb
 ....
 
-Dĩ nhiên, bạn có thể mix và match mọi option theo cách hợp lý với mình và, quan trọng hơn, cho phép restore chính xác những gì bạn cần. Ví dụ, nếu muốn lấy toàn bộ data chứa trong table `posts` cùng với chính table structure, bạn có thể làm như sau:
+.Command
+[source,bash]
+....
+pg_dump -f users.sql -T forum.users -T forum.user_pk_seq forumdb
+....
 
-[source,text]
+
+Dĩ nhiên, bạn có thể kết hợp các option theo cách phù hợp với nhu cầu và, quan trọng hơn, restore chính xác những gì cần thiết. Ví dụ, nếu muốn lấy toàn bộ data trong table `posts` cùng với structure của table đó, bạn có thể làm như sau:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump -f posts.sql -t forum.posts -a -v forumdb
 ...
@@ -375,15 +726,35 @@ pg_dump: Consider using a full dump instead of a --data-only dump to avoid
 this problem.
 ....
 
-`pg_dump` đủ thông minh để nhận ra table `posts` có các dependency và foreign key khác nhau, nên nó cảnh báo rằng dump của bạn sẽ không thể restore toàn bộ content của table `posts`. Bạn phải tự quản lý các dependency đó theo cách đúng, vì bạn đã yêu cầu `pg_dump` không thực hiện full backup (vốn luôn complete và consistent).
+.Command
+[source,bash]
+....
+pg_dump -f posts.sql -t forum.posts -a -v forumdb
+....
+
+.Output
+[source,output]
+....
+...
+pg_dump: warning: there are circular foreign-key constraints on this
+table:
+pg_dump:      posts
+pg_dump: You might not be able to restore the dump without using
+--disable-triggers or temporarily dropping the constraints.
+pg_dump: Consider using a full dump instead of a --data-only dump to avoid
+this problem.
+....
+
+
+`pg_dump` đủ thông minh để nhận ra table `posts` có các dependency và foreign key khác nhau, nên cảnh báo rằng dump của bạn có thể không restore được toàn bộ content của table `posts`. Bạn phải tự quản lý các dependency đó đúng cách, vì bạn đã yêu cầu `pg_dump` không thực hiện full backup (vốn luôn đầy đủ và nhất quán).
 
 == Compression
 
-`pg_dump` cung cấp một command-line option đặc biệt là `-Z`, nhận một integer từ 0 đến 9 để chỉ định compression level cho backup được tạo. Level 0 nghĩa là hoàn toàn không compression, còn 9 là mức compression cao nhất hiện có.
+`pg_dump` cung cấp một command-line option đặc biệt là `-Z`, nhận một số nguyên từ 0 đến 9 để chỉ định compression level cho backup được tạo. Level 0 nghĩa là hoàn toàn không compression, còn 9 là mức compression cao nhất hiện có.
 
-Để minh họa compression hoạt động như thế nào, giả sử chúng ta tạo hai backup của cùng một database, backup đầu tiên không compression và backup thứ hai có compression (hãy chú ý command-line option và filename thay đổi):
+Để minh họa compression hoạt động thế nào, giả sử chúng ta tạo hai backup của cùng một database: backup thứ nhất không compression, backup thứ hai có compression (hãy chú ý command-line option và filename thay đổi):
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_dump -f backup_forumdb_uncompressed.sql forumdb
 $ pg_dump -f backup_forumdb_compressed.sql.gz -Z 9 forumdb
@@ -392,53 +763,98 @@ $ ls -1s backup_forumdb*
 12 backup_forumdb_uncompressed.sql
 ....
 
-Như bạn có thể thấy, file được compression chiếm một phần ba dung lượng của plain backup, nhưng lần này file không thể edit trực tiếp vì nó được lưu ở dạng binary compressed.
+.Command
+[source,bash]
+....
+pg_dump -f backup_forumdb_uncompressed.sql forumdb
+pg_dump -f backup_forumdb_compressed.sql.gz -Z 9 forumdb
+ls -1s backup_forumdb*
+....
 
-Compression có thể được áp dụng cho plain text (tức SQL) dump và directory format, nhưng không áp dụng được cho tar output format.
+.Output
+[source,output]
+....
+4 backup_forumdb_compressed.sql.gz
+12 backup_forumdb_uncompressed.sql
+....
 
-== Dump formats và pg_restore
 
-Trong các section trước, bạn chỉ thấy plain SQL format cho backup và restore, nhưng `pg_dump` còn cung cấp các format phức tạp và thông minh hơn. Tất cả format ngoại trừ plain SQL đều phải dùng `pg_restore` để restore và vì vậy không phù hợp cho việc edit thủ công.
+Như bạn có thể thấy, file đã được nén chỉ chiếm một phần ba dung lượng của plain backup, nhưng lần này file không thể chỉnh sửa trực tiếp vì được lưu ở dạng binary.
 
-Backup format được chỉ định bằng command-line argument `-F` của `pg_dump`, cho phép dùng một trong các value sau:
+Có thể áp dụng compression cho plain text (tức SQL) dump và directory format, nhưng không áp dụng được cho tar output format.
 
-* `c` (custom) là format đặc thù PostgreSQL trong một single-file archive.
-* `d` (directory) là format đặc thù PostgreSQL có compression, trong đó mỗi object được tách ra thành các file khác nhau bên trong một directory.
+== Các format dump và pg_restore
+
+Trong các phần trước, bạn chỉ thấy plain SQL format dùng cho backup và restore, nhưng `pg_dump` còn cung cấp các format phức tạp và thông minh hơn. Mọi format ngoại trừ plain SQL đều phải dùng `pg_restore` để restore, nên không phù hợp cho việc chỉnh sửa thủ công.
+
+Backup format được chỉ định bằng command-line argument `-F` của `pg_dump`, cho phép dùng một trong các giá trị sau:
+
+* `c` (custom) là format đặc thù của PostgreSQL trong một single-file archive.
+* `d` (directory) là format đặc thù của PostgreSQL có compression, trong đó mỗi object được tách thành một file riêng bên trong một directory.
 * `t` (tar) là format `.tar` không compression; sau khi extract, nó tạo ra layout giống layout do directory format cung cấp.
 
-Hãy bắt đầu với format đầu tiên: custom single-file format. Command để backup một database tương tự command dùng cho plain SQL format, trong đó bạn phải chỉ định output file, nhưng lần này file không phải plain text:
+Hãy bắt đầu với format đầu tiên: custom single-file format. Command để backup một database tương tự command dùng cho plain SQL format, trong đó phải chỉ định output file, nhưng lần này file không phải plain text:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_dump -Fc --create -f backup_forumdb.backup forumdb
 ....
 
-Output file được tạo có size nhỏ hơn plain SQL file và không thể edit dưới dạng text vì nó là binary. Nhiều command-line argument của `pg_dump` áp dụng tương tự cho custom format, trong khi một số argument khác hoàn toàn không có ý nghĩa.
+.Command
+[source,bash]
+....
+pg_dump -Fc --create -f backup_forumdb.backup forumdb
+....
 
-Trong mọi trường hợp, `pg_dump` đủ thông minh để biết cần xem xét điều gì và loại bỏ điều gì, vì vậy các command line sau sẽ tạo ra cùng backup như trong ví dụ trước:
 
-[source,text]
+Output file được tạo có kích thước nhỏ hơn plain SQL file và không thể chỉnh sửa dưới dạng text vì là binary. Nhiều command-line argument của `pg_dump` áp dụng tương tự cho custom format, trong khi một số argument khác hoàn toàn không có ý nghĩa.
+
+Trong mọi trường hợp, `pg_dump` đủ thông minh để biết cần xem xét và loại bỏ điều gì, vì vậy các command line sau sẽ tạo ra cùng backup như trong ví dụ trước:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump -Fc --create --inserts -f backup_forumdb.backup forumdb
 $ pg_dump -Fc --create --column-inserts -f backup_forumdb.backup forumdb
 ....
 
-Rõ ràng, flag command-line `--column-inserts` và `--inserts` không có ý nghĩa trong loại backup này, vì sẽ không có text file (và do đó không có SQL statement) nào được tạo.
+.Command
+[source,bash]
+....
+pg_dump -Fc --create --inserts -f backup_forumdb.backup forumdb
+pg_dump -Fc --create --column-inserts -f backup_forumdb.backup forumdb
+....
 
-Khi đã có custom backup, làm thế nào để restore database content? Hãy nhớ rằng custom backup format yêu cầu dùng `pg_restore` để restore thành công. Như trước đó, hãy lại destroy database rồi restore nó bằng `pg_restore`:
 
-[source,text]
+Rõ ràng, các flag command-line `--column-inserts` và `--inserts` không có ý nghĩa với loại backup này, vì không có text file (và do đó không có SQL statement) nào được tạo.
+
+Khi đã có custom backup, làm thế nào để restore content của database? Hãy nhớ rằng custom backup format yêu cầu dùng `pg_restore` để restore thành công. Như trước, hãy xóa database rồi restore lại bằng `pg_restore`:
+
+[source,console,role="transcript"]
 ....
 $ psql -c 'DROP DATABASE forumdb';
 DROP DATABASE
 $ pg_restore -C -d postgres backup_forumdb.backup
 ....
 
-`pg_restore` chạy im lặng và restore database được chỉ định. Option `-C` cho biết `pg_restore` sẽ tạo lại database trước khi restore object vào đó. Option `-d` yêu cầu program trước tiên connect tới database `postgres`, phát hành một `CREATE DATABASE`, sau đó connect tới database mới được tạo để tiếp tục restore, tương tự như cách plain backup format đã làm. Rõ ràng, `pg_restore` yêu cầu một file bắt buộc để thao tác, tức argument cuối cùng được chỉ định trên command line.
+.Command
+[source,bash]
+....
+psql -c 'DROP DATABASE forumdb';
+pg_restore -C -d postgres backup_forumdb.backup
+....
 
-Điều thú vị là `pg_restore` có thể tạo một danh sách SQL statement sẽ được thực thi mà không thực sự thực thi chúng. Command-line option `-f` thực hiện việc này, cho phép bạn lưu plain SQL vào một file hoặc inspect nó trước khi tiếp tục quá trình restore:
+.Output
+[source,output]
+....
+DROP DATABASE
+....
 
-[source,text]
+
+`pg_restore` chạy im lặng và restore database được chỉ định. Option `-C` cho biết `pg_restore` sẽ tạo lại database trước khi restore object vào đó. Option `-d` yêu cầu program trước tiên kết nối tới database `postgres`, phát hành một `CREATE DATABASE`, sau đó kết nối tới database mới được tạo để tiếp tục restore, tương tự cách plain backup format đã làm. Rõ ràng, `pg_restore` yêu cầu file backup làm argument bắt buộc, tức argument cuối cùng được chỉ định trên command line.
+
+Điều thú vị là `pg_restore` có thể tạo một danh sách SQL statement thay vì thực thi trực tiếp chúng. Command-line option `-f` thực hiện việc này, cho phép bạn lưu plain SQL vào một file hoặc kiểm tra plain SQL đó trước khi tiếp tục quá trình restore:
+
+[source,console,role="transcript"]
 ....
 $ pg_restore backup_forumdb.backup -f restore.sql
 $ less restore.sql
@@ -459,11 +875,39 @@ ALTER DATABASE forumdb OWNER TO forum;
 ...
 ....
 
-Như bạn có thể thấy, content của file `restore.sql` là plain SQL, tương tự output của plain dump bằng `pg_dump`. Điều này nghĩa là nếu dùng `pg_restore`, bạn luôn có thể lấy ra một danh sách SQL statement editable và human-readable từ một backup.
+.Command
+[source,bash]
+....
+pg_restore backup_forumdb.backup -f restore.sql
+less restore.sql
+....
 
-Một output format khác của `pg_dump` là directory format, được chỉ định bằng command-line flag `-Fd`. Ở format này, `pg_dump` tạo một tập các file compressed trong một directory trên disk; trong trường hợp này, command-line argument `-f` chỉ định tên của một directory thay vì một file duy nhất. Ví dụ, hãy backup vào một backup folder:
+.Output
+[source,output]
+....
+--
+-- PostgreSQL database dump
+--
 
-[source,text]
+CREATE DATABASE forumdb WITH TEMPLATE = template0 ENCODING = 'UTF8'
+LOCALE_PROVIDER = libc LOCALE = 'en_US.utf8';
+
+
+ALTER DATABASE forumdb OWNER TO forum;
+
+
+\connect forumdb
+
+
+...
+....
+
+
+Như bạn có thể thấy, content của file `restore.sql` là plain SQL, tương tự output của plain dump do `pg_dump` tạo ra. Điều đó có nghĩa là khi dùng `pg_restore`, bạn luôn có thể lấy ra một danh sách SQL statement có thể chỉnh sửa và dễ đọc từ một backup.
+
+Một output format khác của `pg_dump` là directory format, được chỉ định bằng command-line flag `-Fd`. Ở format này, `pg_dump` tạo một tập các file compressed trong một directory trên disk; trong trường hợp này, command-line argument `-f` chỉ định tên của một directory thay vì một file duy nhất. Ví dụ, hãy backup vào một directory backup:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump -Fd -f backup.d forumdb
 $ ls -1s backup.d/
@@ -478,20 +922,56 @@ total 40
 12 toc.dat
 ....
 
-Directory được tạo nếu cần, và mỗi database object được đặt trong một compressed file duy nhất. File `toc.dat` đại diện cho một ToC, một index cho `pg_restore` biết nơi tìm từng phần data bên trong directory. Ví dụ sau cho thấy cách destroy và restore database bằng backup ở directory format:
+.Command
+[source,bash]
+....
+pg_dump -Fd -f backup.d forumdb
+ls -1s backup.d/
+....
 
-[source,text]
+.Output
+[source,output]
+....
+total 40
+4 3368.dat.gz
+4 3370.dat.gz
+4 3371.dat.gz
+4 3372.dat.gz
+4 3373.dat.gz
+4 3375.dat.gz
+4 3377.dat.gz
+12 toc.dat
+....
+
+
+Directory được tạo nếu cần, và mỗi database object được đặt trong một compressed file riêng. File `toc.dat` đại diện cho một ToC, một index cho `pg_restore` biết nơi tìm từng phần data bên trong directory. Ví dụ sau cho thấy cách xóa và restore database bằng backup ở directory format:
+
+[source,console,role="transcript"]
 ....
 $ psql -c "DROP DATABASE forumdb;"
 DROP DATABASE
 $ pg_restore -C -d postgres backup.d
 ....
 
-Directory backup format hữu ích khi database tăng size, vì việc lưu một file khổng lồ duy nhất có thể trở thành vấn đề do vượt quá giới hạn của filesystem.
+.Command
+[source,bash]
+....
+psql -c "DROP DATABASE forumdb;"
+pg_restore -C -d postgres backup.d
+....
 
-Format cuối cùng của `pg_dump` là `.tar`, có thể lấy được bằng command-line flag `-Ft`. Kết quả là tạo ra một uncompressed `tar(1)` archive chứa cùng directory structure đã tạo trong ví dụ trước, nhưng mọi file đều không compressed:
+.Output
+[source,output]
+....
+DROP DATABASE
+....
 
-[source,text]
+
+Directory format hữu ích khi database tăng kích thước, vì việc lưu một file khổng lồ duy nhất có thể trở thành vấn đề do vượt quá giới hạn của filesystem.
+
+Format cuối cùng của `pg_dump` là `.tar`, có thể lấy bằng command-line flag `-Ft`. Kết quả là một uncompressed `tar(1)` archive chứa cùng directory structure như trong ví dụ trước, nhưng mọi file đều không compressed:
+
+[source,console,role="transcript"]
 ....
 $ pg_dump -Ft -f backup_forumdb.tar forumdb
 $ tar -tf backup_forumdb.tar
@@ -505,4 +985,25 @@ toc.dat
 3377.dat
 ....
 
-Tiếp theo, chúng ta sẽ xem cách thực hiện selective restore, giúp bạn chọn những element nào của một database cần restore.
+.Command
+[source,bash]
+....
+pg_dump -Ft -f backup_forumdb.tar forumdb
+tar -tf backup_forumdb.tar
+....
+
+.Output
+[source,output]
+....
+toc.dat
+3368.dat
+3370.dat
+3371.dat
+3372.dat
+3373.dat
+3375.dat
+3377.dat
+....
+
+
+Tiếp theo, chúng ta sẽ xem cách thực hiện selective restore, giúp bạn chọn element nào của một database cần restore.

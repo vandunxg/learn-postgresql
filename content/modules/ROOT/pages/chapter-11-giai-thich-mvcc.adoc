@@ -1,8 +1,8 @@
 = Giải thích MVCC
 
-`xmin` chỉ là một phần trong câu chuyện quản lý MVCC. PostgreSQL gắn nhãn cho mọi tuple trong database bằng bốn field khác nhau có tên `xmin` (đã mô tả), `xmax`, `cmin` và `cmax`. Tương tự như những gì bạn đã học về `xmin`, để làm cho các field đó xuất hiện trong query result, bạn cần reference chúng một cách rõ ràng, chẳng hạn:
+`xmin` chỉ là một phần của cơ chế quản lý MVCC. PostgreSQL gắn cho mỗi tuple trong database bốn field khác nhau: `xmin` (đã mô tả), `xmax`, `cmin` và `cmax`. Cũng như với `xmin`, để các field này xuất hiện trong kết quả query, bạn phải tham chiếu chúng một cách rõ ràng, như trong ví dụ sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> SELECT xmin, xmax, cmin, cmax, * FROM tags ORDER BY tag;
    xmin | xmax | cmin | cmax | pk | tag         | parent
@@ -14,13 +14,39 @@ forumdb=> SELECT xmin, xmax, cmin, cmax, * FROM tags ORDER BY tag;
 (4 rows)
 ....
 
-Ý nghĩa của `xmin` đã được mô tả trong section trước: nó chỉ transaction identifier của transaction đã tạo tuple. Mặt khác, field `xmax` chỉ xid của transaction đã invalidate tuple, chẳng hạn vì transaction đó đã xóa data. Các field `cmin` và `cmax` lần lượt chỉ command identifier đã tạo và invalidate tuple trong cùng transaction (PostgreSQL đánh số mọi statement trong một transaction, bắt đầu từ 0).
+.SQL
+[source,sql]
+....
+SELECT
+    xmin,
+    xmax,
+    cmin,
+    cmax,
+    *
+FROM tags
+ORDER BY tag;
+....
 
-Tại sao việc theo dõi statement identifier (`cmin`, `cmax`) lại quan trọng? Vì isolation level thấp nhất mà PostgreSQL áp dụng là `READ COMMITTED`, mọi statement (tức command) trong một transaction phải thấy snapshot của data đã được consolidate tại thời điểm command bắt đầu.
+.Output
+[source,output]
+....
+   xmin | xmax | cmin | cmax | pk | tag         | parent
+    ------+------+------+------+----+------+--------
+   4854 |    0 |      0 |      0 | 24 | c++     |
+   4853 |    0 |      0 |      0 | 23 | java |
+   4852 |    0 |      0 |      0 | 22 | perl |
+   4855 |    0 |      0 |      0 | 25 | unix |
+(4 rows)
+....
 
-Bạn có thể thấy cách sử dụng `cmin` và `cmax` trong cùng một transaction ở ví dụ sau. Trước hết, chúng ta bắt đầu một explicit transaction, sau đó insert một vài tuple bằng hai statement `INSERT` khác nhau; điều này có nghĩa các tuple được tạo sẽ có `cmin` khác nhau:
 
-[source,text]
+Ý nghĩa của `xmin` đã được mô tả ở phần trước: nó chỉ transaction identifier của transaction đã tạo tuple. Ngược lại, field `xmax` cho biết xid của transaction đã invalidate tuple, chẳng hạn vì transaction đó đã xóa data. Hai field `cmin` và `cmax` lần lượt chỉ command identifier của command đã tạo và invalidate tuple trong cùng transaction (PostgreSQL đánh số mọi statement trong một transaction, bắt đầu từ 0).
+
+Tại sao việc theo dõi statement identifier (`cmin`, `cmax`) lại quan trọng? Vì isolation level thấp nhất mà PostgreSQL áp dụng là `READ COMMITTED`, nên mỗi statement (tức command) trong một transaction phải thấy snapshot phản ánh trạng thái dữ liệu tại thời điểm command bắt đầu.
+
+Bạn có thể thấy cách `cmin` và `cmax` được sử dụng trong cùng một transaction qua ví dụ sau. Trước hết, chúng ta bắt đầu một explicit transaction, rồi insert một vài tuple bằng hai statement `INSERT` khác nhau; vì vậy, các tuple được tạo sẽ có `cmin` khác nhau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> BEGIN;
    BEGIN
@@ -65,13 +91,81 @@ Bạn có thể thấy cách sử dụng `cmin` và `cmax` trong cùng một tra
    (6 rows)
 ....
 
-Cho đến đây, trong cùng một transaction, hai tuple mới được insert có `xmin` giống `txid_current()`; hiển nhiên, các tuple đó được tạo bởi cùng một transaction. Tuy nhiên, hãy lưu ý rằng tuple thứ hai, vì nằm trong writing command thứ hai, có `cmin` chứa 1 (việc đếm command bắt đầu từ 0).
+.SQL
+[source,sql]
+....
+BEGIN;
+SELECT
+    xmin,
+    xmax,
+    cmin,
+    cmax,
+    tag,
+    txid_current()
+FROM tags
+ORDER BY tag;
+INSERT INTO tags (tag)
+VALUES ('raku');
+INSERT INTO tags (tag)
+VALUES ('lua');
+SELECT
+    xmin,
+    xmax,
+    cmin,
+    cmax,
+    tag,
+    txid_current()
+FROM tags
+ORDER BY tag;
+....
 
-Vì vậy, PostgreSQL biết thời điểm mọi tuple được tạo bằng cách dựa trên một transaction và một command bên trong transaction đó.
+.Output
+[source,output]
+....
+   BEGIN
 
-Hãy tiếp tục với transaction của chúng ta: khai báo một cursor chứa query trên table `tags`, rồi xóa tất cả tuple trừ hai tuple. Session của transaction tiếp tục như sau:
 
-[source,text]
+
+
+      xmin | xmax | cmin | cmax | tag        | txid_current
+   ------+------+------+------+------+--------------
+     4854 |     0 |     0 |     0 | c++   |           4856
+     4853 |     0 |     0 |     0 | java |            4856
+     4852 |     0 |     0 |     0 | perl |            4856
+     4855 |     0 |     0 |     0 | unix |            4856
+   (4 rows)
+
+
+   -- first writing command (number 0)
+   INSERT 0 1
+
+
+   -- second writing command (number 1)
+   INSERT 0 1
+
+
+   -- fourth command within transaction (number 3)
+
+
+     xmin | xmax | cmin | cmax | tag      | txid_current
+   ------+------+------+------+------+--------------
+     4854 |     0 |     0 |     0 | c++   |           4856
+     4853 |     0 |     0 |     0 | java |            4856
+     4856 |     0 |     1 |     1 | lua   |           4856
+     4852 |     0 |     0 |     0 | perl |             4856
+     4856 |     0 |     0 |     0 | raku |             4856
+     4855 |     0 |     0 |     0 | unix |             4856
+   (6 rows)
+....
+
+
+Đến đây, hai tuple mới được insert trong cùng một transaction có `xmin` giống `txid_current()`; điều đó là hiển nhiên vì cả hai tuple đều được tạo bởi cùng một transaction. Tuy nhiên, lưu ý rằng tuple thứ hai được tạo trong command ghi dữ liệu thứ hai nên có `cmin` chứa giá trị 1 (việc đánh số command bắt đầu từ 0).
+
+Nhờ vậy, PostgreSQL có thể xác định thời điểm mỗi tuple được tạo dựa trên transaction và command bên trong transaction đó.
+
+Tiếp tục transaction: chúng ta khai báo một cursor chứa query trên table `tags`, rồi xóa tất cả tuple trừ hai tuple. Session tiếp tục thực hiện transaction như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> DECLARE tag_cursor CURSOR FOR SELECT xmin, xmax, cmin, cmax,
    tag, txid_current() FROM tags ORDER BY tag;
@@ -91,11 +185,45 @@ Hãy tiếp tục với transaction của chúng ta: khai báo một cursor ch�
    (2 rows)
 ....
 
-Như bạn thấy, table hiện chỉ còn hai tuple, đây vốn là behavior được mong đợi sau thao tác trên.
+.SQL
+[source,sql]
+....
+DECLARE tag_cursor CURSOR FOR SELECT xmin, xmax, cmin, cmax,
+   tag, txid_current() FROM tags ORDER BY tag;
+DELETE FROM tags WHERE tag NOT IN ('perl', 'raku');
+SELECT
+    xmin,
+    xmax,
+    cmin,
+    cmax,
+    tag,
+    txid_current()
+FROM tags
+ORDER BY tag;
+....
 
-Tuy nhiên, cursor đã được khởi động trước statement `DELETE`, nên nó phải thấy data như trước statement `DELETE`. Thực tế, nếu hỏi cursor xem nó có thể lấy data nào, chúng ta thấy nó trả về toàn bộ tuple như trước statement `DELETE`:
+.Output
+[source,output]
+....
+   DECLARE CURSOR
 
-[source,text]
+
+   DELETE 4
+
+
+      xmin | xmax | cmin | cmax | tag        | txid_current
+   ------+------+------+------+------+--------------
+      4852 |    0 |      0 |      0 | perl |             4856
+      4856 |    0 |      0 |      0 | raku |             4856
+   (2 rows)
+....
+
+
+Như bạn thấy, hiện table chỉ còn hai tuple, đúng như dự kiến sau thao tác này.
+
+Tuy nhiên, cursor đã được khai báo trước statement `DELETE`, nên nó phải thấy data ở trạng thái trước statement `DELETE`. Trên thực tế, nếu yêu cầu cursor cho biết nó có thể lấy những data nào, ta sẽ thấy nó trả về toàn bộ tuple như trước statement `DELETE`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> FETCH ALL FROM tag_cursor;
       xmin | xmax | cmin | cmax | tag        | txid_current
@@ -109,15 +237,36 @@ Tuy nhiên, cursor đã được khởi động trước statement `DELETE`, nê
    (6 rows)
 ....
 
-Có một điểm quan trọng cần lưu ý: mọi tuple đã bị delete đều có value trong `xmax` chứa transaction identifier hiện tại (4856), nghĩa là chính transaction này đã delete các tuple đó. Tuy nhiên, transaction vẫn chưa commit; vì vậy, các tuple vẫn còn đó nhưng được đánh dấu là gắn với snapshot kết thúc ở 4856.
+.SQL
+[source,sql]
+....
+FETCH ALL FROM tag_cursor;
+....
 
-Hơn nữa, các tuple đã bị delete có `cmax` chứa value 2, nghĩa là các tuple đã bị delete bởi writing command thứ ba trong transaction.
+.Output
+[source,output]
+....
+      xmin | xmax | cmin | cmax | tag        | txid_current
+   ------+------+------+------+------+--------------
+      4854 | 4856 |      2 |      2 | c++    |             4856
+      4853 | 4856 |      2 |      2 | java |             4856
+      4856 | 4856 |      0 |      0 | lua    |             4856
+      4852 |    0 |      0 |      0 | perl |             4856
+      4856 |    0 |      0 |      0 | raku |             4856
+      4855 | 4856 |      2 |      2 | unix |             4856
+   (6 rows)
+....
 
-Vì cursor được define trước statement, nó có thể "thấy" các tuple như trước đó, ngay cả khi PostgreSQL biết chính xác chúng đã biến mất từ thời điểm nào.
+
+Có một điểm quan trọng cần lưu ý: mọi tuple đã bị delete đều có giá trị trong `xmax` chứa transaction identifier hiện tại (4856), nghĩa là chính transaction này đã delete các tuple đó. Tuy nhiên, transaction vẫn chưa commit; vì vậy, các tuple vẫn còn tồn tại nhưng được đánh dấu là thuộc snapshot kết thúc tại 4856.
+
+Ngoài ra, `cmax` của các tuple đã bị delete chứa giá trị 2, nghĩa là chúng bị delete bởi command ghi dữ liệu thứ ba trong transaction.
+
+Vì cursor được khai báo trước statement, nó có thể "thấy" các tuple như trước đó, ngay cả khi PostgreSQL biết chính xác chúng đã biến mất từ thời điểm nào.
 
 [quote]
 ____
-Người đọc có thể đã nhận thấy `cmin` và `cmax` chứa cùng một value; đó là vì các field này overlap cùng một storage.
+Người đọc có thể đã nhận thấy `cmin` và `cmax` chứa cùng một giá trị; đó là vì hai field này dùng chung một vùng storage.
 
 ____
-Trong section tiếp theo, bạn sẽ thấy cách disassemble một transaction thành các phần nhỏ hơn bằng savepoint.
+Trong phần tiếp theo, bạn sẽ thấy cách chia một transaction thành các phần nhỏ hơn bằng savepoint.

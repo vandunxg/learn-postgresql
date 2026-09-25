@@ -2,20 +2,20 @@
 
 * *Configuration context là gì?*
 
-  Configuration context xác định cluster sẽ tiếp nhận các thay đổi đối với configuration parameter như thế nào - ví dụ, chỉ tại thời điểm boot hoặc tại connection tiếp theo. Xem section Configuration contexts để biết thêm chi tiết.
+  Configuration context xác định cách cluster áp dụng các thay đổi đối với configuration parameter, chẳng hạn chỉ sau khi cluster restart hoặc từ connection tiếp theo. Xem section Các configuration context để biết thêm chi tiết.
 
-* *Sự khác biệt giữa các catalog `pg_settings` và `pg_file_settings` là gì?*
+* *Sự khác biệt giữa hai catalog `pg_settings` và `pg_file_settings` là gì?*
 
-  Catalog `pg_settings` hiển thị giá trị của mọi configuration parameter, cùng các giá trị được chấp nhận và hợp lệ; catalog `pg_file_settings` hiển thị nơi (tức trong file nào và tại dòng nào) một configuration parameter được tìm thấy và load. Xem section Inspecting all configuration parameters để biết thêm chi tiết.
+  Catalog `pg_settings` hiển thị giá trị của mọi configuration parameter, cùng với các giá trị được chấp nhận và hợp lệ; catalog `pg_file_settings` cho biết một configuration parameter được tìm thấy và load ở đâu, cụ thể là trong file nào và ở dòng nào. Xem section Kiểm tra toàn bộ configuration parameter để biết thêm chi tiết.
 
-* *Ngoài việc edit configuration file, làm thế nào bạn có thể thay đổi configuration của cluster thông qua SQL statement?*
+* *Ngoài việc chỉnh sửa configuration file, làm thế nào để thay đổi configuration của cluster bằng SQL statement?*
 
-  Bạn có thể issue command `ALTER STATEMENT` để thay đổi giá trị của một configuration setting. Các thay đổi sẽ được ghi vào file `postgresql.auto.conf`. Xem section Modifying the configuration from a live system để biết thêm chi tiết.
+  Bạn có thể chạy command `ALTER STATEMENT` để thay đổi giá trị của một configuration setting. Các thay đổi sẽ được ghi vào file `postgresql.auto.conf`. Xem section Thay đổi configuration trên system đang chạy để biết thêm chi tiết.
 
-* *Làm thế nào để lấy thông tin về connection, transaction và query đang chạy?*
+* *Làm thế nào để lấy thông tin về các connection, transaction và query đang chạy?*
 
-  Special catalog `pg_stat_activity` cung cấp thông tin về mọi backend process, query đang chạy (hoặc đã chạy gần nhất) và transaction state của process đó. Xem section Information about running queries and connections để biết thêm chi tiết.
+  Catalog `pg_stat_activity` cung cấp thông tin về từng backend process, query đang chạy (hoặc query gần nhất đã chạy) và transaction state của process đó. Xem section Thông tin về các query và session đang chạy để biết thêm chi tiết.
 
 * *Extension `pg_stat_statements` thực hiện việc gì?*
 
-  Extension `pg_stat_statements` cung cấp historical view về các query được lặp lại thường xuyên nhất, cùng thông tin về thời gian chạy, số lần execution và các chi tiết khác. Xem section Advanced statistics with pg_stat_statements để biết thêm chi tiết.
+  Extension `pg_stat_statements` cung cấp thông tin lịch sử về các query được lặp lại thường xuyên nhất, cùng với thời gian chạy, số lần thực thi và các chi tiết khác. Xem section Thống kê nâng cao với pg_stat_statements để biết thêm chi tiết.

@@ -1,5 +1,5 @@
 = Tóm tắt
 
-Chapter này đã giới thiệu cho bạn các statement SQL/PostgreSQL cơ bản và một số command SQL cơ bản. Bạn đã học cách tạo và xóa database, cách tạo và xóa table, các loại table hiện có, những statement cơ bản dùng để insert, modify và delete data, cùng với những query cơ bản đầu tiên trong số nhiều query mà bạn có thể dùng để query database.
+Chương này đã giới thiệu các statement SQL/PostgreSQL cơ bản cùng một số lệnh SQL thường dùng. Bạn đã học cách tạo và xóa database, cách tạo và xóa table, các loại table hiện có, những statement cơ bản dùng để chèn, sửa đổi và xóa dữ liệu, cùng với những query cơ bản đầu tiên trong số nhiều query có thể thực thi trên database.
 
-Trong chapter tiếp theo, bạn sẽ học cách viết các query phức tạp hơn, liên quan đến nhiều table theo những cách khác nhau.
+Trong chương tiếp theo, bạn sẽ học cách viết các query phức tạp hơn, liên quan đến nhiều table theo những cách khác nhau.

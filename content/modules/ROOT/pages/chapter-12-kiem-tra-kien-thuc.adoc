@@ -2,20 +2,20 @@
 
 * *Extension là gì?*
 
-  Extension là một collection gồm các database object liên quan, có thể được cài đặt, upgrade hoặc remove như một unit duy nhất. Xem section *Introducing extensions* để biết thêm chi tiết.
+  Extension là một tập hợp các database object liên quan, có thể được cài đặt, nâng cấp hoặc xóa như một thể thống nhất. Xem phần *Giới thiệu extension* để biết thêm chi tiết.
 
 * *Command pgxnclient là gì?*
 
-  pgxnclient là một command giúp sử dụng PGXN dễ dàng hơn bằng cách download, cài đặt và remove extension. Xem section *Exploring the PGXN client* để biết thêm chi tiết.
+  pgxnclient là một command hỗ trợ làm việc với PGXN, cho phép tải xuống, cài đặt và xóa extension. Xem phần *Khám phá PGXN client* để biết thêm chi tiết.
 
 * *Extension control file là gì?*
 
-  Control file là một text file định nghĩa các property chính của extension, chẳng hạn name, version và các dependency khác. Xem section *Extension components* để biết thêm chi tiết.
+  Control file là một file văn bản định nghĩa các thuộc tính chính của extension, chẳng hạn như tên, version và các dependency khác. Xem phần *Thành phần của extension* để biết thêm chi tiết.
 
-* *Làm thế nào để inspect những extension nào đã được tạo trong một database?*
+* *Làm thế nào để kiểm tra những extension đã được tạo trong một database?*
 
-  Catalog đặc biệt `pg_extension` cung cấp thông tin về các extension đã cài đặt; trong `psql`, command đặc biệt `\dx` hiển thị phần tóm tắt các extension đã cài đặt. Xem section *Viewing installed extensions* để biết thêm chi tiết.
+  Catalog đặc biệt `pg_extension` cung cấp thông tin về các extension đã cài đặt; trong `psql`, meta-command `\dx` hiển thị thông tin tóm tắt về các extension này. Xem phần *Xem các extension đã cài đặt* để biết thêm chi tiết.
 
-* *Làm thế nào để thay đổi version của một extension (update)?*
+* *Làm thế nào để nâng cấp một extension lên version khác?*
 
-  Statement `ALTER EXTENSION UPDATE TO` có thể được dùng để chỉ định extension phải được upgrade lên version nào. Xem section *Altering an existing extension* để biết thêm chi tiết.
+  Statement `ALTER EXTENSION UPDATE TO` có thể dùng để chỉ định version đích khi nâng cấp extension. Xem phần *Sửa đổi extension hiện có* để biết thêm chi tiết.

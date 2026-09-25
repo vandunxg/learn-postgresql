@@ -1,13 +1,13 @@
 = Tài liệu tham khảo
 
-* Tài liệu chính thức của Pg_trgm: https://www.postgresql.org/docs/current/pgtrgm.html
+* Tài liệu chính thức về pg_trgm: https://www.postgresql.org/docs/current/pgtrgm.html
 * Trang wiki về foreign data wrappers: https://wiki.postgresql.org/wiki/Foreign_data_wrappers
 * Tài liệu chính thức của PostgreSQL về foreign data wrappers: https://www.postgresql.org/docs/current/postgres-fdw.html
-* Tài liệu chính thức của PgBackrest: https://pgbackrest.org
-* Tài liệu chính thức của PgLoader: https://pgloader.readthedocs.io
+* Tài liệu chính thức của pgbackrest: https://pgbackrest.org
+* Tài liệu chính thức của pgloader: https://pgloader.readthedocs.io
 
 == Tìm hiểu thêm trên Discord
 
-Để tham gia cộng đồng Discord của cuốn sách này, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy quét mã QR bên dưới:
+Để tham gia cộng đồng Discord của cuốn sách này, nơi bạn có thể chia sẻ phản hồi, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy quét mã QR bên dưới:
 
 https://discord.gg/jYWCjF6Tku

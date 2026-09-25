@@ -1,31 +1,31 @@
 = Kiểm tra kiến thức
 
-* Có thể mở rộng feature và data type trong PostgreSQL không?
+* Có thể mở rộng tính năng và data type trong PostgreSQL không?
 
-  Có, có thể mở rộng PostgreSQL về data type và function.
+  Có, PostgreSQL có thể được mở rộng bằng data type và function.
 
-  Xem section The concept of extensibility để biết thêm chi tiết.
+  Xem phần Khái niệm extensibility để biết thêm chi tiết.
 
-* PostgreSQL có chỉ support relational database không?
+* PostgreSQL chỉ hỗ trợ relational database thôi phải không?
 
-  Không, PostgreSQL cũng support NoSQL database.
+  Không, PostgreSQL cũng hỗ trợ NoSQL database.
 
-  Xem section The NoSql data type để biết thêm chi tiết.
+  Xem phần Data type NoSQL để biết thêm chi tiết.
 
-* PostgreSQL có support SQL function không?
+* PostgreSQL có hỗ trợ SQL function không?
 
   Có, chúng ta có thể viết mọi loại SQL function.
 
-  Xem section SQL functions để biết thêm chi tiết.
+  Xem phần SQL function để biết thêm chi tiết.
 
-* PostgreSQL có một procedural language built-in mặc định không?
+* PostgreSQL có một procedural language được tích hợp sẵn không?
 
-  Có, PostgreSQL có một procedural language built-in mặc định tên là PL/pgSQL.
+  Có, PostgreSQL tích hợp sẵn một procedural language có tên là PL/pgSQL.
 
-  Xem section PL/pgSQL functions để biết thêm chi tiết.
+  Xem phần PL/pgSQL function để biết thêm chi tiết.
 
-* Với tư cách user không có administrative privilege, chúng ta có thể đọc một table cần administrative permission để đọc không?
+* User không có administrative privilege có thể đọc một table yêu cầu administrative permission không?
 
-  Có; với tư cách administrator user, hãy tạo một function đọc table, định nghĩa function bằng clause security definer, và cấp execution permission của function cho non-administrator user.
+  Có. Với tư cách administrator, hãy tạo một function để đọc table, định nghĩa function bằng clause security definer, rồi cấp quyền thực thi trên function đó cho user không phải administrator.
 
-  Xem section Security definer để biết thêm chi tiết.
+  Xem phần Security definer để biết thêm chi tiết.

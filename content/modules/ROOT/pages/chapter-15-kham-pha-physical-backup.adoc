@@ -1,58 +1,58 @@
 = Khám phá physical backup
 
-Physical backup là một low-level backup được thực hiện trong khi database cluster đang hoạt động bình thường. Ở đây, low-level nghĩa là backup được thực hiện theo cách nào đó “bên ngoài” backup cluster, tức ở filesystem level.
+Physical backup là loại backup low-level được thực hiện khi database cluster vẫn đang hoạt động bình thường. Ở đây, low-level có nghĩa là backup được thực hiện theo một cách nào đó “bên ngoài” cluster đang được backup, cụ thể là ở filesystem level.
 
-Như bạn đã biết từ Chapter 10, Users, Roles, and Database Security, database cluster cần cả các data file nằm trong `PGDATA/base` và WAL nằm trong `PGDATA/wal`, cùng với một vài file khác, để cluster hoạt động đúng. Tuy nhiên, concept chính là data file và WAL có thể khiến cluster tự self-heal và recover sau crash. Vì vậy, physical backup thực hiện copy toàn bộ cluster file; sau đó, khi cần restore, nó mô phỏng một database crash và để cluster self-heal với WAL đang có sẵn.
+Như đã biết ở Chương 10, Users, Roles và Database Security, database cluster cần các data file trong `PGDATA/base` và WAL trong `PGDATA/wal`, cùng một số file khác, để cluster hoạt động đúng. Điểm mấu chốt là các data file và WAL cho phép cluster tự phục hồi sau crash. Vì vậy, physical backup sao chép toàn bộ file của cluster; khi cần restore, nó mô phỏng một database crash rồi để cluster tự phục hồi bằng WAL sẵn có.
 
-Lý do physical backup quan trọng là nó cho phép chúng ta clone một cluster một cách hiệu quả, bắt đầu từ các file tạo nên cluster đó. Điều này có nghĩa là, một mặt, bạn không thể restore một cluster đã được physical backup trên một PostgreSQL version khác; mặt khác, trong backup phase, về cơ bản bạn không cần tương tác với cluster.
+Physical backup quan trọng vì cho phép chúng ta clone một cluster một cách hiệu quả, bắt đầu từ các file cấu thành cluster đó. Điều này có nghĩa là, một mặt, bạn không thể restore một cluster đã được physical backup với một PostgreSQL version khác; mặt khác, trong giai đoạn backup, về cơ bản bạn không cần tương tác với cluster.
 
-Điểm sau đặc biệt quan trọng: physical backup có thể được thực hiện hầu như bất kỳ lúc nào mà không tác động đến database bằng một transaction lớn như trong logical backup, và không can thiệp vào các database activity đang diễn ra, chẳng hạn client connection và query. Đúng là storage system, đặc biệt là filesystem, sẽ chịu áp lực trong kiểu backup này, nhưng đối với cluster, backup gần như transparent.
+Điểm sau đặc biệt quan trọng: physical backup có thể được thực hiện hầu như bất kỳ lúc nào mà không tác động đến database bằng một transaction lớn như logical backup, cũng không can thiệp vào các activity đang diễn ra của database, chẳng hạn như client connection và query. Đúng là storage system, đặc biệt là filesystem, sẽ chịu tải trong kiểu backup này, nhưng với cluster thì backup gần như trong suốt.
 
-Có thể nói rằng cluster phải được thông báo khi backup bắt đầu, cho phép cluster đánh dấu rõ ràng rằng backup đang diễn ra bên trong WAL; nhưng ngoài hành động “đơn giản” này, backup hoàn toàn nằm ngoài phạm vi của database cluster.
+Có thể nói, cluster phải được thông báo khi backup bắt đầu để ghi nhận trong WAL rằng backup đang diễn ra; nhưng ngoài hành động “đơn giản” này, backup hoàn toàn nằm ngoài database cluster.
 
-Hơn nữa, physical backup cho phép bạn chọn tool phù hợp nhất với việc low-level file copy. Bạn được tự do sử dụng bất kỳ filesystem-specific command nào, chẳng hạn `cp(1)`, `rsync(1)`, `tar(1)`, v.v.; bạn có thể backup qua network bằng bất kỳ file-copying mechanism nào mà operating system cung cấp, và thậm chí có thể tự phát triển tool của mình. Cũng có rất nhiều backup solution cho PostgreSQL, bao gồm tool mà các tác giả yêu thích là `pgBackRest`, vì vậy bạn có thể tùy chỉnh backup strategy theo các tool phù hợp nhất với environment và requirement của mình.
+Hơn nữa, physical backup cho phép bạn chọn tool phù hợp nhất cho việc low-level file copy. Bạn có thể tự do sử dụng bất kỳ filesystem-specific command nào, chẳng hạn `cp(1)`, `rsync(1)`, `tar(1)`, v.v.; bạn có thể thực hiện backup qua network bằng bất kỳ cơ chế copy file nào do operating system cung cấp, thậm chí còn có thể tự phát triển tool riêng. PostgreSQL cũng có rất nhiều backup solution, trong đó tool được các tác giả yêu thích là `pgBackRest`, nên bạn có thể tùy chỉnh backup strategy bằng những tool phù hợp nhất với môi trường và yêu cầu của mình.
 
-Trong các subsection sau, bạn sẽ học cách thực hiện physical backup bằng tool đi kèm PostgreSQL, `pg_basebackup`. Tool này được phát triển như tool chính để clone một cluster, chẳng hạn làm điểm bắt đầu cho một replicated system (replication sẽ được trình bày trong các chapter sau).
+Ở các subsection tiếp theo, bạn sẽ học cách thực hiện physical backup bằng tool đi kèm PostgreSQL là `pg_basebackup`. Tool này được phát triển chủ yếu để clone một cluster, chẳng hạn làm điểm bắt đầu cho một replicated system (replication sẽ được trình bày ở các chương sau).
 
-Cần lưu ý rằng trong mọi trường hợp, việc `pg_basebackup` thực hiện thực chất là một tập các bước mà bất kỳ system administrator nào cũng có thể thực hiện thủ công; vì thế, tool này là một cách thuận tiện và đã được kiểm chứng kỹ để thực hiện physical backup.
+Cần lưu ý rằng, về bản chất, những gì `pg_basebackup` thực hiện trong mọi trường hợp chỉ là một tập hợp các bước mà bất kỳ system administrator nào cũng có thể thực hiện thủ công; vì vậy, tool này cung cấp một cách thuận tiện và đã được kiểm chứng kỹ lưỡng để thực hiện physical backup.
 
 == Thực hiện physical backup thủ công
 
-Tool `pg_basebackup` thực hiện một thao tác clone database cluster local hoặc remote có thể được dùng làm backup. Để hoạt động đúng, cluster cần clone phải được setup phù hợp. Vì `pg_basebackup` “yêu cầu” PostgreSQL cung cấp WAL, điều quan trọng là target cluster có ít nhất hai WAL Sender process đang active (WAL Sender process chịu trách nhiệm phục vụ WAL qua một client connection).
+Tool `pg_basebackup` thực hiện việc clone một database cluster local hoặc remote để có thể dùng làm backup. Để hoạt động đúng, cluster cần clone phải được setup phù hợp. Vì `pg_basebackup` “yêu cầu” PostgreSQL cung cấp WAL, target cluster phải có ít nhất hai WAL Sender process đang active (WAL Sender process chịu trách nhiệm phục vụ WAL qua một client connection).
 
-Vì vậy, bước đầu tiên cần thực hiện trên database mà bạn muốn backup là kiểm tra configuration parameter `max_wal_senders` (trong file `postgresql.conf`) có giá trị từ 2 trở lên:
+Vì vậy, bước đầu tiên cần làm trên database mà bạn muốn backup là kiểm tra configuration parameter `max_wal_senders` (trong file `postgresql.conf`) có giá trị từ 2 trở lên:
 
 [source,text]
 ....
 max_wal_senders = 2
 ....
 
-Một setting quan trọng khác là cho phép `pg_basebackup` tạo connection tới cluster: tool này sẽ connect không phải với tư cách client thông thường mà với tư cách một “replication” client, do đó file `pg_hba.conf` phải cho phép một rule cho phép administrative user connect tới database đặc biệt “replication”. Một cấu hình tương tự sau đây sẽ hoạt động cho local backup:
+Một setting quan trọng khác là cho phép `pg_basebackup` tạo connection tới cluster: tool này không tạo connection với tư cách client thông thường mà với tư cách một “replication” client. Vì vậy, file `pg_hba.conf` phải có một rule cho phép administrative user connect tới database đặc biệt “replication”. Cấu hình tương tự sau đây sẽ hoạt động cho local backup:
 
 [source,text]
 ....
 host      replication         postgres     127.0.0.1/32       trust
 ....
 
-Ở đây, user `postgres` được phép connect từ chính host đó tới database replication đặc biệt mà không cần cung cấp authentication credential.
+Ở đây, user `postgres` được phép connect từ chính host đó tới database replication đặc biệt mà không cần cung cấp credential xác thực.
 
 [WARNING]
 ====
-Một replication connection có thể copy mọi phần data từ database và vì vậy phải được bảo vệ ở mức tối đa có thể. Trong production environment, luôn giới hạn incoming host cho replication connection, đồng thời thiết lập credential mạnh để validate connection!
+Một replication connection có thể sao chép toàn bộ data từ database, vì vậy phải được bảo vệ ở mức cao nhất có thể. Trong production environment, luôn giới hạn các host được phép tạo replication connection, đồng thời thiết lập credential mạnh để xác thực connection!
 
 ====
-Hãy giả sử chúng ta muốn thực hiện physical backup và lưu kết quả, tức bản thân backup, trong directory `/backup/data`. Để thực hiện backup, target directory phải tồn tại; nếu database có tablespace, từng directory của tablespace phải được remap tới một directory khác. Điều sau là bắt buộc vì chúng ta backup trên cùng host, nên PostgreSQL ngăn việc các directory clash với nhau.
+Giả sử chúng ta muốn thực hiện physical backup và lưu kết quả, tức bản thân backup, trong directory `/backup/data`. Để thực hiện backup, target directory phải tồn tại; nếu database có tablespace, từng directory của tablespace phải được remap sang một directory khác. Điều này bắt buộc vì chúng ta đang backup trên cùng host, nên PostgreSQL ngăn các directory bị trùng với nhau.
 
-Backup cũng cần một label, tức một mnemonic description về mục đích của backup, chỉ nhằm phục vụ khả năng đọc hiểu của con người.
+Backup cũng cần một label, tức một mô tả gợi nhớ về mục đích của backup, chỉ để con người dễ đọc.
 
 [quote]
 ____
-Trong Docker image của chapter này, các directory cần thiết để thực hiện backup và tablespace remapping đã được cấu hình sẵn.
+Trong Docker image của chương này, các directory cần thiết cho backup và tablespace remapping đã được cấu hình sẵn.
 
 ____
 Command sau sẽ thực hiện backup:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_basebackup -D /backup/data -l 'My Physical Backup' -v -h localhost -p
 5432 -U postgres -T /data/tablespaces/ts_b=/backup/tablespaces/ts_b -T /
@@ -70,45 +70,83 @@ pg_basebackup: renaming backup_manifest.tmp to backup_manifest
 pg_basebackup: base backup completed
 ....
 
-Flag `-D` chỉ directory nơi bạn muốn lưu backup, trong ví dụ này là `/backup/data`. Flag tùy chọn `-l` cho phép cung cấp một textual label cho backup, có thể dùng để inspect backup và lấy thêm thông tin. Flag `-v` bật verbose mode, tạo ra output chi tiết về những gì command thực hiện ở từng bước. Flag `-T` được lặp lại cho PostgreSQL biết cách remap từng directory được dùng làm tablespace: directory bên trái dấu bằng là directory hiện tại nơi backup được lấy, còn directory bên phải là remapped path.
+.Command
+[source,bash]
+....
+pg_basebackup -D /backup/data -l 'My Physical Backup' -v -h localhost -p
+....
 
-Các argument khác là những PostgreSQL libpq client flag điển hình, chỉ định cách connect tới database để có thể clone nó, trong trường hợp này là thông qua user `postgres` trên `localhost`, port `5432`.
+.Output
+[source,output]
+....
+5432 -U postgres -T /data/tablespaces/ts_b=/backup/tablespaces/ts_b -T /
+data/tablespaces/ts_a=/backup/tablespaces/ts_a -T /data/tablespaces/ts_c=/
+backup/tablespaces/ts_c
+pg_basebackup: initiating base backup, waiting for checkpoint to complete
+pg_basebackup: checkpoint completed
+pg_basebackup: write-ahead log start point: 0/2000028 on timeline 1
+pg_basebackup: starting background WAL receiver
+pg_basebackup: created temporary replication slot "pg_basebackup_117"
+pg_basebackup: write-ahead log end point: 0/2000100
+pg_basebackup: waiting for background process to finish streaming ...
+pg_basebackup: syncing data to disk ...
+pg_basebackup: renaming backup_manifest.tmp to backup_manifest
+pg_basebackup: base backup completed
+....
+
+
+Flag `-D` chỉ định directory nơi bạn muốn lưu backup, trong ví dụ này là `/backup/data`. Flag tùy chọn `-l` cho phép cung cấp một label dạng text cho backup; label này có thể dùng để kiểm tra backup và lấy thêm thông tin. Flag `-v` bật verbose mode, tạo output chi tiết về những gì command thực hiện ở từng bước. Flag `-T` được lặp lại để cho PostgreSQL biết cách remap từng directory được dùng làm tablespace: directory ở bên trái dấu bằng là directory hiện tại nơi backup được lấy, còn directory ở bên phải là remapped path.
+
+Các argument còn lại là những client flag điển hình của PostgreSQL libpq, dùng để chỉ định cách tạo connection tới database cần clone; trong trường hợp này, connection được thực hiện thông qua user `postgres` trên `localhost`, port `5432`.
 
 [quote]
 ____
-`pg_basebackup` hỗ trợ một số option khác có thể dùng để, chẳng hạn, giới hạn network bandwidth usage, hiển thị tiến trình của các backup đang diễn ra, và nhiều việc khác. Hãy tham khảo command documentation và online help để biết thêm chi tiết.
+`pg_basebackup` hỗ trợ một số option khác, chẳng hạn để giới hạn mức sử dụng network bandwidth hoặc hiển thị tiến trình của các backup đang diễn ra, cùng nhiều tính năng khác. Hãy tham khảo command documentation và online help để biết thêm chi tiết.
 
 ____
-Nếu inspect directory nơi backup được lưu, bạn sẽ thấy nó thực sự là một clone của directory `PGDATA` của server mà bạn đã backup, bao gồm cả configuration file.
+Nếu kiểm tra directory nơi backup được lưu, bạn sẽ thấy đó thực sự là một clone của directory `PGDATA` của server mà bạn đã backup, bao gồm cả configuration file.
 
 == `pg_verifybackup`
 
-Từ PostgreSQL 13, có thể dùng tool tên `pg_verifybackup` để verify integrity của backup được thực hiện thông qua `pg_basebackup`. Nhìn tổng quan, nó hoạt động như sau:
+Từ PostgreSQL 13, bạn có thể dùng tool có tên `pg_verifybackup` để kiểm tra integrity của backup được thực hiện bằng `pg_basebackup`. Nhìn chung, tool này hoạt động như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_verifybackup /backup/data/
 backup successfully verified
 ....
 
-Khi chỉ định directory chứa backup, tool có thể thực hiện check và báo cáo mọi corruption. Tool thực hiện bốn bước chính:
+.Command
+[source,bash]
+....
+pg_verifybackup /backup/data/
+....
 
-. Đánh giá backup manifest để kiểm tra xem nó có thể đọc được và chứa thông tin backup hợp lệ hay không.
-. Scan backup content để tìm data file bị thiếu hoặc bị sửa đổi (một số configuration file được bỏ qua ở bước này vì user có thể đã thay đổi chúng).
-. So sánh toàn bộ data file checksum với các giá trị trong manifest để bảo đảm file không bị corrupt.
-. Bằng cách sử dụng một utility khác là `pg_waldump`, verify rằng các WAL record cần thiết để restore backup đang có sẵn và có thể đọc được.
+.Output
+[source,output]
+....
+backup successfully verified
+....
 
-Nhờ `pg_verifybackup`, bạn có thể chắc chắn rằng backup không bị hỏng do filesystem problem, disk failure hoặc nguyên nhân nào khác, và vì vậy có thể tiếp tục từ backup đó.
+
+Khi chỉ định directory chứa backup, tool có thể kiểm tra và báo cáo mọi corruption. Tool thực hiện bốn bước chính:
+
+. Đọc backup manifest để kiểm tra file có thể đọc được và chứa thông tin backup hợp lệ hay không.
+. Quét nội dung backup để tìm data file bị thiếu hoặc bị sửa đổi (một số configuration file được bỏ qua ở bước này vì user có thể đã thay đổi chúng).
+. So sánh checksum của mọi data file với các giá trị trong manifest để bảo đảm các file không bị corrupt.
+. Dùng một utility khác là `pg_waldump` để xác minh rằng các WAL record cần thiết để restore backup đều có sẵn và có thể đọc được.
+
+Nhờ `pg_verifybackup`, bạn có thể chắc chắn rằng backup không bị hỏng do sự cố filesystem, disk failure hoặc nguyên nhân nào khác, từ đó có thể tiếp tục sử dụng backup đó.
 
 == Khởi động cluster đã clone
 
-`pg_basebackup` thực hiện complete clone của target cluster, bao gồm các configuration file. Điều này có nghĩa là configuration của cluster chưa được “adapt” theo vị trí của clone, bao gồm data directory và listening option (ví dụ TCP/IP port). Vì vậy, bạn phải cẩn thận khi khởi động cloned cluster, vì nó có thể clash với cluster gốc, đặc biệt nếu backup được thực hiện local (trên cùng machine).
+`pg_basebackup` thực hiện clone hoàn chỉnh của target cluster, bao gồm các configuration file. Điều này có nghĩa là configuration của cluster chưa được điều chỉnh cho vị trí của clone, bao gồm data directory và listening option (ví dụ TCP/IP port). Vì vậy, bạn phải cẩn thận khi khởi động cloned cluster vì nó có thể xung đột với cluster gốc, đặc biệt nếu backup được thực hiện local (trên cùng machine).
 
-Ở đây, bạn có thể edit configuration trước khi thử start backup cluster, thay đổi main setting trên command line, hoặc chuyển backup tới một remote host.
+Trong trường hợp này, bạn có thể chỉnh sửa configuration trước khi thử khởi động backup cluster, thay đổi các setting chính trên command line hoặc chuyển backup sang một remote host.
 
-Nếu muốn start cloned cluster, với giả định nó được giữ local như trong section trước, bạn có thể restart nó, chẳng hạn bằng các command-line setting sau:
+Nếu muốn khởi động cloned cluster, với giả định cluster vẫn được giữ local như trong phần trước, bạn có thể khởi động lại cluster, chẳng hạn bằng các setting trên command line sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pg_ctl -D /backup/data/ -o '-p 5433' start
 waiting for server to start....
@@ -117,6 +155,24 @@ LOG: database system was interrupted; last known up at 2023-07-19
 LOG:      redo starts at 0/2000028
 LOG:      consistent recovery state reached at 0/2000138
 ....
+
+.Command
+[source,bash]
+....
+pg_ctl -D /backup/data/ -o '-p 5433' start
+....
+
+.Output
+[source,output]
+....
+waiting for server to start....
+LOG: database system was interrupted; last known up at 2023-07-19
+16:43:39 UTC
+LOG:      redo starts at 0/2000028
+LOG:      consistent recovery state reached at 0/2000138
+....
+
+
 [source,text]
 ....
 LOG: redo done at 0/2000138 system usage: CPU: user: 0.00 s, system: 0.00
@@ -126,16 +182,16 @@ done
 server started
 ....
 
-Ở đây, server đã được khởi động trên directory `PGDATA` đã clone và TCP/IP port 5433. Nếu inspect log của database cluster, bạn sẽ thấy PostgreSQL cho biết nó đã bị gián đoạn, một redo process đã bắt đầu rồi hoàn tất. Khi redo hoàn tất, database sẵn sàng bắt đầu hoạt động bình thường. Nói ngắn gọn, đây là tình huống giống crash: physical dump đã copy một trạng thái “dirty” của database, nhưng nhờ WAL, nó có thể tự self-heal.
+Ở đây, server đã được khởi động với directory `PGDATA` đã được clone và TCP/IP port 5433. Nếu kiểm tra log của database cluster, bạn sẽ thấy PostgreSQL cho biết nó đã bị gián đoạn, một redo process đã bắt đầu và hoàn tất. Khi redo hoàn tất, database sẵn sàng hoạt động bình thường. Nói ngắn gọn, đây là tình huống giống crash: physical dump đã sao chép một trạng thái “dirty” của database, nhưng nhờ WAL, nó có thể tự phục hồi.
 
-Bạn sẽ thấy database đã được restore từ một “forced crash”; nghĩa là cloned cluster đã tự self-heal trong lần startup đầu tiên.
+Bạn sẽ thấy database đã được restore sau một “forced crash”; nghĩa là cloned cluster đã tự phục hồi trong lần khởi động đầu tiên.
 
 == Khôi phục từ physical backup
 
-Nếu cần restore từ một physical backup, bạn phải ghi đè directory `PGDATA` ban đầu bằng bản copy đã clone do `pg_basebackup` tạo ra. Đây là một operation rất rủi ro vì bạn sẽ mất toàn bộ content của directory `PGDATA` và thay thế nó bằng bản backup, đồng nghĩa với việc nguy cơ xảy ra lỗi rất cao.
+Nếu cần restore từ một physical backup, bạn phải ghi đè directory `PGDATA` ban đầu bằng bản clone do `pg_basebackup` tạo ra. Đây là một thao tác rất rủi ro vì bạn sẽ mất toàn bộ nội dung của directory `PGDATA` và thay thế nó bằng bản backup, nên nguy cơ xảy ra lỗi rất cao.
 
-Vì lý do đó, thay vì thực hiện online restoration, chúng tôi đề xuất bạn start một cloned cluster ở nơi khác, như đã trình bày trong section trước, để extract data cần recover rồi chỉ restore data đó trên target cluster. Chẳng hạn, bạn có thể start cloned server, extract data cần recover bằng `pg_dump`, rồi restore nó trên target cluster.
+Vì lý do đó, thay vì restore online, chúng tôi đề xuất bạn khởi động một cloned cluster ở nơi khác, như đã trình bày trong phần trước, để extract data cần recover rồi chỉ restore phần data đó trên target cluster. Chẳng hạn, bạn có thể khởi động cloned server, dùng `pg_dump` để extract data cần recover, rồi restore phần data đó trên target cluster.
 
-Dĩ nhiên, có những tình huống bạn cần recover toàn bộ cluster và do đó phải ghi đè `PGDATA`, nhưng ngay cả trong những trường hợp đó, chúng tôi đề xuất sử dụng các tool advanced hơn như `pgBackRest`, tool sẽ điều phối và hỗ trợ cả phần backup lẫn restore.
+Dĩ nhiên, có những tình huống bạn cần recover toàn bộ cluster và do đó phải ghi đè `PGDATA`, nhưng ngay cả khi đó, chúng tôi vẫn đề xuất sử dụng những tool nâng cao hơn như `pgBackRest`; tool này sẽ điều phối và hỗ trợ cả backup lẫn restore.
 
-Physical backup và restoration là những mechanism rất mạnh, nhưng yêu cầu bạn phải hiểu sâu những gì diễn ra bên dưới. Vì vậy, hãy dành thời gian experiment với chúng một cách cẩn thận để sẵn sàng áp dụng trong production.
+Physical backup và restore là những cơ chế rất mạnh, nhưng đòi hỏi bạn phải hiểu sâu những gì diễn ra bên dưới. Vì vậy, hãy dành thời gian thử nghiệm chúng một cách cẩn thận để sẵn sàng áp dụng trong production.

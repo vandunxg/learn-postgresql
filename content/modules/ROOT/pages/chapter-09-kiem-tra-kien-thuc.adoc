@@ -1,25 +1,21 @@
 = Kiểm tra kiến thức
 
-* Có thể thực hiện declarative partitioning trong PostgreSQL không?
+* PostgreSQL có hỗ trợ declarative partitioning không?
 
-  Có, kể từ PostgreSQL 10, có thể sử dụng declarative partitioning.
+  Có. Kể từ PostgreSQL 10, PostgreSQL hỗ trợ declarative partitioning.
 
-  Xem section Exploring declarative partitioning để biết thêm chi tiết.
+  Xem phần Khám phá declarative partitioning để biết thêm chi tiết.
 
-* Nếu có một table như sau:
+* Giả sử có một table như sau:
 
 [source,sql]
 ....
-       CREATE TABLE mytable (
-             pk serial NOT NULL,
-             create_date date not null default now()::date,
-             primary key (pk)
-       )
+CREATE TABLE mytable (pk serial NOT NULL, create_date date NOT NULL DEFAULT now()::date, PRIMARY KEY (pk))
 ....
 
-* Có thể partition table đó theo range không? Có, có thể thực hiện bằng cách viết như sau:
+* Có thể partition table đó theo range không? Có. Có thể thực hiện việc này bằng cách viết như sau:
 
-[source,sql]
+[source,console,role="transcript"]
 ....
        CREATE TABLE mytable (
              pk serial NOT NULL,
@@ -35,20 +31,36 @@
        VALUES FROM (‘2023-07-01’) TO (‘2023-12-31’);
 ....
 
-  Xem section Exploring declarative partitioning để biết thêm chi tiết.
+.SQL
+[source,sql]
+....
+CREATE TABLE mytable (
+          pk serial NOT NULL,
+          create_date date NOT NULL DEFAULT now()::date,
+          PRIMARY KEY (pk, creat_edate)
+)PARTITION BY RANGE (create_date);
+CREATE TABLE
+CREATE TABLE part_tags_date_01 PARTITION OF part_tags FOR
+       VALUES FROM (‘2023-01-01’) TO (‘2023-06-31’);
+CREATE TABLE part_tags_date_01 PARTITION OF part_tags FOR
+    VALUES FROM (‘2023-07-01’) TO (‘2023-12-31’);
+....
 
-* Default partition dùng để làm gì?
 
-  Default partition bảo đảm không có data nào bị mất; nếu PostgreSQL không tìm thấy child table nào để lưu record, record sẽ được lưu trong default partition.
+  Xem phần Khám phá declarative partitioning để biết thêm chi tiết.
 
-  Xem section The default partition để biết thêm chi tiết.
+* Default partition có tác dụng gì?
 
-* Có thể chia data trên các disk khác nhau không?
+  Default partition đảm bảo không có dữ liệu bị mất: nếu PostgreSQL không tìm thấy child table nào để lưu row, row đó sẽ được lưu vào default partition.
 
-  Có, có thể dùng tablespace.
+  Xem phần Default partition để biết thêm chi tiết.
 
-  Xem section Partitioning and tablespaces để biết thêm chi tiết.
+* Có thể phân bổ dữ liệu trên các disk khác nhau không?
+
+  Có. Có thể sử dụng tablespace.
+
+  Xem phần Partitioning và tablespace để biết thêm chi tiết.
 
 * PostgreSQL có quản lý index trên partitioned table không?
 
-  Có, PostgreSQL quản lý index trên partitioned table; nếu build một index trên parent table, PostgreSQL sẽ tự build index đó trên tất cả child table.
+  Có. PostgreSQL quản lý index trên partitioned table; nếu build một index trên parent table, PostgreSQL sẽ tự động build index đó trên tất cả các child table.

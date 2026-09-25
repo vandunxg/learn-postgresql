@@ -1,8 +1,8 @@
 = Tìm hiểu clause RETURNING cho INSERT
 
-Trong PostgreSQL, chúng ta có thể thêm keyword `RETURNING` vào `insert statement`. Keyword `RETURNING` trong PostgreSQL cho phép trả về giá trị của bất kỳ column nào từ một `insert` hoặc `update statement` sau khi insert hoặc update được thực hiện. Ví dụ, nếu muốn trả về toàn bộ field của record vừa insert, chúng ta phải thực hiện query như sau:
+Trong PostgreSQL, chúng ta có thể thêm keyword `RETURNING` vào `insert statement`. Keyword `RETURNING` trong PostgreSQL cho phép trả về giá trị của bất kỳ column nào sau khi `insert` hoặc `update statement` được thực hiện. Ví dụ, nếu muốn trả về toàn bộ column của row vừa được INSERT, chúng ta phải thực hiện query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> insert into j_posts_tags (tag_pk,post_pk) values(1,3) returning
 *;
@@ -14,9 +14,29 @@ forumdb=> insert into j_posts_tags (tag_pk,post_pk) values(1,3) returning
 INSERT 0 1
 ....
 
-Dấu `*` nghĩa là chúng ta muốn trả về tất cả field của record vừa insert; nếu chỉ muốn trả về một số field, chúng ta phải chỉ định những field mà query phải trả về:
+.SQL
+[source,sql]
+....
+INSERT INTO j_posts_tags (tag_pk, post_pk)
+VALUES (1, 3)
+RETURNING *;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ tag_pk | post_pk
+--------+---------
+      1 |        3
+(1 row)
+
+INSERT 0 1
+....
+
+
+Dấu `*` nghĩa là chúng ta muốn trả về tất cả column của row vừa được INSERT; nếu chỉ muốn trả về một số column, chúng ta phải chỉ định các column mà query sẽ trả về:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into j_posts_tags (tag_pk,post_pk) values(1,2) returning
 tag_pk;
@@ -28,28 +48,64 @@ tag_pk;
 INSERT 0 1
 ....
 
-Tính năng này sẽ đặc biệt hữu ích ở cuối chapter khi chúng ta nói về CTE.
+.SQL
+[source,sql]
+....
+INSERT INTO j_posts_tags (tag_pk, post_pk)
+VALUES (1, 2)
+RETURNING tag_pk;
+....
+
+.Output
+[source,output]
+....
+ tag_pk
+--------
+      1
+(1 row)
+
+INSERT 0 1
+....
+
+
+Tính năng này sẽ đặc biệt hữu ích ở cuối chương, khi chúng ta tìm hiểu về CTE.
 
 == Trả về tuple từ các query
 
-Trong các chapter trước, chúng ta đã xem xét những update query đơn giản như sau:
+Trong các chương trước, chúng ta đã xem xét các query UPDATE đơn giản như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> update posts set title = 'A view of           Data types in C++' where pk
 = 3;
 UPDATE 1
 ....
 
-Bây giờ chúng ta sẽ xem xét một điều phức tạp hơn. Nếu muốn update một số record trong table `posts` có liên quan với nhau theo cách nào đó thì sao?
+.SQL
+[source,sql]
+....
+UPDATE posts
+SET
+    title = 'A view of           Data types in C++'
+WHERE pk = 3;
+....
 
-== UPDATE liên quan đến nhiều record
+.Output
+[source,output]
+....
+UPDATE 1
+....
 
-Hãy bắt đầu với scenario sau:
+
+Bây giờ, hãy xem xét một tình huống phức tạp hơn. Nếu muốn update một số row có liên quan với nhau trong table `posts` thì sao?
+
+== UPDATE trên nhiều row
+
+Hãy bắt đầu với tình huống sau:
 
 . Xem xét table `categories`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> SELECT * FROM categories;
  pk |            title          |             description
@@ -62,9 +118,30 @@ forumdb=> SELECT * FROM categories;
 (5 rows)
 ....
 
-. Hãy xem xét một table category mới, từ đó chúng ta muốn update table `categories` hiện có.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |            title          |             description
+----+-----------------------+----------------------------
+  1 | Database                  | Database related discussions
+  2 | Unix                      | Unix and Linux discussions
+  3 | Programming Languages | All about programming languages
+  4 | New Category              |
+  5 | Database                  | PostgreSQL
+(5 rows)
+....
+
+
+. Hãy xem xét một table mới chứa các category mà chúng ta muốn dùng để update table `categories` hiện có.
+
+[source,console,role="transcript"]
 ....
 forumdb=> create temp table t_categories as select * from categories
 limit 0;
@@ -82,9 +159,36 @@ forumdb=> select * from t_categories ;
 (2 rows)
 ....
 
-Giả sử chúng ta muốn lấy các value từ table `t_categories` và dùng chúng để update các value của table `categories`; đây là resultset chúng ta muốn đạt được:
+.SQL
+[source,sql]
+....
+CREATE TEMP TABLE t_categories AS SELECT * FROM categories
+LIMIT 0;
+INSERT INTO t_categories (pk, title, description)
+VALUES
+    (4, 'Machine Learning', 'Machine Learning discussions'),
+    (5, 'Software engineering', 'Software engineering discussions');
+SELECT *
+FROM t_categories;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SELECT 0
+
+INSERT 0 2
+  pk |           title          |             description
+ ----+----------------------+-----------------------------
+     4 | Machine Learning      | Machine Learning discussions
+     5 | Software engineering | Software engineering discussions
+(2 rows)
+....
+
+
+Giả sử chúng ta muốn lấy các giá trị từ table `t_categories` để update các giá trị trong table `categories`; result set mong muốn là:
+
+[source,output]
 ....
   pk   |          title          |             description
  ------+-----------------------+----------------------------
@@ -95,9 +199,9 @@ Giả sử chúng ta muốn lấy các value từ table `t_categories` và dùng
    5 | Software engineering     | Software engineering discussions
 ....
 
-Query chúng ta phải thực thi là:
+Query cần thực hiện là:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=>update categories c set title=t.title,description=t.description
 from t_categories t where c.pk=t.pk;
@@ -114,15 +218,43 @@ forumdb=> select * from categories;
 (5 rows)
 ....
 
-Trong query này, PostgreSQL có thể update các field `title` và `description` của table `categories` bằng dữ liệu từ table `t_categories` có match trên field `pk`; khi nói về statement `merge`, chúng ta sẽ thấy một cách khác để đạt được cùng mục tiêu.
+.SQL
+[source,sql]
+....
+UPDATE categories c
+SET
+    title = t.title,
+    description = t.description FROM t_categories t
+WHERE c.pk = t.pk;
+SELECT *
+FROM categories;
+....
+
+.Output
+[source,output]
+....
+UPDATE 2
+
+  pk |           title          |             description
+ ----+-----------------------+----------------------------
+   1 | Database                 | Database related discussions
+   2 | Unix                     | Unix and Linux discussions
+   3 | Programming Languages | All about programming languages
+   4 | Machine Learning         | Machine Learning discussions
+   5 | Software engineering     | Software engineering discussions
+(5 rows)
+....
+
+
+Trong query này, PostgreSQL có thể update các column `title` và `description` của table `categories` bằng dữ liệu từ table `t_categories` khi giá trị trong column `pk` của hai table khớp nhau. Khi tìm hiểu về statement `merge`, chúng ta sẽ thấy một cách khác để đạt được cùng mục tiêu.
 
 == MERGE
 
-Bắt đầu từ PostgreSQL 15, chúng ta có thể đạt được cùng mục tiêu đã đạt được trong section trước bằng cách sử dụng statement `MERGE`; nên ưu tiên sử dụng statement `MERGE` vì nó hiện diện trong SQL 2003 ANSI.
+Bắt đầu từ PostgreSQL 15, chúng ta có thể đạt được mục tiêu của phần trước bằng cách sử dụng statement `MERGE`; nên ưu tiên sử dụng statement `MERGE` vì statement này có trong chuẩn ANSI SQL 2003.
 
-Bây giờ, hãy bắt đầu từ các value trước đó của table `categories`:
+Bây giờ, hãy xem các giá trị hiện có trong table `categories`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from categories;
   pk |            title            |              description
@@ -135,9 +267,30 @@ forumdb=> select * from categories;
 (5 rows)
 ....
 
-Sau đó hãy tạo một dataset khác với một số thay đổi mà chúng ta muốn áp dụng vào table `categories`:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  pk |            title            |              description
+ ----+----------------------------+---------------------------
+   1 | Database                   | Database related discussions
+   2 | Unix                       | Unix and Linux discussions
+   3 | Programming Languages | All about programming languages
+   4 | Machine Learning           | Machine Learning discussions
+   5 | Software engineering       | Software engineering discussions
+(5 rows)
+....
+
+
+Sau đó, hãy tạo một tập dữ liệu khác chứa một số thay đổi mà chúng ta muốn áp dụng cho table `categories`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> create temp table new_data as select * from categories limit 0;
 SELECT 0
@@ -155,7 +308,34 @@ forumdb=> select * from new_data;
 (2 rows)
 ....
 
-Bây giờ mục tiêu chúng ta muốn đạt được là merge hai dataset như bên dưới:
+.SQL
+[source,sql]
+....
+CREATE TEMP TABLE new_data AS SELECT * FROM categories LIMIT 0;
+INSERT INTO new_data (pk, title, description)
+VALUES
+    (1, 'Database Discussions', 'Database discussions'),
+    (2, 'Unix/Linux discussion', 'Unix and Linux discussions');
+SELECT *
+FROM new_data;
+....
+
+.Output
+[source,output]
+....
+SELECT 0
+
+INSERT 0 2
+
+  pk |            title            |           description
+ ----+----------------------------+----------------------------
+   1 | Database Discussions       | Database discussions
+   2 | Unix/Linux discussion | Unix and Linux discussions
+(2 rows)
+....
+
+
+Mục tiêu bây giờ là gộp hai tập dữ liệu như sau:
 
 [source,text]
 ....
@@ -166,9 +346,9 @@ Bây giờ mục tiêu chúng ta muốn đạt được là merge hai dataset nh
  5 | Software engineering        | Software engineering discussions
 ....
 
-Query chúng ta phải thực hiện để đạt mục tiêu này là:
+Query cần thực hiện để đạt mục tiêu này là:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> merge into categories c
 using new_data n on c.pk=n.pk
@@ -190,13 +370,44 @@ forumdb=> select * from categories order by 1;
 (5 rows)
 ....
 
-Query trên kiểm tra xem có match giữa value của field `PK` của table `new_data` và value của field tương ứng của table `categories` hay không. Nếu có match, `UPDATE` sẽ được thực thi; nếu không, `INSERT` sẽ được thực thi. Clause `OVERRIDING SYSTEM VALUE` được dùng vì trong `INSERT statement`, chúng ta cũng chỉ định insert các value của field `PK` lấy từ table `new_data`, và vì field `PK` trong table `categories` được định nghĩa là `GENERATED ALWAYS`, PostgreSQL sẽ phát sinh error nếu không có clause `OVERRIDING SYSTEM VALUE`.
+.SQL
+[source,sql]
+....
+MERGE INTO categories c
+USING new_data n ON c.pk = n.pk
+WHEN matched THEN
+  UPDATE SET title = n.title, description = n.description
+WHEN NOT matched THEN
+  INSERT (pk, title, description)
+  OVERRIDING SYSTEM VALUE VALUES (n.pk, n.title, n.description);
+SELECT *
+FROM categories
+ORDER BY 1;
+....
+
+.Output
+[source,output]
+....
+MERGE 2
+
+  pk |           title           |              description
+ ----+----------------------------+----------------------------
+   1 | Database Discussions      | Database discussions
+   2 | Unix/Linux discussion | Unix and Linux discussions
+   3 | Programming Languages | All about programming languages
+   4 | Machine Learning          | Machine Learning discussions
+   5 | Software engineering      | Software engineering discussions
+(5 rows)
+....
+
+
+Query trên kiểm tra xem giá trị của column `PK` trong table `new_data` có khớp với giá trị của column tương ứng trong table `categories` hay không. Nếu khớp, `UPDATE` sẽ được thực thi; nếu không, `INSERT` sẽ được thực thi. Clause `OVERRIDING SYSTEM VALUE` được dùng vì trong `INSERT statement`, chúng ta cũng chỉ định các giá trị lấy từ column `PK` của table `new_data` để INSERT; do column `PK` trong table `categories` được định nghĩa là `GENERATED ALWAYS`, PostgreSQL sẽ phát sinh lỗi nếu không có clause `OVERRIDING SYSTEM VALUE`.
 
 == Tìm hiểu UPDATE ... RETURNING
 
-Tương tự `INSERT statement`, `update statement` cũng có thể thêm keyword `RETURNING`. `update statement` hoạt động theo cùng cách với `INSERT statement`:
+Giống `INSERT statement`, `update statement` cũng có thể dùng keyword `RETURNING`. `update statement` hoạt động tương tự `INSERT statement`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> update categories set title='A.I' where pk=4 returning
 pk,title,description;
@@ -208,11 +419,33 @@ pk,title,description;
 UPDATE 1
 ....
 
+.SQL
+[source,sql]
+....
+UPDATE categories
+SET
+    title = 'A.I'
+WHERE pk = 4
+RETURNING pk, title, description;
+....
+
+.Output
+[source,output]
+....
+  pk | title |            description
+ ----+-------+------------------------------
+   4 | A.I   | Machine Learning discussions
+(1 row)
+
+UPDATE 1
+....
+
+
 == Tìm hiểu DELETE ... RETURNING
 
 Như đã thấy, `update statement`, giống `INSERT statement`, có thể thêm keyword `RETURNING`; tính năng này cũng có sẵn cho `delete statement`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> delete from t_categories where pk=4 returning
 pk,title,description;
@@ -223,4 +456,22 @@ pk,title,description;
 DELETE 1
 ....
 
-Trong section tiếp theo, chúng ta sẽ nói về CTE, một phương pháp nâng cao để trả về và modify dữ liệu.
+.SQL
+[source,sql]
+....
+DELETE FROM t_categories WHERE pk = 4 RETURNING
+pk, title, description;
+....
+
+.Output
+[source,output]
+....
+  pk |         title          |            description
+ ----+------------------+------------------------------
+     4 | Machine Learning | Machine Learning discussions
+(1 row)
+DELETE 1
+....
+
+
+Trong phần tiếp theo, chúng ta sẽ tìm hiểu về CTE, một phương pháp nâng cao để trả về và thay đổi dữ liệu.

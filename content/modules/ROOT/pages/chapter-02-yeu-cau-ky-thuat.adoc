@@ -1,10 +1,10 @@
 = Yêu cầu kỹ thuật
 
-Kiến thức cần có cho chương này như sau:
+Kiến thức cần có cho chương này gồm:
 
-* Cách install binary package trên Unix machine
-* PostgreSQL terminology cơ bản (từ chương trước)
-* Sử dụng Unix command line cơ bản
-* Các SQL statement cơ bản được đề cập trong chương này, chẳng hạn `SELECT`
+* Cách cài đặt các binary package trên máy Unix của bạn
+* Các thuật ngữ PostgreSQL cơ bản (từ chương trước)
+* Cách sử dụng Unix command line ở mức cơ bản
+* Các SQL statement cơ bản được đề cập trong chương này, chẳng hạn như `SELECT`
 
-Các example trong chương có thể chạy trên standalone Docker image, bạn có thể tìm image này trong GitHub repository của cuốn sách: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition. Để biết cách install và sử dụng Docker image dành cho cuốn sách, hãy tham khảo hướng dẫn trong Chapter 1, Introduction to PostgreSQL.
+Các ví dụ trong chương này có thể chạy trong Docker image độc lập. Bạn có thể tìm thấy image này trong GitHub repository của cuốn sách: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition. Để biết cách cài đặt và sử dụng các Docker image dành cho cuốn sách, hãy tham khảo hướng dẫn trong Chương 1, Giới thiệu về PostgreSQL.

@@ -1,8 +1,8 @@
-= CTE trong PostgreSQL từ version 12
+= CTE trong PostgreSQL kể từ version 12
 
-Bắt đầu từ PostgreSQL version 12, mọi thứ đã thay đổi, và hai option mới được giới thiệu cho việc execution một CTE, đó là `MATERIALIZED` và `NOT MATERIALIZED`. Nếu muốn thực hiện một CTE materialize một temporary resultset, chúng ta phải thêm keyword `materialized`:
+Kể từ PostgreSQL 12, cách thực thi CTE đã thay đổi: hai tùy chọn mới được giới thiệu, đó là `MATERIALIZED` và `NOT MATERIALIZED`. Nếu muốn CTE materialize một result set tạm thời, chúng ta phải thêm keyword `materialized`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> with posts_author_1 as materialized
  (select p.* from posts p
@@ -15,9 +15,29 @@ select pk,title from posts_author_1;
 (1 row)
 ....
 
-Query được viết ở đây materialize một temporary resultset, giống như đã tự động xảy ra trong các version trước của PostgreSQL. Nếu viết query với option `NOT MATERIALIZE`, PostgreSQL sẽ không materialize bất kỳ temporary resultset nào:
+.SQL
+[source,sql]
+....
+WITH posts_author_1 AS MATERIALIZED
+ (SELECT p.* FROM posts p
+ inner JOIN users u ON p.author = u.pk
+ WHERE username = 'enrico_pirozzi')
+SELECT pk, title FROM posts_author_1;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |             title
+----+------------------------------
+  3 | A view of   Data types in C++
+(1 row)
+....
+
+
+Query này materialize một result set tạm thời, giống như cách PostgreSQL từng tự động materialize trong các version trước. Nếu viết query với tùy chọn `NOT MATERIALIZE`, PostgreSQL sẽ không materialize bất kỳ result set tạm thời nào:
+
+[source,console,role="transcript"]
 ....
 forumdb=> with posts_author_1 as not materialized
  (select p.* from posts p
@@ -30,20 +50,40 @@ select pk,title from posts_author_1;
 (1 row)
 ....
 
-Nếu không chỉ định option nào, mặc định là `NOT MATERIALIZED`, và điều này có thể là một vấn đề nếu đang migrate một database từ một minor version sang PostgreSQL 12. Đó là vì behavior của query planner có thể thay đổi, và performance cũng có thể thay đổi.
+.SQL
+[source,sql]
+....
+WITH posts_author_1 AS NOT MATERIALIZED
+ (SELECT p.* FROM posts p
+ inner JOIN users u ON p.author = u.pk
+ WHERE username = 'enrico_pirozzi')
+SELECT pk, title FROM posts_author_1;
+....
 
-Từ version 12, chúng ta phải thêm option `MATERIALIZED` nếu muốn các query có behavior performance giống với behavior đã có ở các version trước.
+.Output
+[source,output]
+....
+ pk |                  title
+----+------------------------------
+  3 | A view of     Data types in C++
+(1 row)
+....
 
-== CTE – các use case
 
-Bây giờ hãy trình bày một số ví dụ về CTE:
+Nếu không chỉ định tùy chọn nào, mặc định sẽ là `NOT MATERIALIZED`. Điều này có thể gây vấn đề khi migrate một database từ một minor version lên PostgreSQL 12, vì behavior của query planner có thể thay đổi và performance cũng có thể thay đổi.
+
+Từ version 12, chúng ta phải thêm tùy chọn `MATERIALIZED` nếu muốn các query có behavior và performance giống như ở các version trước.
+
+== CTE – các trường hợp sử dụng
+
+Sau đây là một số ví dụ về CTE:
 
 . Trước tiên, chúng ta sẽ tạo hai table mới:
 
-** `t_posts`, với tất cả record hiện có trong table post
-** `delete_posts`, với cùng data structure như table `posts`
+** `t_posts`, chứa tất cả row hiện có trong table posts
+** `delete_posts`, có cùng cấu trúc dữ liệu với table `posts`
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create temp table t_posts as select * from posts;
 SELECT 3
@@ -52,9 +92,25 @@ forumdb=> create table delete_posts as select * from posts limit 0;
 SELECT 0
 ....
 
-Các value ban đầu của các table `t_posts` và `delete_posts` như sau:
+.SQL
+[source,sql]
+....
+CREATE TEMP TABLE t_posts AS SELECT * FROM posts;
+CREATE TABLE delete_posts AS SELECT * FROM posts LIMIT 0;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SELECT 3
+
+SELECT 0
+....
+
+
+Các giá trị ban đầu của hai table `t_posts` và `delete_posts` như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,category from t_posts ;
     pk |              title                 | category
@@ -64,7 +120,30 @@ forumdb=> select pk,title,category from t_posts ;
      3 | A view of    Data types in C++ |              3
 (3 rows)
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    category
+FROM t_posts;
+....
+
+.Output
+[source,output]
+....
+    pk |              title                 | category
+----+------------------------------+----------
+     1 | Indexing PostgreSQL                |          1
+     2 | Indexing Mysql                     |          1
+     3 | A view of    Data types in C++ |              3
+(3 rows)
+....
+
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,category from delete_posts ;
  pk | title | category
@@ -72,10 +151,29 @@ forumdb=> select pk,title,category from delete_posts ;
 (0 rows)
 ....
 
-[%start=2]
-. Bây giờ giả sử chúng ta muốn xóa một số record khỏi table `posts`, đồng thời muốn tất cả record đã xóa khỏi table `t_posts` được chèn vào table `delete_posts`. Để đạt được mục tiêu này, chúng ta phải sử dụng CTE như sau:
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    category
+FROM delete_posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk | title | category
+----+-------+----------
+(0 rows)
+....
+
+
+[%start=2]
+. Bây giờ, giả sử chúng ta muốn xóa một số row khỏi table `posts` và đồng thời chèn tất cả row đã xóa khỏi table `t_posts` vào table `delete_posts`. Để đạt được mục tiêu này, chúng ta phải sử dụng CTE như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> with del_posts as (
      delete from t_posts
@@ -86,9 +184,27 @@ forumdb=> with del_posts as (
     INSERT 0 2
 ....
 
-Query ở đây xóa tất cả record khỏi table `t_posts` có category là `'Database'`, rồi trong cùng transaction chèn tất cả record đã xóa vào table `delete_posts`, như chúng ta có thể thấy ở đây:
+.SQL
+[source,sql]
+....
+WITH del_posts AS (
+     DELETE FROM t_posts
+    WHERE category IN (SELECT pk FROM categories WHERE title
+ = 'Database Discussions')
+    RETURNING *)
+    INSERT INTO delete_posts SELECT * FROM del_posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+    INSERT 0 2
+....
+
+
+Query này xóa tất cả row khỏi table `t_posts` có category là `'Database'`, rồi chèn tất cả row đã xóa vào table `delete_posts` trong cùng transaction, như có thể thấy dưới đây:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,category from t_posts ;
  pk |                title                 | category
@@ -105,33 +221,105 @@ forumdb=> select pk,title,category from delete_posts ;
 (2 rows)
 ....
 
-[%start=3]
-. Bây giờ hãy thử một ví dụ khác bằng cách quay lại scenario ban đầu:
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    category
+FROM t_posts;
+SELECT
+    pk,
+    title,
+    category
+FROM delete_posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |                title                 | category
+----+------------------------------+----------
+  3 | A view of      Data types in C++ |              3
+(1 row)
+
+
+ pk |           title           | category
+----+---------------------+----------
+  1 | Indexing PostgreSQL |                1
+  2 | Indexing Mysql            |          1
+(2 rows)
+....
+
+
+[%start=3]
+. Bây giờ hãy thử một ví dụ khác bằng cách quay lại kịch bản ban đầu:
+
+[source,console,role="transcript"]
 ....
 forumdb=> drop table if exists t_posts;
 DROP TABLE
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+DROP TABLE if EXISTS t_posts;
+....
+
+.Output
+[source,output]
+....
+DROP TABLE
+....
+
+
+[source,console,role="transcript"]
 ....
 forumdb=> create temp table t_posts as select * from posts;
 SELECT 3
 ....
 
-. Như đã làm trước đó, hãy tạo một table mới tên là `inserted_post` với cùng data structure như table `posts`:
+.SQL
+[source,sql]
+....
+CREATE TEMP TABLE t_posts AS SELECT * FROM posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SELECT 3
+....
+
+
+. Tương tự như trước, hãy tạo một table mới tên là `inserted_post`, với cùng cấu trúc dữ liệu như table `posts`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> create table inserted_posts as select * from posts limit
 0;
 SELECT 0
 ....
 
-. Bây giờ giả sử chúng ta muốn thực hiện một SQL query di chuyển, trong cùng transaction, tất cả record hiện có trong table `t_posts` sang table `inserted_posts`. Query sẽ như sau:
+.SQL
+[source,sql]
+....
+CREATE TABLE inserted_posts AS SELECT * FROM posts LIMIT
+0;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SELECT 0
+....
+
+
+. Bây giờ giả sử chúng ta muốn thực hiện một SQL query để di chuyển tất cả row hiện có trong table `t_posts` sang table `inserted_posts` trong cùng transaction. Query sẽ như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> with ins_posts as ( insert into inserted_posts select *
 from t_posts returning pk) delete from t_posts where pk in (select
@@ -139,9 +327,24 @@ pk from ins_posts);
 DELETE 3
 ....
 
-Như chúng ta có thể thấy từ các result, query đã đạt được mục tiêu:
+.SQL
+[source,sql]
+....
+WITH ins_posts AS (INSERT INTO inserted_posts SELECT *
+FROM t_posts RETURNING pk) DELETE FROM t_posts WHERE pk IN (SELECT
+pk FROM ins_posts);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+DELETE 3
+....
+
+
+Như có thể thấy qua các kết quả, query đã đạt được mục tiêu:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,category from t_posts ;
  pk | title | category
@@ -158,22 +361,54 @@ forumdb=> select pk,title,category from inserted_posts ;
 (3 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    category
+FROM t_posts;
+SELECT
+    pk,
+    title,
+    category
+FROM inserted_posts;
+....
+
+.Output
+[source,output]
+....
+ pk | title | category
+----+-------+----------
+(0 rows)
+
+
+ pk |                title                | category
+----+------------------------------+----------
+     1 | Indexing PostgreSQL              |          1
+     2 | Indexing Mysql                   |          1
+     3 | A view of   Data types in C++ |             3
+(3 rows)
+....
+
+
 == Query đệ quy
 
-Trong PostgreSQL, có thể tạo các query đệ quy. Query đệ quy được dùng trong graph database và trong nhiều trường hợp sử dụng phổ biến, chẳng hạn như query các table biểu diễn menu của website.
+Trong PostgreSQL, có thể tạo các query đệ quy. Query đệ quy được dùng trong graph database và nhiều trường hợp phổ biến, chẳng hạn như khi dùng query trên các table biểu diễn menu của website.
 
 Recursive CTE giúp tạo query đệ quy trong PostgreSQL.
 
-== Recursive CTEs
+== Các recursive CTE
 
-Một recursive CTE là một construct đặc biệt cho phép một auxiliary statement tham chiếu đến chính nó và vì vậy join chính nó vào các result đã được tính trước đó. Điều này đặc biệt hữu ích khi chúng ta cần join một table với số lần không biết trước, thường là để “explode” một flat tree structure. Giải pháp truyền thống sẽ cần một dạng iteration nào đó, có lẽ thông qua một cursor lặp qua toàn bộ resultset, mỗi lần một tuple. Tuy nhiên, với recursive CTE, chúng ta có thể sử dụng một approach sạch và đơn giản hơn nhiều. Một recursive CTE được tạo bởi một auxiliary statement xây dựng dựa trên các thành phần sau:
+Một recursive CTE là một cấu trúc đặc biệt cho phép một auxiliary statement tham chiếu đến chính nó và do đó join chính nó với các kết quả đã được tính trước đó. Điều này đặc biệt hữu ích khi cần join một table với số lần chưa biết trước, thường là để “explode” một cấu trúc cây phẳng. Giải pháp truyền thống sẽ cần một cơ chế lặp nào đó, có lẽ thông qua một cursor lặp qua toàn bộ result set, mỗi lần xử lý một tuple. Tuy nhiên, với recursive CTE, chúng ta có thể sử dụng một cách tiếp cận sạch và đơn giản hơn nhiều. Một recursive CTE được tạo từ một auxiliary statement gồm các thành phần sau:
 
-* Một non-recursive statement, hoạt động như một bootstrap statement và được thực thi khi auxiliary term được đánh giá lần đầu.
-* Một recursive statement, có thể tham chiếu đến bootstrap statement hoặc chính nó.
+* Một non-recursive statement, đóng vai trò là bootstrap statement và được thực thi khi auxiliary term được đánh giá lần đầu.
+* Một recursive statement, có thể tham chiếu đến bootstrap statement hoặc tham chiếu đến chính nó.
 
-Hai phần này được nối với nhau bằng một predicate `UNION`. Ví dụ, hãy chèn một record mới vào table `tag` rồi xem bên trong:
+Hai phần này được nối với nhau bằng predicate `UNION`. Ví dụ, hãy chèn một row mới vào table `tag`, rồi kiểm tra dữ liệu:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=>    insert into tags (tag,parent) values ('PostgreSQL',1);
 INSERT 0 1
@@ -187,9 +422,33 @@ forumdb=>    select * from tags order by pk;
 (3 rows)
 ....
 
-Bây giờ chúng ta muốn “explode” flat tree structure và lần theo quan hệ giữa parent và child bằng field `parent` của table `tags`. Vì vậy, chúng ta muốn result có dạng như sau:
+.SQL
+[source,sql]
+....
+INSERT INTO tags (tag, parent)
+VALUES ('PostgreSQL', 1);
+SELECT *
+FROM tags
+ORDER BY pk;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 1
+
+ pk |          tag         | parent
+----+-------------------+--------
+  1 | Database             |
+  2 | Operating Systems |
+  3 | PostgreSQL           |        1
+(3 rows)
+....
+
+
+Bây giờ chúng ta muốn “explode” cấu trúc cây phẳng và lần theo quan hệ giữa parent và child thông qua column `parent` của table `tags`. Vì vậy, kết quả mong muốn có dạng như sau:
+
+[source,output]
 ....
 level   |            tag
 -------+------------------------
@@ -200,7 +459,7 @@ level   |            tag
 
 Để đạt được mục tiêu này, chúng ta phải thực hiện như sau:
 
-[source,sql]
+[source,console,role="transcript"]
 ....
 forumdb=> WITH RECURSIVE tags_tree AS (
  -- non recursive statement
@@ -223,9 +482,39 @@ order by level;
 (3 rows)
 ....
 
+.SQL
+[source,sql]
+....
+WITH RECURSIVE tags_tree AS (
+ -- non recursive statement
+SELECT tag, pk, 1 AS level
+FROM tags WHERE parent IS NULL
+UNION
+-- recursive statement
+SELECT tt.tag|| ' -> ' || ct.tag, ct.pk
+, tt.level + 1
+FROM tags ct
+JOIN tags_tree tt ON tt.pk = ct.parent
+)
+SELECT level, tag FROM tags_tree
+ORDER BY level;
+....
+
+.Output
+[source,output]
+....
+ level |                tag
+-------+------------------------
+       1 | Database
+       1 | Operating Systems
+       2 | Database -> PostgreSQL
+(3 rows)
+....
+
+
 [quote]
 ____
 Khi sử dụng CTE, điều quan trọng là phải tránh các vòng lặp vô hạn. Điều này có thể xảy ra nếu đệ quy không kết thúc đúng cách.
 
 ____
-Như vậy, chúng ta đã học cách sử dụng CTE để thao tác với các table.
+Như vậy, chúng ta đã biết cách sử dụng CTE để thao tác với các table.

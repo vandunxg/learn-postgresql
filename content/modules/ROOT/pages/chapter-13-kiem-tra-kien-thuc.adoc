@@ -1,21 +1,21 @@
 = Kiểm tra kiến thức
 
-* *Làm thế nào để inspect plan của một query?*
+* *Làm thế nào để kiểm tra plan của một query?*
 
-  Command đặc biệt `EXPLAIN` cho phép bạn inspect cách PostgreSQL sẽ thực thi một query nhất định, bằng cách hiển thị một “node” cho mỗi execution step. Xem phần *The EXPLAIN statement* để biết thêm chi tiết.
+  Command đặc biệt `EXPLAIN` cho phép bạn xem PostgreSQL sẽ thực thi một query cụ thể như thế nào bằng cách hiển thị một “node” cho mỗi bước thực thi. Xem phần *Câu lệnh EXPLAIN* để biết thêm chi tiết.
 
-* *Sự khác biệt giữa `EXPLAIN` và `EXPLAIN EXPLAIN’` là gì?*
+* *`EXPLAIN` và `EXPLAIN EXPLAIN’` khác nhau như thế nào?*
 
-  Command `EXPLAIN` sẽ không thực thi query mà chỉ tính access plan; ngược lại, command `EXPLAIN ANALYZE` sẽ thực thi query và in query plan vào output. Xem phần *EXPLAIN ANALYZE* để biết thêm chi tiết.
+  Command `EXPLAIN` sẽ không thực thi query mà chỉ tính toán access plan; ngược lại, command `EXPLAIN ANALYZE` sẽ thực thi query và in query plan ra output. Xem phần *EXPLAIN ANALYZE* để biết thêm chi tiết.
 
-* *PostgreSQL giữ statistics up to date bằng cách nào?*
+* *PostgreSQL giữ statistics luôn cập nhật bằng cách nào?*
 
-  Statistics được cập nhật mỗi khi command `ANALYZE` thủ công được thực thi hoặc daemon auto-vacuum (auto-analyze) chạy trên một table. Xem phần *ANALYZE và cách cập nhật statistics* để biết thêm chi tiết.
+  Statistics được cập nhật mỗi khi command `ANALYZE` được chạy thủ công hoặc khi daemon auto-vacuum (auto-analyze) chạy trên một table. Xem phần *ANALYZE và cách cập nhật statistics* để biết thêm chi tiết.
 
-* *PostgreSQL quyết định sử dụng một access method cụ thể (ví dụ index) bằng cách nào?*
+* *PostgreSQL quyết định sử dụng một access method cụ thể (ví dụ index) như thế nào?*
 
-  Optimizer quyết định path tới data dựa trên cost của từng access method: method có cost thấp nhất sẽ thắng và được dùng để access underlying data. Xem phần *Optimizer* để biết thêm chi tiết.
+  Optimizer quyết định path tới data dựa trên cost của từng access method: access method có cost thấp nhất sẽ được chọn và dùng để truy cập data bên dưới. Xem phần *Optimizer* để biết thêm chi tiết.
 
 * *Extension auto_explain là gì?*
 
-  Extension auto_explain cho phép system tự động output query execution plan vào log bất cứ khi nào query đạt một threshold đã định nghĩa (ví dụ, execution time vượt quá một giới hạn được đặt trước). Nhờ đó, DBA có thể tự động lấy thông tin về các query có vấn đề. Xem phần *Auto-explain* để biết thêm chi tiết.
+  Extension auto_explain cho phép hệ thống tự động ghi execution plan của query vào log mỗi khi query đạt đến threshold đã định nghĩa (ví dụ, execution time vượt quá một giới hạn được đặt trước). Nhờ đó, DBA có thể tự động thu thập thông tin về các query có vấn đề. Xem phần *Auto-explain* để biết thêm chi tiết.

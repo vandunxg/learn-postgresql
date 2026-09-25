@@ -1,27 +1,40 @@
 = Data type NoSQL
 
-Trong section này, chúng ta sẽ tiếp cận các data type NoSQL hiện có trong PostgreSQL. Vì cuốn sách này không tập trung cụ thể vào NoSQL, chúng ta sẽ chỉ xem xét nhanh.
-PostgreSQL xử lý các data type NoSQL sau:
+Trong phần này, chúng ta sẽ tìm hiểu các data type NoSQL hiện có trong PostgreSQL. Vì cuốn sách không tập trung riêng vào NoSQL, chúng ta chỉ xem qua chúng ở mức khái quát.
+PostgreSQL hỗ trợ các data type NoSQL sau:
 
 * hstore
 * xml
 * json/jsonb
 
-Bây giờ chúng ta sẽ nói về hstore và json.
+Tiếp theo, chúng ta sẽ tìm hiểu về hstore và JSON.
 
 == Data type hstore
 
-`hstore` là data type NoSQL đầu tiên được implement trong PostgreSQL. Data type này được dùng để lưu các cặp key-value trong một value duy nhất. Trước khi làm việc với data type `hstore`, chúng ta cần enable extension `hstore` trên server:
+`hstore` là data type NoSQL đầu tiên được triển khai trong PostgreSQL. Data type này dùng để lưu các cặp key-value trong một giá trị duy nhất. Trước khi làm việc với data type `hstore`, chúng ta cần bật extension `hstore` trên server:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create extension hstore ;
 CREATE EXTENSION
 ....
 
-Hãy xem cách sử dụng data type `hstore` qua một ví dụ. Giả sử chúng ta muốn hiển thị tất cả post cùng với username và category của chúng:
+.SQL
+[source,sql]
+....
+CREATE extension hstore;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+CREATE EXTENSION
+....
+
+
+Hãy xem cách sử dụng data type `hstore` qua một ví dụ. Giả sử chúng ta muốn hiển thị tất cả post kèm username và category tương ứng:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select p.pk,p.title,u.username,c.title as category
 from posts p
@@ -45,9 +58,42 @@ username | enrico_pirozzi
 category | Programming Languages
 ....
 
-Bây giờ giả sử các table `posts`, `users` và `categories` là những table rất lớn, và chúng ta muốn lưu toàn bộ thông tin về username và category trong một field duy nhất nằm bên trong table `posts`. Nếu làm được điều này, chúng ta sẽ không còn cần join ba table lớn nữa. Trong trường hợp này, `hstore` có thể giúp chúng ta:
+.SQL
+[source,sql]
+....
+SELECT
+    p.pk,
+    p.title,
+    u.username,
+    c.title AS category
+FROM posts p inner JOIN users u ON p.author = u.pk left JOIN categories c ON p.category = c.pk
+ORDER BY 1;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+-[ RECORD 1 ]--------------------------
+pk         | 5
+title      | Indexing PostgreSQL
+username | luca_ferrari
+category | Database
+-[ RECORD 2 ]--------------------------
+pk         | 6
+title      | Indexing Mysql
+username | luca_ferrari
+category | Database
+-[ RECORD 3 ]--------------------------
+pk         | 7
+title      | A view of   Data types in C++
+username | enrico_pirozzi
+category | Programming Languages
+....
+
+
+Giả sử các table `posts`, `users` và `categories` đều rất lớn, và chúng ta muốn lưu toàn bộ thông tin về username và category trong một column duy nhất của table `posts`. Nếu làm được như vậy, chúng ta sẽ không còn cần join ba table lớn này với nhau. Trong trường hợp đó, `hstore` có thể giúp chúng ta:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select p.pk,p.title,hstore(ARRAY['username',u.
 username,'category',c.title]) as options
@@ -70,9 +116,39 @@ options | "category"=>"Programming Languages", "username"=>"enrico_
 pirozzi"
 ....
 
-Query trước hết đưa các value của field username và category vào một array, sau đó chuyển chúng thành `hstore`. Bây giờ, nếu muốn lưu data vào một table mới tên là `posts_options`, chúng ta phải thực hiện như sau:
+.SQL
+[source,sql]
+....
+SELECT
+    p.pk,
+    p.title,
+    hstore(ARRAY['username', u. username, 'category', c.title]) AS options
+FROM posts p inner JOIN users u ON p.author = u.pk left JOIN categories c ON p.category = c.pk
+ORDER BY 1;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+-[ RECORD 1 ]--------------------------
+pk        | 5
+title     | Indexing PostgreSQL
+options | "category"=>"Database", "username"=>"luca_ferrari"
+-[ RECORD 2 ]--------------------------
+pk        | 6
+title     | Indexing Mysql
+options | "category"=>"Database", "username"=>"luca_ferrari"
+-[ RECORD 3 ]--------------------------
+pk        | 7
+title     | A view of     Data types in C++
+options | "category"=>"Programming Languages", "username"=>"enrico_
+pirozzi"
+....
+
+
+Query trước hết đưa các giá trị trong column username và category vào một array, sau đó chuyển array này thành `hstore`. Nếu muốn lưu dữ liệu vào một table mới có tên `posts_options`, chúng ta thực hiện như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> create table posts_options as
 select p.pk,p.title,hstore(ARRAY['username',u.username,'category',c.
@@ -84,9 +160,28 @@ order by 1;
 SELECT 3
 ....
 
-Bây giờ chúng ta có một table mới với structure sau:
+.SQL
+[source,sql]
+....
+CREATE TABLE posts_options AS
+SELECT p.pk, p.title, hstore(ARRAY['username', u.username, 'category', c.
+title]) AS options
+FROM posts p
+inner JOIN users u ON p.author = u.pk
+left JOIN categories c ON p.category = c.pk
+ORDER BY 1;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SELECT 3
+....
+
+
+Bây giờ chúng ta có một table mới với cấu trúc như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> \d posts_options
                   Table "forum.posts_options"
@@ -97,9 +192,27 @@ forumdb=> \d posts_options
    options | hstore      |            |             |
 ....
 
-Tiếp theo, giả sử chúng ta muốn tìm tất cả record có `category = 'Database'`. Chúng ta phải execute câu lệnh sau:
+.SQL
+[source,sql]
+....
+\d posts_options
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                  Table "forum.posts_options"
+   Column    |    Type   | Collation | Nullable | Default
+---------+---------+-----------+----------+---------
+   pk        | integer |              |             |
+   title     | text      |            |             |
+   options | hstore      |            |             |
+....
+
+
+Tiếp theo, giả sử chúng ta muốn tìm tất cả row có `category = 'Database'`. Chúng ta phải thực thi query sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from posts_options where options->'category'
 ='Database';
@@ -113,18 +226,54 @@ title       | Indexing Mysql
 options | "category"=>"Database", "username"=>"luca_ferrari"
 ....
 
-Vì `hstore`, cũng như các data type `json/jsonb`, không phải là structured data type, chúng ta có thể insert bất kỳ key-value nào khác mà không cần định nghĩa nó trước. Ví dụ:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM posts_options
+WHERE options->'category' = 'Database';
+....
 
-[source,text]
+.Output
+[source,output]
+....
+-[ RECORD 1 ]--------------------------
+pk          | 5
+title       | Indexing PostgreSQL
+options | "category"=>"Database", "username"=>"luca_ferrari"
+-[ RECORD 2 ]--------------------------
+pk          | 6
+title       | Indexing Mysql
+options | "category"=>"Database", "username"=>"luca_ferrari"
+....
+
+
+Vì `hstore`, cũng như các data type `json/jsonb`, không phải là data type có cấu trúc, chúng ta có thể insert bất kỳ cặp key-value nào khác mà không cần định nghĩa trước. Ví dụ:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into posts_options (pk,title,options) values (7,'my last
 post','"enabled"=>"false"') ;
 INSERT 0 1
 ....
 
-Kết quả của việc select trên toàn bộ table sẽ như sau:
+.SQL
+[source,sql]
+....
+INSERT INTO posts_options (pk, title, options)
+VALUES (7, 'my last post', '"enabled"=>"false"');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 1
+....
+
+
+Kết quả khi select toàn bộ table sẽ như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=>        select * from posts_options;
 -[ RECORD 1 ]--------------------------
@@ -146,15 +295,45 @@ title     | my last post
 options | "enabled"=>"false"
 ....
 
-Như đã nói ở đầu section này, NoSQL không phải là chủ đề của cuốn sách, nhưng vẫn đáng để xem qua một cách ngắn gọn. Để biết thêm thông tin về data type `hstore`, hãy tham khảo documentation chính thức tại https://www.postgresql.org/docs/current/hstore.html.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM posts_options;
+....
+
+.Output
+[source,output]
+....
+-[ RECORD 1 ]--------------------------
+pk          | 5
+title       | Indexing PostgreSQL
+options | "category"=>"Database", "username"=>"luca_ferrari"
+-[ RECORD 2 ]--------------------------
+pk          | 6
+title     | Indexing Mysql
+options | "category"=>"Database", "username"=>"luca_ferrari"
+-[ RECORD 3 ]--------------------------
+pk        | 7
+title     | A view of      Data types in C++
+options | "category"=>"Programming Languages", "username"=>"enrico_
+pirozzi"
+-[ RECORD 4 ]--------------------------
+pk        | 7
+title     | my last post
+options | "enabled"=>"false"
+....
+
+
+Như đã nói ở đầu phần này, NoSQL không phải là chủ đề của cuốn sách, nhưng vẫn đáng để xem qua ở mức khái quát. Để biết thêm thông tin về data type `hstore`, hãy tham khảo documentation chính thức tại https://www.postgresql.org/docs/current/hstore.html.
 
 == Data type JSON
 
-Trong section này, chúng ta sẽ xem nhanh data type JSON. JSON là viết tắt của JavaScript Object Notation. JSON là một format open standard, được tạo thành từ các cặp key-value. PostgreSQL hỗ trợ native data type JSON. Nó cung cấp nhiều function và operator dùng để thao tác với data JSON. Ngoài data type json, PostgreSQL còn hỗ trợ data type jsonb. Khác biệt giữa hai data type này là data type thứ nhất được biểu diễn nội bộ dưới dạng text, trong khi data type thứ hai được biểu diễn nội bộ theo dạng binary và có thể index. Hãy xem cách sử dụng data type json/jsonb qua một ví dụ.
+Trong phần này, chúng ta sẽ xem nhanh data type JSON. JSON là viết tắt của JavaScript Object Notation. JSON là một format theo chuẩn mở, được tạo thành từ các cặp key-value. PostgreSQL hỗ trợ JSON như một native data type. Nó cung cấp nhiều function và operator để thao tác với dữ liệu JSON. Ngoài data type JSON, PostgreSQL còn hỗ trợ data type JSONB. JSON được biểu diễn nội bộ dưới dạng text, còn JSONB được biểu diễn dưới dạng binary và có thể được index. Hãy xem cách sử dụng data type JSON/JSONB qua một ví dụ.
 
-Giả sử chúng ta muốn hiển thị tất cả post và tag hiện có trong database `forumdb`. Theo cách SQL relational cổ điển, chúng ta sẽ viết như sau:
+Giả sử chúng ta muốn hiển thị tất cả post và tag hiện có trong database `forumdb`. Theo cách tiếp cận SQL relational truyền thống, chúng ta sẽ viết như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is off.
@@ -173,7 +352,28 @@ order by 1;
 (5 rows)
 ....
 
-Bây giờ giả sử chúng ta muốn có một result như sau:
+.SQL
+[source,sql]
+....
+\x SELECT p.pk, p.title, t.tag FROM posts p left JOIN j_posts_tags jpt ON p.pk = jpt.post_pk left JOIN tags t ON jpt.tag_pk = t.pk ORDER BY 1;
+....
+
+.Output
+[source,output]
+....
+Expanded display is off.
+ pk |                 title                  |           tag
+----+------------------------------+-------------------
+  5 | Indexing PostgreSQL                | Operating Systems
+  5 | Indexing PostgreSQL                | Database
+  6 | Indexing Mysql                     | Database
+  6 | Indexing Mysql                     | Operating Systems
+  7 | A view of    Data types in C++ | Database
+(5 rows)
+....
+
+
+Bây giờ, giả sử chúng ta muốn có kết quả như sau:
 
 [source,text]
 ....
@@ -183,9 +383,9 @@ Bây giờ giả sử chúng ta muốn có một result như sau:
           7       A view of Data types in C++   Database
 ....
 
-Theo cách relational, chúng ta phải aggregate data bằng hai field đầu tiên và thực hiện như sau:
+Theo cách tiếp cận relational, chúng ta phải aggregate dữ liệu theo hai column đầu tiên, rồi thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is on.
@@ -209,9 +409,34 @@ title | A view of      Data types in C++
 tag      | Database
 ....
 
-Bây giờ hãy hình dung chúng ta muốn generate một JSON structure đơn giản; chúng ta sẽ execute query sau:
+.SQL
+[source,sql]
+....
+\x SELECT p.pk, p.title, string_agg(t.tag, ',') AS tag FROM posts p left JOIN j_posts_tags jpt ON p.pk = jpt.post_pk left JOIN tags t ON jpt.tag_pk = t.pk GROUP BY 1, 2 ORDER BY 1;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+Expanded display is on.
+-[ RECORD 1 ]-----------------------
+pk     | 5
+title | Indexing PostgreSQL
+tag    | Operating Systems,Database
+-[ RECORD 2 ]-----------------------
+pk     | 6
+title | Indexing Mysql
+tag    | Database,Operating Systems
+-[ RECORD 3 ]-----------------------
+pk     | 7
+title | A view of      Data types in C++
+tag      | Database
+....
+
+
+Bây giờ hãy hình dung chúng ta muốn tạo một cấu trúc JSON đơn giản; chúng ta sẽ thực thi query sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select row_to_json(q) as json_data from (
  select p.pk,p.title,string_agg(t.tag,',') as tag
@@ -230,9 +455,31 @@ json_data | {"pk":7,"title":"A view of           Data types in
 C++","tag":"Database"}
 ....
 
-Như có thể thấy, chỉ với một query đơn giản, chúng ta có thể chuyển từ biểu diễn SQL cổ điển sang biểu diễn NoSQL. Bây giờ hãy tạo một table mới tên là `post_json`. Table này sẽ chỉ có một field jsonb tên là `jsondata`:
+.SQL
+[source,sql]
+....
+SELECT row_to_json(q) AS json_data
+FROM (SELECT p.pk, p.title, string_agg(t.tag, ',') AS tag FROM posts p left JOIN j_posts_tags jpt ON p.pk = jpt.post_pk left JOIN tags t ON jpt.tag_pk = t.pk GROUP BY 1, 2 ORDER BY 1) Q;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+-[ RECORD 1 ]-----------------------
+json_data | {"pk":5,"title":"Indexing PostgreSQL","tag":"Operating
+Systems,Database"}
+-[ RECORD 2 ]-----------------------
+json_data | {"pk":6,"title":"Indexing Mysql","tag":"Database,Operating
+Systems"}
+-[ RECORD 3 ]-----------------------
+json_data | {"pk":7,"title":"A view of           Data types in
+C++","tag":"Database"}
+....
+
+
+Như có thể thấy, chỉ với một query đơn giản, chúng ta có thể chuyển từ biểu diễn SQL truyền thống sang biểu diễn NoSQL. Bây giờ hãy tạo một table mới có tên `post_json`. Table này chỉ có một column JSONB tên là `jsondata`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> create table post_json (jsondata jsonb);
 CREATE TABLE
@@ -243,9 +490,27 @@ forumdb=> \d post_json
  jsondata | jsonb |                  |             |
 ....
 
-Bây giờ hãy insert một số data vào table `post_json`:
+.SQL
+[source,sql]
+....
+CREATE TABLE post_json (jsondata jsonb);
+\d post_json
+....
 
-[source,text]
+.Output
+[source,output]
+....
+CREATE TABLE
+                 Table "forum.post_json"
+  Column    | Type   | Collation | Nullable | Default
+----------+-------+-----------+----------+---------
+ jsondata | jsonb |                  |             |
+....
+
+
+Bây giờ hãy insert một số dữ liệu vào table `post_json`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into post_json(jsondata)
 select row_to_json(q) as json_data from (
@@ -257,9 +522,22 @@ group by 1,2 order by 1) Q;
 INSERT 0 3
 ....
 
-Bây giờ table `post_json` có các record sau:
+.SQL
+[source,sql]
+....
+INSERT INTO post_json (jsondata) SELECT row_to_json(q) AS json_data FROM (SELECT p.pk, p.title, string_agg(t.tag, ',') AS tag FROM posts p left JOIN j_posts_tags jpt ON p.pk = jpt.post_pk left JOIN tags t ON jpt.tag_pk = t.pk GROUP BY 1, 2 ORDER BY 1) Q;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 3
+....
+
+
+Bây giờ table `post_json` có các row sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select jsonb_pretty(jsondata) from post_json;
 -[ RECORD 1 ]+-----------------------
@@ -282,9 +560,40 @@ jsonb_pretty | {                                                       +
                 | }
 ....
 
-Nếu muốn tìm tất cả data có `tag = "Database"`, chúng ta có thể dùng operator `@>` của jsonb. Operator này kiểm tra liệu JSON value bên trái có chứa các entry JSON path/value bên phải ở top level hay không; query sau cho phép thực hiện việc tìm kiếm này:
+.SQL
+[source,sql]
+....
+SELECT jsonb_pretty(jsondata)
+FROM post_json;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+-[ RECORD 1 ]+-----------------------
+jsonb_pretty | {                                                       +
+                |      "pk": 5,                                        +
+                |      "tag": "Operating Systems,Database",            +
+                |      "title": "Indexing PostgreSQL"                  +
+                | }
+-[ RECORD 2 ]+-----------------------
+jsonb_pretty | {                                                       +
+                |      "pk": 6,                                        +
+                |      "tag": "Database,Operating Systems",            +
+                |      "title": "Indexing Mysql"                       +
+                | }
+-[ RECORD 3 ]+-----------------------
+jsonb_pretty | {                                                       +
+                |      "pk": 7,                                        +
+                |      "tag": "Database",                              +
+                |      "title": "A view of       Data types in C++"+
+                | }
+....
+
+
+Nếu muốn tìm tất cả dữ liệu có `tag = "Database"`, chúng ta có thể dùng operator `@>` của JSONB. Operator này kiểm tra liệu JSON value bên trái có chứa các entry JSON path/value ở top level của JSON value bên phải hay không; query sau thực hiện việc tìm kiếm này:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select jsonb_pretty(jsondata) from post_json where jsondata @>
 '{"tag":"Database"}';
@@ -298,6 +607,26 @@ jsonb_pretty | {                                                       +
                 | }
 ....
 
-Những gì chúng ta vừa viết chỉ là một phần rất nhỏ trong những việc có thể làm với NoSQL data model. JSON được dùng rộng rãi khi làm việc với các table lớn và khi cần một data structure giảm thiểu số lượng join phải thực hiện trong giai đoạn tìm kiếm. Thảo luận chi tiết về thế giới NoSQL nằm ngoài scope của cuốn sách này, nhưng chúng tôi muốn mô tả ngắn gọn rằng PostgreSQL cũng mạnh đến mức nào trong cách tiếp cận unstructured data. Để biết thêm thông tin, hãy xem documentation chính thức tại https://www.postgresql.org/docs/current/functions-json.html.
+.SQL
+[source,sql]
+....
+SELECT jsonb_pretty(jsondata)
+FROM post_json
+WHERE jsondata @> '{"tag":"Database"}';
+....
 
-Sau khi hiểu data type là gì và những data type nào có thể được dùng trong PostgreSQL, trong section tiếp theo chúng ta sẽ xem cách sử dụng data type bên trong function.
+.Output
+[source,output]
+....
+-[ RECORD 1 ]+-----------------------
+jsonb_pretty | {                                                       +
+                |      "pk": 7,                                        +
+                |      "tag": "Database",                              +
+                |      "title": "A view of     Data types in C++"+
+                | }
+....
+
+
+Những gì vừa viết chỉ là một phần rất nhỏ trong những gì có thể làm với NoSQL data model. JSON được dùng rộng rãi khi làm việc với các table lớn và khi cần một data structure giúp giảm số lần join trong quá trình tìm kiếm. Thảo luận chi tiết về thế giới NoSQL nằm ngoài phạm vi cuốn sách này, nhưng qua ví dụ này, chúng ta muốn minh họa ngắn gọn sức mạnh của PostgreSQL khi làm việc với unstructured data. Để biết thêm thông tin, hãy xem documentation chính thức tại https://www.postgresql.org/docs/current/functions-json.html.
+
+Sau khi hiểu data type là gì và PostgreSQL hỗ trợ những data type nào, phần tiếp theo sẽ trình bày cách dùng data type bên trong function.

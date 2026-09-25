@@ -1,15 +1,15 @@
-= 16. Configuration and Monitoring
+= 16. Configuration và monitoring
 
-Một trong những nhiệm vụ của database administrator là configure cluster để nó hoạt động tốt với workload và context hiện tại. Configuration không static: phần lớn thời gian, bạn sẽ thấy mình đang thực hiện các thay đổi đối với configuration, vì vậy điều quan trọng là bạn cảm thấy thoải mái khi inspect và thay đổi configuration của cluster.
+Một trong những nhiệm vụ của database administrator là cấu hình cluster phù hợp với workload và môi trường hiện tại. Configuration không cố định: bạn sẽ thường xuyên phải thay đổi configuration, vì vậy cần thành thạo việc kiểm tra và thay đổi configuration của cluster.
 
-Một task quan trọng khác, có liên quan một phần đến configuration, là monitoring cluster để hiểu hệ thống thực sự đang hoạt động như thế nào và có bottleneck hay problem nào cần giải quyết hay không. Những problem như vậy đôi khi có thể được giải quyết bằng cách thay đổi configuration của cluster, sử dụng hardware khác (ví dụ tăng memory khả dụng), và sửa các application có thể đang gây bottleneck.
+Một nhiệm vụ quan trọng khác, cũng liên quan một phần đến configuration, là theo dõi cluster để hiểu hệ thống thực sự đang hoạt động như thế nào và xác định bottleneck hoặc vấn đề cần giải quyết. Những vấn đề này đôi khi có thể được xử lý bằng cách thay đổi configuration của cluster, sử dụng hardware khác (ví dụ: tăng memory khả dụng) hoặc sửa application đang gây ra bottleneck.
 
-Chapter này sẽ chỉ cho bạn cách quản lý và inspect cluster configuration, generate configuration từ đầu, tìm error và mistake trong configuration hiện tại, cũng như interactively monitor activity của cluster thông qua rich statistics subsystem. Cuối cùng, bạn sẽ khám phá một extension rất mạnh và thường được sử dụng tên là `pg_stat_statements`, cho phép bạn monitor activity của cluster với mức độ chi tiết và flexibility cao.
+Chương này sẽ chỉ cho bạn cách quản lý và kiểm tra configuration của cluster, tạo configuration từ đầu, tìm lỗi trong configuration hiện tại, cũng như theo dõi activity của cluster một cách tương tác thông qua một subsystem cung cấp statistics phong phú. Cuối cùng, bạn sẽ khám phá extension rất mạnh và thường được sử dụng có tên là `pg_stat_statements`, cho phép theo dõi activity của cluster với độ chi tiết và tính linh hoạt cao.
 
-Chapter này sẽ bao quát các chủ đề sau:
+Chương này sẽ bao quát các chủ đề sau:
 
-* Cluster configuration
-* Monitoring cluster
-* Advanced statistics với `pg_stat_statements`
+* Configuration của cluster
+* Theo dõi cluster
+* Statistics nâng cao với `pg_stat_statements`
 
 Bắt đầu thôi!

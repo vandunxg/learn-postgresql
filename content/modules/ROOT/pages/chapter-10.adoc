@@ -1,16 +1,16 @@
-= 10 Người dùng, Role và Bảo mật Database
+= 10 Users, Roles và Database Security
 
-PostgreSQL là một database rất vững chắc và đặc biệt chú trọng đến security, cung cấp một infrastructure rất phong phú để xử lý permission, privilege và security policy. Chapter này xây dựng trên các khái niệm cơ bản được giới thiệu trong Chapter 3, Quản lý User và Connection, xem xét lại khái niệm role và mở rộng kiến thức với trọng tâm đặc biệt vào security và privilege được cấp cho role (một role có thể vừa là một user vừa là một group gồm nhiều user). Bạn sẽ học cách cấu hình mọi khía cạnh của một role để quản lý security cẩn thận, từ connection đến việc truy cập data bên trong database.
+PostgreSQL là một database mạnh và ổn định, đặc biệt chú trọng đến security, đồng thời cung cấp một infrastructure phong phú để quản lý privilege và security policy. Chương này dựa trên các khái niệm cơ bản được giới thiệu trong Chapter 3, *Managing Users and Connections*, ôn lại khái niệm role và mở rộng kiến thức, tập trung vào security và các privilege được cấp cho role. Một role có thể vừa là một user, vừa là một group gồm nhiều user. Bạn sẽ học cách cấu hình các khía cạnh của role để quản lý security cẩn thận, từ connection đến quyền truy cập data trong database.
 
-PostgreSQL cũng cung cấp một cơ chế mạnh có tên Row-Level Security (RLS), cho phép định nghĩa policy ở mức chi tiết để che một phần data đối với một số user nhất định.
+PostgreSQL cũng cung cấp một cơ chế mạnh có tên là Row-Level Security (RLS), cho phép định nghĩa policy chi tiết để giới hạn phần data mà một số user có thể truy cập.
 
-Trong chapter này, bạn cũng sẽ tìm hiểu về Access Control List (ACL) và cách PostgreSQL xử lý permission ở bên trong, là kết quả của việc grant hoặc revoke privilege. Cuối cùng, bạn sẽ xem qua một cách ngắn gọn các thuật toán mã hóa password mà PostgreSQL cung cấp để lưu password của role một cách an toàn.
+Trong chương này, bạn cũng sẽ tìm hiểu về Access Control List (ACL) và cách PostgreSQL biểu diễn, xử lý các privilege nội bộ do thao tác GRANT và REVOKE tạo ra. Cuối cùng, bạn sẽ xem xét ngắn gọn các thuật toán mã hóa password mà PostgreSQL cung cấp để lưu password của role một cách an toàn.
 
-Chapter này bao gồm các chủ đề sau:
+Chương này bao gồm các chủ đề sau:
 
 * Tìm hiểu về role
 * ACL
-* Grant và revoke permission
+* GRANT và REVOKE privilege
 * RLS
 * Mã hóa password của role
-* Connection SSL
+* SSL connection

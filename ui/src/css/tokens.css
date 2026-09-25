@@ -11,6 +11,8 @@
   --color-link: #2f628c;
   --color-code-background: #202428;
   --color-code-text: #e8edf1;
+  --color-output-background: #f0f3f1;
+  --color-output-border: #cfd8d3;
   --color-inline-code-background: #eceeea;
   --color-note-background: #eaf2f8;
   --color-tip-background: #edf5ef;
@@ -37,6 +39,8 @@ html[data-theme="dark"] {
   --color-link: #79aedd;
   --color-code-background: #151719;
   --color-code-text: #e1e5e8;
+  --color-output-background: #202725;
+  --color-output-border: #3b4b45;
   --color-inline-code-background: #2b2e31;
   --color-note-background: #22313c;
   --color-tip-background: #233129;

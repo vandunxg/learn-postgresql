@@ -1,14 +1,14 @@
 = Partitioning và tablespace
 
-Bây giờ giả sử chúng ta muốn sử dụng các tablespace đã xem trong Chapter 2 cùng với cách partitioning vừa thực hiện. Bằng kỹ thuật này, chúng ta có thể đặt các child table trên những tablespace khác nhau, và do đó trên những directory khác nhau có thể được mount trên các volume khác nhau.
+Bây giờ, giả sử chúng ta muốn sử dụng các tablespace đã tìm hiểu trong Chương 2 cùng với kỹ thuật partitioning vừa thực hiện. Với kỹ thuật này, chúng ta có thể đặt các child table trên những tablespace khác nhau, tương ứng với những directory khác nhau; các directory này có thể được mount trên các volume khác nhau.
 
-Cách làm này có thể tăng read/write performance. Trong ví dụ sau, chúng ta sẽ chỉ tạo hai tablespace trên các local directory. Tuy nhiên, không khó để sử dụng command `mount` nhằm map hai directory này vào các volume khác nhau. Nếu đang sử dụng Docker image được cung cấp cùng chapter này, hai directory chúng ta sẽ dùng đã có sẵn.
+Cách làm này có thể cải thiện hiệu năng đọc/ghi. Trong ví dụ sau, chúng ta chỉ tạo hai tablespace trên các directory cục bộ. Tuy nhiên, việc sử dụng lệnh `mount` để ánh xạ hai directory này vào các volume khác nhau cũng không khó. Nếu đang sử dụng Docker image đi kèm chương này, hai directory chúng ta sẽ dùng đã có sẵn.
 
-Nếu không sử dụng Docker image, trước tiên bạn cần tạo hai directory, `/data/tablespaces/ts_b` và `/data/tablespaces/ts_b`, nơi system user `postgres` có thể read và write data.
+Nếu không sử dụng Docker image, trước tiên bạn cần tạo hai directory, `/data/tablespaces/ts_b` và `/data/tablespaces/ts_b`, để system user `postgres` có thể đọc và ghi dữ liệu.
 
-Bây giờ hãy connect tới database `forumdb` với tư cách user `postgres` và tạo hai tablespace có tên `ts_a` và `ts_b`:
+Bây giờ, hãy kết nối tới database `forumdb` với user `postgres` và tạo hai tablespace có tên `ts_a` và `ts_b`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    postgres@learn_postgresql:~$ psql -U postgres forumdb
 
@@ -19,9 +19,30 @@ Bây giờ hãy connect tới database `forumdb` với tư cách user `postgres`
    CREATE TABLESPACE
 ....
 
-Hãy gán ownership cho user `postgres`:
+.Command
+[source,bash]
+....
+psql -U postgres forumdb
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+CREATE tablespace ts_a location '/data/tablespaces/ts_a';
+CREATE tablespace ts_b location '/data/tablespaces/ts_b';
+....
+
+.Output
+[source,output]
+....
+   CREATE TABLESPACE
+   CREATE TABLESPACE
+....
+
+
+Tiếp theo, hãy gán ownership cho user `postgres`:
+
+[source,console,role="transcript"]
 ....
    forumdb=# alter tablespace ts_a owner to forum ;
    ALTER TABLESPACE
@@ -29,17 +50,45 @@ Hãy gán ownership cho user `postgres`:
    ALTER TABLESPACE
 ....
 
-Bây giờ hãy connect lại tới database `forumdb` với tư cách user `forum`:
+.SQL
+[source,sql]
+....
+ALTER tablespace ts_a owner to forum;
+ALTER tablespace ts_b owner to forum;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   ALTER TABLESPACE
+   ALTER TABLESPACE
+....
+
+
+Bây giờ, hãy kết nối lại tới database `forumdb` với user `forum`:
+
+[source,console,role="transcript"]
 ....
    forumdb=# \q
    postgres@learn_postgresql:~$ psql -U forum forumdb
 ....
 
-Như trong trường hợp trước, hãy tạo lại parent table:
+.Command
+[source,bash]
+....
+psql -U forum forumdb
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+\q
+....
+
+
+Tương tự trường hợp trước, hãy tạo lại parent table:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TABLE tablespace_part_tags (
             pk serial NOT NULL,
@@ -53,9 +102,29 @@ Như trong trường hợp trước, hãy tạo lại parent table:
    CREATE TABLE
 ....
 
-Bây giờ hãy tạo hai child table và một default table. Child table đầu tiên sẽ được tạo trên tablespace `ts_a` và child table thứ hai trên tablespace `ts_b`:
+.SQL
+[source,sql]
+....
+CREATE TABLE tablespace_part_tags (
+            pk serial NOT NULL,
+            ins_date date NOT NULL DEFAULT now()::date,
+            tag VARCHAR (255) NOT NULL,
+            level INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (pk, ins_date)
+   )
+   PARTITION BY RANGE (ins_date);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TABLE
+....
+
+
+Bây giờ, hãy tạo hai child table và một default partition. Child table đầu tiên sẽ được tạo trên tablespace `ts_a`, còn child table thứ hai sẽ được tạo trên tablespace `ts_b`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TABLE tablespace_part_tags_date_2022 PARTITION OF
    tablespace_part_tags FOR VALUES FROM ('2021-01-01') TO ('2022-12-31')
@@ -70,9 +139,31 @@ Bây giờ hãy tạo hai child table và một default table. Child table đầ
    CREATE TABLE
 ....
 
-Bây giờ, hãy insert một số data:
+.SQL
+[source,sql]
+....
+CREATE TABLE tablespace_part_tags_date_2022 PARTITION OF
+   tablespace_part_tags FOR VALUES FROM ('2021-01-01') TO ('2022-12-31')
+   TABLESPACE ts_a;
+CREATE TABLE tablespace_part_tags_date_2023 PARTITION OF
+   tablespace_part_tags FOR VALUES FROM ('2023-01-01') TO ('2023-12-31')
+   TABLESPACE ts_b;
+CREATE TABLE tablespace_part_tags_date_default PARTITION OF
+   tablespace_part_tags DEFAULT;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TABLE
+   CREATE TABLE
+   CREATE TABLE
+....
+
+
+Bây giờ, hãy insert một số dữ liệu:
+
+[source,console,role="transcript"]
 ....
    forumdb=> insert into tablespace_part_tags (tag,ins_date,level) values
    ('Operating Systems','2022-01-01',0), ('Linux','2022-02-01',1),('BSD
@@ -80,9 +171,27 @@ Bây giờ, hãy insert một số data:
    INSERT 0 4
 ....
 
-Sau đó, hãy xem các record đã được lưu ở đâu:
+.SQL
+[source,sql]
+....
+INSERT INTO tablespace_part_tags (tag, ins_date, level)
+VALUES
+    ('Operating Systems', '2022-01-01', 0),
+    ('Linux', '2022-02-01', 1),
+    ('BSD Unix', '2023-03-01', 1),
+    ('Rocky Linux Distro', '2018-04-01', 2);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   INSERT 0 4
+....
+
+
+Sau đó, hãy xem các row được lưu ở đâu:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select * from tablespace_part_tags;
       pk |   ins_date   |         tag            | level
@@ -124,4 +233,57 @@ Sau đó, hãy xem các record đã được lưu ở đâu:
    (1 row)
 ....
 
-Như chúng ta đã thấy trong exercise này, data đã được chia vào các tablespace khác nhau, và kết quả là tốc độ đã tăng gấp đôi. Đây là một kỹ thuật rất hiệu quả.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM tablespace_part_tags;
+SELECT *
+FROM tablespace_part_tags_date_2022;
+SELECT *
+FROM tablespace_part_tags_date_2023;
+SELECT *
+FROM tablespace_part_tags_date_default;
+....
+
+.Output
+[source,output]
+....
+      pk |   ins_date   |         tag            | level
+
+
+   ----+------------+--------------------+-------
+       1 | 2022-01-01 | Operating Systems        |      0
+       2 | 2022-02-01 | Linux                    |      1
+       3 | 2023-03-01 | BSD Unix                 |      1
+       4 | 2018-04-01 | Rocky Linux Distro |            2
+   (4 rows)
+
+
+      pk |   ins_date   |         tag           | level
+
+
+   ----+------------+-------------------+-------
+      1 | 2022-01-01 | Operating Systems |               0
+      2 | 2022-02-01 | Linux                      |      1
+   (2 rows)
+
+
+    pk |    ins_date    |     tag     | level
+
+
+   ----+------------+----------+-------
+      3 | 2023-03-01 | BSD Unix |             1
+   (1 row)
+
+
+    pk |    ins_date    |           tag            | level
+
+
+   ----+------------+--------------------+-------
+      4 | 2018-04-01 | Rocky Linux Distro |                2
+   (1 row)
+....
+
+
+Như đã thấy trong bài thực hành này, dữ liệu đã được phân bổ vào các tablespace khác nhau, nhờ đó hiệu năng đã tăng gấp đôi. Đây là một kỹ thuật rất hiệu quả.

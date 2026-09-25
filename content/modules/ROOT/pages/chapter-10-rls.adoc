@@ -1,31 +1,29 @@
 = RLS
 
-Trong phần trước của chapter, bạn đã thấy cơ chế permission nhờ đó PostgreSQL cho phép các role (cả user và group) truy cập những object khác nhau trong database và data chứa trong các object đó.
+Trong chương trước, bạn đã thấy PostgreSQL dùng privilege để cấp cho các role (cả user lẫn group) quyền truy cập vào những object khác nhau trong database cũng như data chứa trong các object đó.
 
-Cụ thể, đối với table, bạn đã học cách hạn chế quyền truy cập chỉ còn một danh sách column cụ thể trong tabular data.
+Cụ thể, với table, bạn đã học cách giới hạn quyền truy cập chỉ vào một danh sách column cụ thể trong data dạng bảng.
 
-PostgreSQL cung cấp một cơ chế thú vị khác để hạn chế quyền truy cập vào tabular data: RLS. Ý tưởng là RLS quyết định role có thể truy cập những tuple nào, ở chế độ đọc hoặc ghi. Vì vậy, nếu permission dựa trên column cung cấp cách giới hạn hình dạng theo chiều dọc của tabular data, thì RLS cung cấp cách hạn chế hình dạng theo chiều ngang của chính data đó.
+PostgreSQL cung cấp một cơ chế thú vị khác để hạn chế quyền truy cập vào data dạng bảng: RLS. RLS quyết định role được phép đọc hoặc ghi những tuple nào. Nếu privilege ở cấp column giới hạn data theo chiều dọc, thì RLS giới hạn chính data đó theo chiều ngang.
 
-Khi nào nên dùng RLS? Hãy hình dung bạn có một table chứa data liên quan đến user, và bạn không muốn user can thiệp vào data của user khác. Trong trường hợp đó, giới hạn quyền truy cập của mỗi user chỉ còn các tuple của chính họ sẽ cung cấp sự cô lập tốt, ngăn data bị can thiệp. Một scenario khá phổ biến khác là hệ thống multi-homed, trong đó bạn lưu cùng một data nhưng dành cho các công ty khác nhau trong chính những table đó. Bạn không muốn một công ty có thể do thám hoặc kiểm tra data của công ty khác, vì vậy một lần nữa RLS có thể hữu ích.
+Khi nào nên dùng RLS? Hãy hình dung bạn có một table chứa data liên quan đến user và không muốn một user can thiệp vào data của user khác. Khi đó, giới hạn mỗi user chỉ được truy cập các tuple thuộc về chính họ sẽ tạo ra sự cô lập tốt, ngăn data bị can thiệp. Một tình huống khá phổ biến khác là hệ thống multi-homed, trong đó bạn lưu data dành cho các công ty khác nhau trong cùng những table đó. Bạn không muốn một công ty có thể xem trộm hoặc kiểm tra data của công ty khác, nên RLS cũng có thể hữu ích.
 
-Dĩ nhiên, RLS không phải silver bullet, và nhiều giải pháp bạn có thể nghĩ ra có liên quan đến RLS cũng có thể được thực hiện bằng các kỹ thuật khác, nhưng việc nhận thức được feature quan trọng này có thể khiến data của bạn chống lại việc sử dụng sai tốt hơn nhiều.
+Dĩ nhiên, RLS không phải silver bullet. Nhiều giải pháp liên quan đến RLS cũng có thể được thực hiện bằng các kỹ thuật khác, nhưng việc hiểu rõ feature quan trọng này có thể giúp data của bạn chống lại việc sử dụng sai hiệu quả hơn nhiều.
 
-Infrastructure RLS hoạt động dựa trên các policy. Một policy là một tập rule quy định theo đó một số tuple nhất định sẽ được cung cấp cho user. Tùy theo policy bạn áp dụng, role của bạn (tức là user) sẽ có thể đọc và/hoặc ghi một số tuple nhất định.
+Cơ chế RLS hoạt động dựa trên các policy. Một policy là một tập rule xác định những tuple nào user được phép truy cập. Tùy theo policy được áp dụng, role của bạn (tức user) có thể đọc và/hoặc ghi một số tuple nhất định.
 
-Áp dụng RLS cho một table thường là quy trình gồm hai bước: trước tiên, bạn phải định nghĩa một policy (hoặc nhiều policy), sau đó phải bật policy đó trên table. Hãy lưu ý rằng superuser, owner và role có property đặc biệt `BYPASSRLS` sẽ không chịu sự chi phối của RLS.
+Áp dụng RLS cho một table thường gồm hai bước: trước hết, bạn phải định nghĩa một policy (hoặc nhiều policy), sau đó bật RLS trên table. Lưu ý rằng superuser, owner và role có thuộc tính đặc biệt `BYPASSRLS` không chịu sự chi phối của RLS.
 
 [quote]
 ____
-*CHÚ Ý:* Trong trường hợp database backup, chẳng hạn bằng `pg_dump`, user thực hiện backup phải có khả năng bypass policy RLS; nghĩa là user phải có property `BYPASSRLS`, nếu không backup sẽ thất bại. Rõ ràng, role superuser (`postgres`) hoặc bất kỳ role nào khác có superuser option đều sẽ thành công.
+*CHÚ Ý:* Khi thực hiện database backup, chẳng hạn bằng `pg_dump`, user thực hiện backup phải có khả năng bypass policy RLS; nói cách khác, user phải có thuộc tính `BYPASSRLS`, nếu không backup sẽ thất bại. Hiển nhiên, role superuser (`postgres`) hoặc bất kỳ role nào khác có superuser option đều sẽ thực hiện thành công.
 
 ____
-Một policy định nghĩa việc tuple có sẵn hay không dựa trên một tiêu chí logic, tức là một filtering condition. Một tuple có thể chỉ sẵn có để đọc, chỉ sẵn có để ghi, hoặc sẵn có cho cả hai. Synopsis tổng quát của một policy như sau:
+Một policy xác định tuple có được phép truy cập hay không dựa trên một tiêu chí logic, tức là một filtering condition. Một tuple có thể chỉ được phép đọc, chỉ được phép ghi hoặc được phép cả hai. Cú pháp tổng quát của một policy như sau:
 
-[source,text]
+[source,sql]
 ....
-    CREATE POLICY <name>
-    ON <table>
-    FOR <statement>
+CREATE POLICY <name> ON <TABLE> FOR <statement>
 ....
 [source,text]
 ....
@@ -34,21 +32,21 @@ USING <filtering condition>
 WITH CHECK <writing condition>
 ....
 
-Ở đây, các điểm sau được áp dụng:
+Các thành phần có ý nghĩa như sau:
 
-* `name` là tên của policy; tên này được dùng để tìm policy trong system.
+* `name` là tên của policy; tên này được dùng để tìm policy trong hệ thống.
 * `table` là table mà bạn muốn áp dụng policy.
-* `statement` có thể là một trong các statement `SELECT`, `UPDATE`, `DELETE`, `INSERT`, hoặc keyword đặc biệt `ALL` để chỉ tất cả statement có sẵn.
-* `filtering condition` là một condition dùng để hạn chế result set của các tuple có thể truy xuất, thường là những tuple mà bạn muốn role có thể lấy từ table.
-* `writing condition` là một clause tùy chọn cung cấp restriction khi ghi tuple.
+* `statement` có thể là một trong các statement `SELECT`, `UPDATE`, `DELETE` hoặc `INSERT`, hoặc keyword đặc biệt `ALL` để chỉ tất cả statement có sẵn.
+* `filtering condition` là một condition dùng để giới hạn result set, thường chỉ cho phép role truy xuất những tuple mong muốn từ table.
+* `writing condition` là một clause tùy chọn đặt ra giới hạn khi ghi tuple.
 
-Có thể xóa một policy bằng command `DROP POLICY` và viết lại policy bằng một command `ALTER POLICY` cụ thể.
+Có thể xóa một policy bằng command `DROP POLICY` và thay đổi policy bằng command `ALTER POLICY` cụ thể.
 
-Bây giờ hãy xem một vài ví dụ để hiểu rõ hơn cách xây dựng một policy. Giả sử chúng ta muốn cho phép một database user chỉ xem những tuple trong table `posts` thuộc về user đó. Vì vậy, condition cần đối chiếu user với một statement `SELECT`.
+Bây giờ hãy xem một vài ví dụ để hiểu rõ hơn cách xây dựng một policy. Giả sử chúng ta muốn cho phép một database user chỉ xem những tuple trong table `posts` thuộc về user đó. Vì vậy, predicate cần đối chiếu user hiện tại với một statement `SELECT`.
 
 Policy có thể có dạng như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE POLICY show_only_my_posts
                   ON posts
@@ -58,26 +56,56 @@ Policy có thể có dạng như sau:
    CREATE POLICY
 ....
 
-Policy được đặt tên là `show_only_my_posts` và áp dụng trên table `posts` cho mọi statement `SELECT`. Một tuple chỉ được trả về trong result set cuối cùng nếu match với clause `USING`, tức là chỉ khi `author` được tìm thấy trong table `users` và là database user hiện tại.
+.SQL
+[source,sql]
+....
+CREATE POLICY show_only_my_posts
+    ON posts
+    FOR SELECT
+    USING (author = (SELECT pk FROM users
+                         WHERE username = CURRENT_ROLE));
+....
 
-Việc tạo policy không có nghĩa là policy đã active; bạn cần enable policy trên table mà nó tham chiếu bằng một command `ALTER TABLE` cụ thể:
+.Output
+[source,output]
+....
+   CREATE POLICY
+....
 
-[source,text]
+
+Policy này có tên `show_only_my_posts` và áp dụng trên table `posts` cho mọi statement `SELECT`. Một tuple chỉ được trả về trong result set cuối cùng nếu khớp với clause `USING`, tức là chỉ khi `author` khớp với giá trị lấy từ table `users` của database user hiện tại.
+
+Việc tạo policy không có nghĩa policy đã được kích hoạt; bạn vẫn phải bật RLS trên table mà policy tham chiếu bằng một command `ALTER TABLE` cụ thể:
+
+[source,console,role="transcript"]
 ....
    forumdb=> ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
    ALTER TABLE
 ....
 
-`ALTER TABLE` nói trên sẽ enable tất cả policy đã tạo cho table đó, trong trường hợp của chúng ta hiện chỉ có một policy, nhưng bạn cần lưu ý rằng nếu có các policy khác thì chúng cũng sẽ được activate. Không có cách enable có chọn lọc một policy duy nhất cho table: hoặc tất cả policy cùng được enable, hoặc tất cả cùng bị disable.
+.SQL
+[source,sql]
+....
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+....
+
+.Output
+[source,output]
+....
+   ALTER TABLE
+....
+
+
+Command `ALTER TABLE` nói trên sẽ kích hoạt mọi policy đã tạo cho table đó; trong ví dụ này hiện chỉ có một policy, nhưng cần lưu ý rằng nếu có policy khác thì chúng cũng sẽ được kích hoạt. Không có cách enable riêng một policy duy nhất trên table: hoặc tất cả policy đều được enable, hoặc tất cả đều bị disable.
 
 [quote]
 ____
-Bạn phải là owner của table để enable hoặc disable RLS.
+Bạn phải là owner của table mới có thể enable hoặc disable RLS.
 
 ____
-Bây giờ role đã bị giới hạn chỉ được “xem” các post của chính mình, nhưng việc tạo post mới thì sao? Vì policy không có restriction nào về write permission, user có thể tạo mọi tuple trong table `posts`. Chúng ta có thể giới hạn khả năng write của user, chẳng hạn quy định rõ rằng họ chỉ được sửa các post thuộc về mình và nằm trong một khoảng thời gian nhất định, giả sử là một ngày. Kết quả là một policy như sau:
+Đến đây, role chỉ bị giới hạn ở việc “xem” các post của chính mình, nhưng còn việc tạo post mới thì sao? Vì policy không đặt ra hạn chế nào đối với việc ghi, user có thể tạo bất kỳ tuple nào trong table `posts`. Chúng ta có thể giới hạn khả năng ghi của user, chẳng hạn quy định rõ rằng user chỉ được sửa các post thuộc về mình và nằm trong một khoảng thời gian nhất định, giả sử là một ngày. Kết quả là một policy như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE POLICY manage_only_my_posts
                 ON posts
@@ -92,18 +120,40 @@ Bây giờ role đã bị giới hạn chỉ được “xem” các post của 
    CREATE POLICY
 ....
 
+.SQL
+[source,sql]
+....
+CREATE POLICY manage_only_my_posts
+                ON posts
+                FOR ALL
+                USING (author = (SELECT pk FROM users
+                                         WHERE username = CURRENT_ROLE))
+               WITH CHECK (author = (SELECT pk FROM users
+                                         WHERE username = CURRENT_ROLE)
+                              AND
+                              last_edited_on + '1 day'::interval >= CURRENT_
+   TIMESTAMP);
+....
+
+.Output
+[source,output]
+....
+   CREATE POLICY
+....
+
+
 [quote]
 ____
-Vì RLS đã được activate cho table `posts`, policy vừa tạo sẽ active ngay lập tức.
+Vì RLS đã được bật cho table `posts`, policy vừa tạo sẽ được kích hoạt ngay lập tức.
 
 ____
-Trong trường hợp này, bất kể user thực thi statement nào trên table, họ chỉ thấy các post của chính mình (clause `USING`) và sẽ không thể write (tức là `INSERT`, `UPDATE` hoặc `DELETE`) bất kỳ tuple nào không thuộc về họ và không nằm trong khoảng thời gian một ngày (clause `CHECK`).
+Trong trường hợp này, dù user thực thi statement nào trên table, họ chỉ thấy các post của chính mình (clause `USING`) và chỉ có thể ghi (tức là `INSERT`, `UPDATE` hoặc `DELETE`) những tuple vừa thuộc về họ vừa nằm trong khoảng thời gian một ngày (clause `CHECK`).
 
-Điều gì xảy ra bên dưới? PostgreSQL âm thầm áp dụng các clause `USING` và `CHECK` vào mọi query bạn issue trên table để filter các tuple có thể được trả về.
+Điều gì diễn ra bên dưới? PostgreSQL ngầm áp dụng các clause `USING` và `CHECK` vào mọi query bạn gửi tới table để lọc các tuple có thể được trả về.
 
-Ví dụ, nếu quan sát query plan của một command `SELECT` không có filter, bạn sẽ thấy filter `CURRENT_ROLE` được áp dụng như trong clause `USING`:
+Ví dụ, nếu xem query plan của một command `SELECT` không có filter, bạn sẽ thấy filter `CURRENT_ROLE` được áp dụng như trong clause `USING`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> EXPLAIN SELECT * FROM posts;
                                                   QUERY PLAN
@@ -117,20 +167,57 @@ Ví dụ, nếu quan sát query plan của một command `SELECT` không có fil
                 Index Cond: (username = (CURRENT_ROLE)::text)
 ....
 
-Filter đã được PostgreSQL áp dụng ngay cả khi query không đề cập đến nó. Điều này có nghĩa là PostgreSQL luôn bị “buộc” phải execute query và filter result giúp bạn, vì vậy bạn không thể kỳ vọng có performance gain khi dùng RLS. Sau cùng, các tuple vẫn phải bị loại ở đâu đó!
+.SQL
+[source,sql]
+....
+EXPLAIN SELECT *
+FROM posts;
+....
 
-Bây giờ, nếu cố sửa tuple theo cách vi phạm condition `CHECK`, PostgreSQL sẽ báo lỗi và không cho phép thực hiện thay đổi:
+.Output
+[source,output]
+....
+                                                  QUERY PLAN
+   --------------------------------------------------------------------------
+   --------------
+      Seq Scan on posts    (cost=8.17..76.17 rows=1000 width=74)
+        Filter: (author = $0)
+        InitPlan 1 (returns $0)
+        -> Index Scan using users_username_key on users              (cost=0.15..8.17
+   rows=1 width=4)
+                Index Cond: (username = (CURRENT_ROLE)::text)
+....
 
-[source,text]
+
+PostgreSQL áp dụng filter ngay cả khi query không đề cập đến filter đó. Điều này có nghĩa là PostgreSQL luôn phải thực thi query rồi lọc result thay cho bạn, vì vậy bạn không thể kỳ vọng có performance gain khi dùng RLS. Suy cho cùng, các tuple vẫn phải bị loại bỏ ở đâu đó!
+
+Nếu cố sửa một tuple theo cách vi phạm condition `CHECK`, PostgreSQL sẽ báo lỗi và từ chối thay đổi:
+
+[source,console,role="transcript"]
 ....
    forumdb=> UPDATE posts
                SET last_edited_on = last_edited_on - '2 weeks'::interval;
    ERROR:    new row violates row-level security policy for table "posts"
 ....
 
-Bạn luôn có thể inspect RLS thông qua command đặc biệt `\dp` trong `psql` (output sau đã được rút gọn để vừa với giới hạn của trang):
+.SQL
+[source,sql]
+....
+UPDATE posts
+SET
+    last_edited_on = last_edited_on - '2 weeks'::interval;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   ERROR:    new row violates row-level security policy for table "posts"
+....
+
+
+Bạn luôn có thể kiểm tra RLS bằng meta-command đặc biệt `\dp` trong `psql` (output dưới đây đã được rút gọn để vừa với giới hạn của trang):
+
+[source,console,role="transcript"]
 ....
    forumdb=> \dp posts
 
@@ -164,9 +251,48 @@ Bạn luôn có thể inspect RLS thông qua command đặc biệt `\dp` trong `
    (1 row)
 ....
 
-Cuối cùng, bạn có thể disable hoặc enable lại các policy trên table bằng cách issue một command `ALTER TABLE` cụ thể, chẳng hạn như sau:
+.SQL
+[source,sql]
+....
+\dp posts
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   Access privileges
+   |                                                                 Policies
+   +-------------------------------------------------------------------------
+   -------------------------------------------
+   | show_only_my_posts (r):
+   +
+   |    (u): (author = ( SELECT users.pk
+   +
+   |     FROM users
+   +
+   |   WHERE (users.username = (CURRENT_ROLE)::text)))
+   +
+   | manage_only_my_posts:
+   +
+   |   (u): (author = ( SELECT users.pk
+   +
+   |     FROM users
+   +
+   |   WHERE (users.username = (CURRENT_ROLE)::text)))
+   +
+   |   (c): ((author = ( SELECT users.pk
+   +
+   |     FROM users
+   +
+   |   WHERE (users.username = (CURRENT_ROLE)::text))) AND ((last_edited_on +
+   '1 day'::interval) >= CURRENT_TIMESTAMP))
+   (1 row)
+....
+
+
+Cuối cùng, bạn có thể tắt hoặc bật lại RLS trên table bằng cách thực thi một command `ALTER TABLE` cụ thể, như sau:
+
+[source,console,role="transcript"]
 ....
     forumdb=> ALTER TABLE posts DISABLE ROW LEVEL SECURITY;
     ALTER TABLE
@@ -177,11 +303,29 @@ Cuối cùng, bạn có thể disable hoặc enable lại các policy trên tabl
     ALTER TABLE
 ....
 
-Các policy có thể được kết hợp tùy thuộc vào statement cụ thể mà user issue. Theo mặc định, policy được tạo dưới dạng *permissive*, nghĩa là chúng được kết hợp bằng phép logic “OR.” Điều này có nghĩa là chỉ cần một policy grant operation là statement có thể thành công. Ngược lại, các policy được tạo dưới dạng *restrictive* sẽ được merge bằng phép logic “AND,” vì vậy mọi policy đều phải thành công thì statement mới được execute.
+.SQL
+[source,sql]
+....
+ALTER TABLE posts DISABLE ROW LEVEL SECURITY;
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+....
 
-Kiểu permissiveness của một policy chỉ có thể được thiết lập tại thời điểm tạo, vì vậy, chẳng hạn để biến policy `show_only_my_posts` thành restrictive, bạn cần xóa rồi tạo lại policy với permissiveness được chỉ định một cách tường minh:
+.Output
+[source,output]
+....
+    ALTER TABLE
 
-[source,text]
+
+    -- to enable the RLS again
+    ALTER TABLE
+....
+
+
+Các policy có thể được kết hợp tùy theo statement cụ thể mà user thực thi. Theo mặc định, policy được tạo dưới dạng *permissive*, nghĩa là chúng được kết hợp bằng phép logic “OR”. Điều này có nghĩa là chỉ cần một policy cho phép thao tác đó thì statement có thể thành công. Ngược lại, các policy được tạo dưới dạng *restrictive* sẽ được gộp bằng phép logic “AND”, vì vậy mọi policy đều phải thành công thì statement mới được thực thi.
+
+Mức permissiveness của một policy chỉ có thể được thiết lập khi tạo policy. Vì vậy, chẳng hạn, để chuyển policy `show_only_my_posts` thành restrictive, bạn cần xóa policy rồi tạo lại với mức permissiveness được chỉ định tường minh:
+
+[source,console,role="transcript"]
 ....
     forumdb=> DROP POLICY show_only_my_posts ON posts;
     DROP POLICY
@@ -192,5 +336,25 @@ Kiểu permissiveness của một policy chỉ có thể được thiết lập 
                FOR SELECT
                USING ( author = ( SELECT pk FROM users
                                        WHERE username = CURRENT_ROLE ) );
+    CREATE POLICY
+....
+
+.SQL
+[source,sql]
+....
+DROP POLICY show_only_my_posts ON posts;
+CREATE POLICY show_only_my_posts
+    ON posts
+    AS restrictive
+    FOR SELECT
+    USING (author = (SELECT pk FROM users
+                            WHERE username = CURRENT_ROLE));
+....
+
+.Output
+[source,output]
+....
+    DROP POLICY
+
     CREATE POLICY
 ....

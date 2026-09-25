@@ -1,20 +1,20 @@
-= Khám phá các configuration file và parameter
+= Khám phá configuration file và parameter
 
-Main configuration file của PostgreSQL là `postgresql.conf`, một text-based file điều khiển cluster khi cluster start.
+Configuration file chính của PostgreSQL là `postgresql.conf`, một text file dùng để điều khiển cluster khi khởi động.
 
-Thông thường, khi thay đổi cluster configuration, bạn phải edit file `postgresql.conf` để ghi các setting mới và, tùy theo context của các setting đã edit, phát hành tín hiệu SIGHUP tới cluster (tức là reload configuration) hoặc restart cluster.
+Thông thường, khi thay đổi configuration của cluster, bạn phải chỉnh sửa file `postgresql.conf` để lưu các setting mới và, tùy vào context của các setting đó, gửi tín hiệu SIGHUP tới cluster (tức là reload configuration) hoặc restart cluster.
 
-Mỗi configuration parameter được gắn với một context; tùy context, bạn có thể áp dụng thay đổi có hoặc không cần restart cluster. Các context khả dụng gồm:
+Mỗi configuration parameter thuộc về một context; tùy theo context, thay đổi có thể được áp dụng mà không cần restart cluster hoặc chỉ có hiệu lực sau khi restart cluster. Các context khả dụng gồm:
 
-* `internal`: một nhóm parameter được set tại compile time và vì vậy không thể thay đổi tại runtime.
-* `postmaster`: tất cả parameter yêu cầu restart cluster (tức là kill postmaster process rồi start lại) để được activate.
-* `sighup`: tất cả configuration parameter có thể được áp dụng bằng tín hiệu SIGHUP gửi tới postmaster process; điều này tương đương với việc phát hành một reload signal trong operating system service manager.
-* `backend` và `superuser-backend`: tất cả parameter có thể được set tại runtime nhưng sẽ được áp dụng cho connection bình thường hoặc administrative connection tiếp theo.
-* `user` và `superuser`: một nhóm setting có thể thay đổi tại runtime và lập tức active đối với connection bình thường và administrative connection.
+* `internal`: một nhóm parameter được thiết lập tại compile time, vì vậy không thể thay đổi tại runtime.
+* `postmaster`: tất cả parameter yêu cầu restart cluster (tức là phải kill postmaster process rồi start lại) mới có hiệu lực.
+* `sighup`: tất cả configuration parameter có thể được áp dụng bằng cách gửi tín hiệu SIGHUP tới postmaster process; thao tác này tương đương với việc yêu cầu operating system service manager thực hiện reload.
+* `backend` và `superuser-backend`: tất cả parameter có thể được thiết lập tại runtime nhưng chỉ có hiệu lực trên connection bình thường hoặc administrative connection tiếp theo.
+* `user` và `superuser`: một nhóm setting có thể thay đổi tại runtime và có hiệu lực ngay đối với connection bình thường và administrative connection.
 
-Các configuration parameter sẽ được giải thích ở phần sau của cuốn sách, nhưng sau đây là ví dụ về một configuration file tối thiểu với một số setting khác nhau:
+Các configuration parameter sẽ được giải thích ở những phần sau của cuốn sách. Dưới đây là ví dụ về một configuration file tối thiểu với một số setting khác nhau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    $ cat /postgres/16/data/postgresql.conf
    shared_buffers = 512MB
@@ -26,10 +26,29 @@ Các configuration parameter sẽ được giải thích ở phần sau của cu
    max_wal_size = 2GB
 ....
 
-File `postgresql.auto.conf` có chính xác cùng syntax như file `postgresql.conf` chính, nhưng được PostgreSQL tự động overwrite khi configuration được thay đổi tại runtime trực tiếp trong system, thông qua các administrative statement cụ thể như `ALTER SYSTEM`. File `postgresql.auto.conf` luôn được load ở thời điểm cuối cùng, do đó overwrite các setting khác. Trong một fresh installation, file này rỗng, nghĩa là nó sẽ không overwrite bất kỳ custom setting nào khác.
-Bạn không bị buộc phải chỉ dùng một configuration file; trên thực tế, có các directive cụ thể để include những configuration file khác. Configuration của cluster sẽ được trình bày chi tiết ở một chương sau.
+.Command
+[source,bash]
+....
+cat /postgres/16/data/postgresql.conf
+....
 
-PostgreSQL HBA file (`pg_hba.conf`) là một text file khác chứa các quy tắc cho phép connection: nó liệt kê các database, user và network được phép connect đến cluster của bạn. Phương thức HBA có thể được xem như một firewall được nhúng trong PostgreSQL. Ví dụ, sau đây là một đoạn trích từ file `pg_hba.conf`:
+.Output
+[source,output]
+....
+   shared_buffers = 512MB
+   maintenance_work_mem = 128MB
+   checkpoint_completion_target = 0.7
+   wal_buffers = 16MB
+   work_mem = 32MB
+   min_wal_size = 1GB
+   max_wal_size = 2GB
+....
+
+
+File `postgresql.auto.conf` có cùng syntax với file `postgresql.conf` chính, nhưng được PostgreSQL tự động ghi đè khi configuration được thay đổi trực tiếp trên hệ thống đang chạy bằng các administrative statement như `ALTER SYSTEM`. File `postgresql.auto.conf` luôn được load sau cùng, nên ghi đè lên các setting khác. Trong một cài đặt mới, file này rỗng, nghĩa là nó sẽ không ghi đè lên bất kỳ custom setting nào khác.
+Bạn không bị giới hạn chỉ ở một configuration file; trên thực tế, có các directive cụ thể để include những configuration file khác. Configuration của cluster sẽ được trình bày chi tiết ở một chương sau.
+
+PostgreSQL HBA file (`pg_hba.conf`) là một text file khác chứa các rule cho phép connection: file này liệt kê những database, user và network được phép kết nối tới cluster của bạn. Cơ chế HBA có thể được xem như một firewall tích hợp trong PostgreSQL. Ví dụ, dưới đây là một đoạn trích từ file `pg_hba.conf`:
 
 [source,text]
 ....
@@ -37,4 +56,4 @@ hosts   all luca 192.168.222.1/32 md5
 hostssl all enrico 192.168.222.1/32 md5
 ....
 
-Nói ngắn gọn, các dòng trên có nghĩa là user `luca` có thể connect đến bất kỳ database nào trong cluster từ máy có địa chỉ IPv4 `192.168.222.1`, còn user `enrico` có thể connect đến bất kỳ database nào từ cùng máy đó nhưng chỉ qua connection được mã hóa bằng SSL. Tất cả rule có trong `pg_hba.conf` sẽ được trình bày chi tiết ở một chương sau, nhưng hiện tại chỉ cần biết rằng file này hoạt động như một “danh sách các firewall rule” cho những connection đi vào.
+Nói ngắn gọn, các dòng trên có nghĩa là user `luca` có thể kết nối tới bất kỳ database nào trong cluster từ máy có địa chỉ IPv4 `192.168.222.1`. User `enrico` cũng có thể kết nối tới bất kỳ database nào từ máy đó, nhưng chỉ qua connection được mã hóa bằng SSL. Tất cả rule trong `pg_hba.conf` sẽ được trình bày chi tiết ở một chương sau; hiện tại, bạn chỉ cần biết file này hoạt động như một “danh sách các firewall rule” cho các connection đến.

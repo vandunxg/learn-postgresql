@@ -1,22 +1,19 @@
-= Tìm hiểu CTE
+= Tìm hiểu về CTE
 
-Trong section này, chúng ta sẽ nói về CTE. Section này được chia thành ba phần. Thứ nhất, chúng ta sẽ nói về khái niệm CTE; thứ hai, chúng ta sẽ thảo luận cách CTE được implement bắt đầu từ PostgreSQL 12; và cuối cùng, chúng ta sẽ khám phá một số ví dụ về cách sử dụng CTE.
+Trong phần này, chúng ta sẽ tìm hiểu về CTE. Nội dung được chia thành ba phần. Trước hết, chúng ta sẽ tìm hiểu khái niệm CTE; tiếp theo, chúng ta sẽ thảo luận về cách CTE được triển khai kể từ PostgreSQL 12; cuối cùng, chúng ta sẽ xem xét một số ví dụ về cách sử dụng CTE.
 
-== Khái niệm CTE
+== Khái niệm về CTE
 
-CTE, hay common table expression, là một temporary result lấy từ một SQL statement. Statement này có thể chứa instruction `SELECT`, `INSERT`, `UPDATE` hoặc `DELETE`. Lifetime của CTE bằng với lifetime của query. Đây là một ví dụ về định nghĩa CTE:
+CTE, hay common table expression, là một result set tạm thời được tạo từ một SQL statement. Statement này có thể chứa các statement `SELECT`, `INSERT`, `UPDATE` hoặc `DELETE`. Vòng đời của CTE trùng với vòng đời của query. Sau đây là một ví dụ về định nghĩa CTE:
 
-[source,text]
+[source,sql]
 ....
-WITH cte_name (column_list) AS (
-  CTE_query_definition
-)
-statement;
+WITH cte_name (column_list) AS (CTE_query_definition) statement;
 ....
 
-Ví dụ, nếu muốn tạo một temporary dataset với tất cả post do author `enrico_pirozzi` viết, chúng ta phải viết như sau:
+Ví dụ, nếu muốn tạo một tập dữ liệu tạm thời chứa tất cả bài viết do tác giả `enrico_pirozzi` viết, chúng ta phải viết như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> with posts_author_1 as
   (select p.* from posts p
@@ -29,9 +26,29 @@ select pk,title from posts_author_1;
 (1 row)
 ....
 
-Chúng ta cũng có thể viết cùng điều này bằng cách sử dụng một inline view:
+.SQL
+[source,sql]
+....
+WITH posts_author_1 AS
+  (SELECT p.* FROM posts p
+  inner JOIN users u ON p.author = u.pk
+  WHERE username = 'enrico_pirozzi')
+SELECT pk, title FROM posts_author_1;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  pk |             title
+ ----+------------------------------
+   3 | A view of   Data types in C++
+(1 row)
+....
+
+
+Chúng ta cũng có thể viết tương tự bằng cách sử dụng một inline view:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title from
 (select p.* from posts p inner join users u on p.author=u.pk where
@@ -42,4 +59,23 @@ u.username='enrico_pirozzi') posts_author_1;
 (1 row)
 ....
 
-Như có thể thấy, result giống nhau. Điểm khác biệt là trong ví dụ đầu tiên, CTE tạo ra một temporary resultset, còn query thứ hai, inline view, thì không.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title
+FROM (SELECT p.* FROM posts p inner JOIN users u ON p.author = u.pk WHERE u.username = 'enrico_pirozzi') posts_author_1;
+....
+
+.Output
+[source,output]
+....
+ pk |             title
+----+------------------------------
+  3 | A view of   Data types in C++
+(1 row)
+....
+
+
+Như có thể thấy, kết quả giống nhau. Điểm khác biệt là trong ví dụ đầu tiên, CTE tạo ra một result set tạm thời, còn query thứ hai sử dụng inline view thì không tạo ra result set tạm thời.

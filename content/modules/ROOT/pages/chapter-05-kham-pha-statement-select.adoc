@@ -1,8 +1,8 @@
-= Khám phá statement `SELECT`
+= Tìm hiểu statement `SELECT`
 
-Như đã thấy trong chapter trước, chúng ta có thể sử dụng statement `SELECT` để filter dataset bằng điều kiện so sánh bằng. Tương tự, chúng ta có thể filter record bằng các điều kiện `>` hoặc `<`, như trong ví dụ sau:
+Như đã thấy ở chương trước, chúng ta có thể sử dụng statement `SELECT` để lọc dữ liệu bằng điều kiện so sánh bằng. Tương tự, chúng ta có thể lọc các row theo điều kiện `>` hoặc `<`, như trong ví dụ sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from categories where pk > 2;
     pk |         title            |                 description
@@ -11,6 +11,24 @@ forumdb=> select * from categories where pk > 2;
    (1 row)
 ....
 
-Query trên trả về tất cả record có `pk > 2`.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories
+WHERE pk > 2;
+....
 
-Một điều kiện khác có thể dùng với statement `SELECT` là điều kiện like. Hãy xem ví dụ tiếp theo.
+.Output
+[source,output]
+....
+    pk |         title            |                 description
+----+-----------------------+---------------------------------
+     3 | Programming Languages | All about programming languages
+   (1 row)
+....
+
+
+Query trên trả về tất cả các row có `pk > 2`.
+
+Một điều kiện khác có thể dùng trong statement `SELECT` là điều kiện LIKE. Hãy xem ví dụ tiếp theo.

@@ -1,18 +1,18 @@
 = Thống kê nâng cao với pg_stat_statements
 
-Mặc dù PostgreSQL statistics collector rất phong phú và mature, việc monitor connection activity có thể hơi phức tạp vì catalog `pg_stat_activity` không cung cấp thông tin lịch sử. Ví dụ, như đã giải thích trước đó, sẽ chỉ có một tuple chứa statement được thực thi gần nhất, vì vậy sẽ không có history hay chi tiết mở rộng nào được cung cấp.
+Mặc dù statistics collector của PostgreSQL rất phong phú và hoàn thiện, việc theo dõi activity của connection có thể hơi phức tạp vì catalog `pg_stat_activity` không cung cấp thông tin lịch sử. Như đã giải thích trước đó, catalog này chỉ có một tuple chứa statement được thực thi gần nhất, nên không cung cấp lịch sử hoặc các chi tiết mở rộng khác.
 
-Extension `pg_stat_statements` giải quyết vấn đề này bằng cách cung cấp một view duy nhất cho bạn toàn bộ history của các statement đã thực thi, timing và những chi tiết nhỏ khác có thể rất hữu ích khi thực hiện introspection. Hơn nữa, `pg_stat_statements` cung cấp số lần cùng một statement đã được thực thi, tạo ra thông tin quan trọng mà các query có thể cần được chú ý để phục vụ mục đích optimization.
+Extension `pg_stat_statements` giải quyết vấn đề này bằng cách cung cấp một view duy nhất cho phép xem lịch sử các statement đã thực thi, timing và một số chi tiết khác có thể rất hữu ích cho việc introspection. Ngoài ra, `pg_stat_statements` cung cấp số lần mỗi statement được thực thi, từ đó tạo ra thông tin quan trọng để xác định những query có thể cần được chú ý nhằm phục vụ việc tối ưu hóa.
 
-Một số monitoring tool yêu cầu `pg_stat_statements` được cài đặt để thu thập data.
+Một số công cụ monitoring yêu cầu cài đặt `pg_stat_statements` để thu thập dữ liệu.
 
-Trong các subsection sau, bạn sẽ học cách cài đặt extension này và sử dụng nó.
+Trong các phần tiếp theo, bạn sẽ học cách cài đặt và sử dụng extension này.
 
 == Cài đặt extension pg_stat_statements
 
-Extension này được đóng gói cùng PostgreSQL, vì vậy việc duy nhất bạn cần làm là cấu hình database cluster để sử dụng nó. Vì `pg_stat_statements` yêu cầu một shared library, bạn cần cấu hình setting `shared_preload_libraries` trong configuration của mình (file `postgresql.conf`) và restart cluster.
+Extension này được đóng gói cùng PostgreSQL, vì vậy bạn chỉ cần cấu hình database cluster để sử dụng nó. Vì `pg_stat_statements` yêu cầu một shared library, bạn cần cấu hình parameter `shared_preload_libraries` trong file `postgresql.conf` rồi restart cluster.
 
-Bước đầu tiên là đặt giá trị sau trong `postgresql.conf`:
+Trước hết, đặt giá trị sau trong `postgresql.conf`:
 
 [source,text]
 ....
@@ -21,35 +21,48 @@ shared_preload_libraries = 'pg_stat_statements'
 
 Hoặc sử dụng `ALTER SYSTEM` như sau:
 
-[source,text]
+[source,sql]
 ....
 ALTER SYSTEM SET shared_preload_libraries to 'pg_stat_statements';
 ....
 
-Vì `pg_shared_preload_libraries` là một parameter có context `postmaster`, bạn cần restart cluster để áp dụng các thay đổi.
+Vì `pg_shared_preload_libraries` là một parameter có context `postmaster`, bạn cần restart cluster để các thay đổi có hiệu lực.
 
-`pg_stat_statements` thu thập thông tin về tất cả cluster của bạn, nhưng chỉ export thông tin đó trong database nơi bạn tạo extension; trong ví dụ của chúng ta, đó là database `forumdb`:
+`pg_stat_statements` thu thập thông tin về toàn bộ database trong cluster, nhưng chỉ cung cấp thông tin đó trong database nơi bạn tạo extension; trong ví dụ này, đó là database `forumdb`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ psql -U postgres -c "CREATE EXTENSION pg_stat_statements;" forumdb
 CREATE EXTENSION
 ....
 
+.Command
+[source,bash]
+....
+psql -U postgres -c "CREATE EXTENSION pg_stat_statements;" forumdb
+....
+
+.Output
+[source,output]
+....
+CREATE EXTENSION
+....
+
+
 Extension hiện đã sẵn sàng để sử dụng.
 
 [quote]
 ____
-Trong Docker image của chapter này, extension `pg_stat_statements` đã được cài đặt và load vào database `forumdb`.
+Trong Docker image của chương này, extension `pg_stat_statements` đã được cài đặt và load vào database `forumdb`.
 
 ____
 == Sử dụng pg_stat_statements
 
-Khi `pg_stat_statements` được enable, nó sẽ bắt đầu thu thập thông tin. Runtime overhead của extension thực sự rất nhỏ, vì vậy bạn cũng có thể giữ nó được enable trong production system.
+Khi `pg_stat_statements` được enable, extension bắt đầu thu thập thông tin. Runtime overhead của extension thực sự rất nhỏ, vì vậy bạn có thể giữ extension enable trong production system.
 
-Vì `pg_stat_statements` thu thập data từ toàn bộ cluster, việc join special view `pg_stat_statements` với các catalog khác, chẳng hạn `pg_database` và `pg_authid`, sẽ hữu ích để lần lượt thu thập thông tin về database và username nơi một statement đã được thực thi. Query sau đây cung cấp một ví dụ:
+Vì `pg_stat_statements` thu thập dữ liệu trên toàn bộ cluster, việc join view chuyên dụng `pg_stat_statements` với các catalog khác, chẳng hạn `pg_database` và `pg_authid`, sẽ hữu ích để biết statement được thực thi trong database nào và bởi username nào. Query sau đây là một ví dụ:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT auth.rolname,query, db.datname, calls, min_exec_time,
 max_exec_time
@@ -67,34 +80,69 @@ min_exec_time | 0.037292
 max_exec_time | 0.04165
 ....
 
-Ví dụ trước cho thấy query đã được thực thi 17 lần kể từ khi `pg_stat_statements` bắt đầu thu thập data, và cần từ 0.037 đến 0.042 milliseconds để chạy. Tùy thuộc vào frequency và timing của từng query, việc inspect và optimize query bằng một index có thể đáng làm.
+.SQL
+[source,sql]
+....
+SELECT
+    auth.rolname,
+    query,
+    db.datname,
+    calls,
+    min_exec_time,
+    max_exec_time
+FROM pg_stat_statements JOIN pg_authid auth ON auth.oid = userid JOIN pg_database db ON db.oid = dbid
+ORDER BY calls DESC;
+....
 
-Trong ví dụ trên, query được báo cáo dưới dạng normalized query: mọi parameter, kể cả literal, đã bị loại bỏ và thay thế bằng placemark `$1` (các parameter khác sẽ được đánh dấu là `$2`, `$3`, v.v.): `SELECT count(*) FROM forum.posts WHERE last_edited_on >= CURRENT_DATE - $1`.
+.Output
+[source,output]
+....
+...
+rolname            | postgres
+query         | SELECT count(*) FROM forum.posts WHERE last_edited_on >=
+CURRENT_DATE - $1
+datname            | forumdb
+calls              | 17
+min_exec_time | 0.037292
+max_exec_time | 0.04165
+....
 
-Ý tưởng là theo dõi một nhóm query có cùng normalized text, để bạn có thể biết một nhóm như vậy đã được thực thi bao nhiêu lần, ngay cả khi chúng có các argument khác nhau.
 
-Special view `pg_stat_statements` theo dõi các query được thực thi thường xuyên nhất cho đến giá trị của configuration parameter `pg_stat_statements.max`, mặc định là 5000. Khi đạt đến giới hạn, các query được thực thi ít nhất sẽ bị loại bỏ để nhường chỗ cho các query mới. Điều này bảo đảm không gian mà table `pg_stat_statements` chiếm dụng sẽ gần như không đổi, bất kể số statement đã được thực thi.
+Ví dụ trước cho thấy query đã được thực thi 17 lần kể từ khi `pg_stat_statements` bắt đầu thu thập dữ liệu, và có execution time từ 0.037 đến 0.042 milliseconds. Tùy thuộc vào tần suất và execution time của từng query, việc kiểm tra và tối ưu query bằng index có thể đáng cân nhắc.
 
-View `pg_stat_statements` cung cấp nhiều field không thể được thảo luận chi tiết ở đây, từ planning time đến buffer và I/O activity. Extension này rất hữu ích khi bạn muốn xử lý workload của cluster.
+Trong ví dụ trên, query được báo cáo dưới dạng normalized query: mọi parameter, kể cả literal, đều bị loại bỏ và thay thế bằng placeholder `$1` (các parameter khác sẽ được đánh dấu là `$2`, `$3`, v.v.): `SELECT count(*) FROM forum.posts WHERE last_edited_on >= CURRENT_DATE - $1`.
 
-== Reset data được thu thập từ pg_stat_statements
+Ý tưởng là theo dõi một nhóm query có cùng normalized text, để biết nhóm đó đã được thực thi bao nhiêu lần, ngay cả khi các query có argument khác nhau.
 
-Bất kỳ lúc nào, database administrator cũng có thể reset toàn bộ data đã được extension thu thập bằng cách gọi function `pg_stat_statements_reset()`. Function này sẽ xóa toàn bộ data đã được thu thập và cho phép extension thu thập data mới từ đầu. Điều này có thể hữu ích khi bạn muốn test configuration hoặc hardware mới mà không để data đã thu thập bị bias do statistics cũ:
+View chuyên dụng `pg_stat_statements` theo dõi các query được thực thi thường xuyên nhất, với số lượng tối đa bằng giá trị của configuration parameter `pg_stat_statements.max`, mặc định là 5000. Khi đạt đến giới hạn, các query ít được thực thi nhất sẽ bị loại bỏ để nhường chỗ cho các query mới. Điều này bảo đảm không gian mà view `pg_stat_statements` chiếm dụng gần như không đổi, bất kể số statement đã được thực thi.
 
-[source,text]
+View `pg_stat_statements` cung cấp nhiều column mà ở đây không thể thảo luận chi tiết, từ planning time đến buffer và I/O activity. Extension này rất hữu ích khi bạn muốn xử lý workload của cluster.
+
+== Reset dữ liệu do pg_stat_statements thu thập
+
+Database administrator có thể reset toàn bộ dữ liệu mà extension đã thu thập bất cứ lúc nào bằng cách gọi function `pg_stat_statements_reset()`. Function này xóa toàn bộ dữ liệu đã thu thập và cho phép extension bắt đầu lại từ đầu. Điều này có thể hữu ích khi bạn muốn test configuration hoặc hardware mới mà không để statistics cũ làm bias dữ liệu mới:
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT pg_stat_statements_reset();
 ....
 
-Theo mặc định, data của `pg_stat_statements` được giữ lại qua các lần shutdown và restart database một cách bình thường.
+.SQL
+[source,sql]
+....
+SELECT pg_stat_statements_reset();
+....
 
-== Tuning pg_stat_statements
 
-Extension cho phép database administrator giới hạn lượng data được thu thập. Cụ thể, bạn có thể tune các parameter sau trong configuration file `postgresql.conf`:
+Theo mặc định, dữ liệu của `pg_stat_statements` được giữ lại qua các lần shutdown và restart database thông thường.
 
-* `pg_stat_statements.max` cho biết số query riêng lẻ tối đa cần thu thập.
-* `pg_stat_statements.save` là một Boolean cho biết content của data đã thu thập có phải tồn tại sau một lần system reboot bình thường hay không. Theo mặc định, setting này là true.
-* `pg_stat_statements.track` cho phép bạn chỉ định nesting level cần theo dõi. Với giá trị `top`, extension sẽ thu thập data về query được issue trực tiếp bên trong client và các nested statement được theo dõi. Việc này được kích hoạt bởi execution của các statement khác (ví dụ, trong function statement). Với giá trị `all`, extension sẽ trigger mọi statement và các descendant của chúng, còn với `none`, sẽ không có data nào được thu thập về user statement.
+== Tinh chỉnh pg_stat_statements
+
+Extension cho phép database administrator giới hạn lượng dữ liệu được thu thập. Cụ thể, bạn có thể điều chỉnh các parameter sau trong configuration file `postgresql.conf`:
+
+* `pg_stat_statements.max` cho biết số lượng query riêng lẻ tối đa cần thu thập.
+* `pg_stat_statements.save` là một Boolean cho biết dữ liệu đã thu thập có được giữ lại sau một lần reboot hệ thống thông thường hay không. Theo mặc định, setting này là true.
+* `pg_stat_statements.track` cho phép bạn chỉ định nesting level cần theo dõi. Với giá trị `top`, extension chỉ thu thập dữ liệu về query do client issue trực tiếp; các nested statement, chẳng hạn statement bên trong function, không được theo dõi. Với giá trị `all`, extension theo dõi mọi statement và các descendant của chúng, còn với `none`, extension không thu thập dữ liệu về user statement.
 * `pg_stat_statements.track_utility` theo dõi mọi statement không phải `SELECT`, `INSERT`, `UPDATE` hoặc `DELETE` - nói cách khác là các statement “non-ordinary”. Theo mặc định, setting này là `on`.
 
-Thông thường, bạn không cần tune các setting này vì `pg_stat_statements` đã được cấu hình sẵn để theo dõi những gì hầu hết use case cần.
+Thông thường, bạn không cần điều chỉnh các setting này vì `pg_stat_statements` đã được cấu hình sẵn để theo dõi đủ thông tin cho hầu hết use case.

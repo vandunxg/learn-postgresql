@@ -1,22 +1,22 @@
-= Monitoring the cluster
+= Theo dõi cluster
 
-Monitoring cluster cho phép bạn hiểu cluster đang làm gì tại bất kỳ thời điểm nào, và có khả năng hành động cũng như phản ứng phù hợp để tránh suy giảm performance và usability của database. PostgreSQL cung cấp một tập catalog phong phú, cho phép database administrator monitor toàn bộ activity chỉ bằng cách phát hành các SQL statement và query.
+Việc theo dõi cluster giúp bạn hiểu cluster đang làm gì tại bất kỳ thời điểm nào và hành động phù hợp để tránh performance và usability của database bị suy giảm. PostgreSQL cung cấp một tập catalog phong phú, cho phép database administrator theo dõi toàn bộ activity chỉ bằng cách thực thi SQL statement và query.
 
-Bạn cũng có thể kết hợp kết quả thông tin lấy từ catalog với các monitoring tool bên ngoài khác, từ tool của operating system đến những tool phức tạp hơn như Nagios.
+Bạn cũng có thể kết hợp thông tin từ catalog với thông tin do các monitoring tool bên ngoài cung cấp, từ tool của operating system đến những tool phức tạp hơn như Nagios.
 
-Trong section này, chúng ta sẽ xem xét các PostgreSQL catalog chính được dùng để monitor và thu thập thông tin về database activity. Như bạn có thể hình dung, chỉ database administrator mới có thể lấy được thông tin đầy đủ về activity của toàn cluster.
+Trong section này, chúng ta sẽ xem xét các PostgreSQL catalog chính dùng để theo dõi và thu thập thông tin về activity của database. Như bạn có thể hình dung, chỉ database administrator mới có thể lấy đầy đủ thông tin về activity của toàn cluster.
 
-Cluster thu thập thông tin về activity thông qua *statistic collector*, một process chuyên trách việc thu thập và do đó cung cấp thông tin trên phạm vi toàn cluster. Statistics không phải là realtime, dù bạn có cảm giác như vậy. Đó là vì backend process cập nhật statistics không thường xuyên hơn một lần mỗi 500 milliseconds, với điều kiện chúng đang idle. Hơn nữa, statistics bên trong một transaction block bị “frozen”, nghĩa là bạn không thể quan sát các thay đổi trong statistics cho đến khi transaction của bạn kết thúc.
+Cluster thu thập thông tin về activity thông qua *statistic collector*, một process chuyên trách việc thu thập và cung cấp thông tin trên toàn cluster. Statistics không được cập nhật theo realtime, dù đôi khi có vẻ như vậy. Lý do là backend process chỉ cập nhật statistics tối đa một lần mỗi 500 milliseconds, với điều kiện đang idle. Ngoài ra, statistics bên trong một transaction block bị “frozen”, nghĩa là bạn không thể quan sát thay đổi trong statistics cho đến khi transaction kết thúc.
 
-Statistics được giữ lại qua các lần shutdown và restart sạch của cluster, nhưng trong trường hợp recovery từ một crash, toàn bộ statistics sẽ bị xóa và việc thu thập bắt đầu lại từ đầu. Cũng có thể reset thủ công statistics cho một database cụ thể bằng cách gọi function `pg_stat_reset()` với tư cách database superuser.
+Statistics được giữ lại sau các lần shutdown và restart sạch của cluster, nhưng nếu phải recovery sau crash, toàn bộ statistics sẽ bị xóa và quá trình thu thập bắt đầu lại từ đầu. Bạn cũng có thể reset thủ công statistics của một database cụ thể bằng cách gọi function `pg_stat_reset()` với quyền database superuser.
 
-Trong các subsection sau, chúng ta sẽ tập trung vào một tập statistics có thể hữu ích để hiểu điều gì đang diễn ra bên trong cluster, qua đó hỗ trợ monitor toàn bộ activity.
+Trong các subsection tiếp theo, chúng ta sẽ tập trung vào một số statistics hữu ích để hiểu những gì đang diễn ra bên trong cluster, qua đó hỗ trợ theo dõi toàn bộ activity.
 
-== Information about running queries and sessions
+== Thông tin về các query và session đang chạy
 
-Catalog `pg_stat_activity` cung cấp một tuple cho mỗi backend process đang active trong cluster và do đó cho mỗi client đang connected. Các query đơn giản sau cung cấp output chi tiết:
+Catalog `pg_stat_activity` cung cấp một tuple cho mỗi backend process đang hoạt động trong cluster, tương ứng với mỗi client đang kết nối. Các query đơn giản sau đây cung cấp output chi tiết:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT usename, datname, client_addr, application_name,
              backend_start, query_start,
@@ -37,17 +37,52 @@ query            | INSERT INTO tags( tag ) SELECT 'A Fake Tag' FROM
 generate_series( 1, 10000 );
 ....
 
-Như bạn thấy, user `luca` (trong field `usename`) được connected thông qua `psql` (field `application_name`) từ một host remote (field `client_addr`) và đã thực thi query `INSERT INTO` trên table `tags` trong database `forumdb`. Điều đáng chú ý là field `state`, field báo cáo status của query đang chạy. Trong ví dụ trước, giá trị là `idle`, nghĩa là query đang chờ một việc khác xảy ra, và thậm chí có thể đã hoàn tất.
+.SQL
+[source,sql]
+....
+SELECT
+    usename,
+    datname,
+    client_addr,
+    application_name,
+    backend_start,
+    query_start,
+    state,
+    backend_xid,
+    query
+FROM pg_stat_activity;
+....
 
-Cần lưu ý rằng catalog `pg_stat_activity` chỉ báo cáo query được thực thi gần nhất từ một session hoặc connection. Hãy nhớ rằng catalog hiển thị một tuple cho mỗi client đang connected và statistics không được cập nhật cho đến khi một statement mới được thực thi.
+.Output
+[source,output]
+....
+...
+-[ RECORD 4 ]----+--------------------------------------------------------
+----------------------
+usename               | luca
+datname               | forumdb
+client_addr           | 192.168.222.1
+application_name | psql
+backend_start        | 2023-09-13 16:42:50.9931+02
+query_start          | 2023-09-13 16:44:20.601118+02
+state                | idle
+backend_xid          |
+query            | INSERT INTO tags( tag ) SELECT 'A Fake Tag' FROM
+generate_series( 1, 10000 );
+....
 
-Catalog `pg_stat_activity` có thể được query bởi bất kỳ ai, kể cả user thông thường, nhưng lượng thông tin được báo cáo có thể bị cắt giảm tùy theo privilege của user thực thi query.
 
-== Inspecting locks
+Như bạn thấy, user `luca` (trong column `usename`) đã kết nối qua `psql` (column `application_name`) từ một remote host (column `client_addr`) và đã thực thi query `INSERT INTO` trên table `tags` trong database `forumdb`. Đáng chú ý là column `state`, dùng để báo cáo trạng thái của query. Trong ví dụ trên, giá trị là `idle`, nghĩa là query đang chờ một event khác xảy ra và thậm chí có thể đã hoàn tất.
 
-Special catalog `pg_locks` cung cấp một view rõ ràng và chi tiết về mọi lock được các transaction và statement khác nhau acquire. Ý tưởng là bằng cách inspect catalog này, system administrator có thể nhanh chóng thấy các bottleneck tiềm ẩn và sự cạnh tranh giữa các transaction. Việc query catalog này bằng cách join nó với `pg_stat_activity` rất hữu ích để có thêm thông tin chi tiết về những gì đang diễn ra. Sau đây là một ví dụ về query và một phần result:
+Cần lưu ý rằng catalog `pg_stat_activity` chỉ báo cáo query được thực thi gần nhất bởi một session hoặc connection. Hãy nhớ rằng catalog hiển thị một tuple cho mỗi client đang kết nối, và statistics không được cập nhật cho đến khi statement tiếp theo được thực thi.
 
-[source,text]
+Bất kỳ ai, kể cả user thông thường, cũng có thể query catalog `pg_stat_activity`, nhưng lượng thông tin được báo cáo có thể bị giới hạn tùy theo privilege của user thực thi query.
+
+== Kiểm tra lock
+
+Catalog `pg_locks` cung cấp một view rõ ràng, chi tiết về mọi lock mà các transaction và statement khác nhau acquire. Bằng cách kiểm tra catalog này, system administrator có thể nhanh chóng nhận ra bottleneck tiềm ẩn và sự tranh chấp giữa các transaction. Join catalog này với `pg_stat_activity` rất hữu ích để có thêm thông tin chi tiết về những gì đang diễn ra. Sau đây là một ví dụ về query và một phần kết quả:
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT a.usename, a.application_name, a.datname, a.query,
            l.granted, l.mode
@@ -73,11 +108,48 @@ granted              | t
 mode                 | ExclusiveLock
 ....
 
-Có hai connection của user `luca` tới database `forumdb`, và một connection đã acquire lock để xóa tuple trong khi connection còn lại đang insert tuple vào table `tags`. Column `granted` cho biết lock đã được acquire hay chưa, vì vậy việc chỉ chọn các lock non-granted là một điểm khởi đầu tốt để tìm hiểu về các query bị block. Column `mode` cho biết loại lock mà query đang cố acquire.
+.SQL
+[source,sql]
+....
+SELECT
+    a.usename,
+    a.application_name,
+    a.datname,
+    a.query,
+    l.granted,
+    l.mode
+FROM pg_locks l JOIN pg_stat_activity a ON a.pid = l.pid;
+....
 
-Với các gợi ý này, và một lần nữa nhờ join chính xác với `pg_stat_activity`, bạn có thể tìm các query bị block, như trong ví dụ sau (đây là phần tiếp theo của cùng scenario đã mô tả trước đó):
+.Output
+[source,output]
+....
+...
+-[ RECORD 5 ]----+--------------------------------------------------------
+--
+usename              | luca
+application_name | psql
+datname              | forumdb
+query                | delete from tags;
+granted              | t
+mode                 | RowExclusiveLock
+...
+-[ RECORD 9 ]----+--------------------------------------------------------
+--
+usename              | luca
+application_name | psql
+datname              | forumdb
+query                | insert into tags( tag ) values( 'FreeBSD' );
+granted              | t
+mode                 | ExclusiveLock
+....
 
-[source,text]
+
+Có hai connection của user `luca` tới database `forumdb`: một connection đã acquire lock để xóa tuple, trong khi connection kia đang insert tuple vào table `tags`. Column `granted` cho biết lock đã được cấp hay chưa, vì vậy chỉ xem các lock non-granted là điểm khởi đầu tốt để tìm các query bị block. Column `mode` cho biết loại lock mà query đang cố acquire.
+
+Dựa trên các gợi ý này, và một lần nữa nhờ join đúng với `pg_stat_activity`, bạn có thể tìm các query bị block như trong ví dụ sau (đây là phần tiếp theo của cùng tình huống đã mô tả trước đó):
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT query, backend_start, xact_start, query_start,
            state_change, state,
@@ -100,19 +172,56 @@ wait_event_type | Client
 wait_event          | ClientRead
 ....
 
-Như bạn thấy, query đã chờ 7 phút 33 giây (column `locked_since`), nhưng query đang ở trạng thái `idle in transaction` (column `state`) và đang chờ input từ một client (các column `wait_event` và `wait_event_type`). Nói cách khác, query đang chờ user hoàn tất transaction (bằng `COMMIT` hoặc `ROLLBACK`).
+.SQL
+[source,sql]
+....
+SELECT
+    query,
+    backend_start,
+    xact_start,
+    query_start,
+    state_change,
+    state,
+    now()::time - state_change::time AS locked_since,
+    pid,
+    wait_event_type,
+    wait_event
+FROM pg_stat_activity
+WHERE wait_event_type IS NOT NULL
+ORDER BY locked_since DESC;
+....
 
-Tận dụng `pg_locks` có thể giúp bạn theo dõi diễn tiến của transaction và sự tranh chấp giữa chúng, cũng như quyết định cách terminate các query đang block workload khác.
+.Output
+[source,output]
+....
+...
+-[ RECORD 6 ]---+---------------------------------------------
+query               | insert into tags( tag ) values( 'FreeBSD' );
+backend_start       | 2023-09-14 08:26:57.762887+02
+xact_start          | 2023-09-14 08:27:00.017983+02
+query_start         | 2023-09-14 08:27:14.745784+02
+state_change        | 2023-09-14 08:27:14.775535+02
+state               | idle in transaction
+locked_since        | 00:07:33.411832
+pid                 | 60239
+wait_event_type | Client
+wait_event          | ClientRead
+....
 
-Cũng có một utility function tên là `pg_blocking_pids()` nhận process identifier của một backend và trả về danh sách process identifier đang block process đó.
 
-== Inspecting databases
+Như bạn thấy, query đã chờ 7 phút 33 giây (column `locked_since`), nhưng đang ở trạng thái `idle in transaction` (column `state`) và đang chờ input từ một client (các column `wait_event` và `wait_event_type`). Nói cách khác, query đang chờ user hoàn tất transaction (bằng `COMMIT` hoặc `ROLLBACK`).
 
-Bạn có thể lấy thông tin chi tiết về status của các database bằng cách query special catalog `pg_stat_database`. Catalog này cung cấp thông tin về các transaction `COMMIT` và `ROLLBACK`, deadlock và conflict. Hãy lưu ý rằng deadlock và rollback là các event tự nhiên trong một database, nhưng nếu bạn thấy các con số tăng nhanh, điều đó có thể nghĩa là đã xảy ra lỗi trong application hoặc có client đang cố thực hiện sai trong database và do đó buộc phải rollback.
+Việc tận dụng `pg_locks` có thể giúp bạn theo dõi diễn tiến của các transaction và sự tranh chấp giữa chúng, đồng thời quyết định cách terminate các query đang block workload khác.
 
-Ví dụ, bằng cách sử dụng query sau, bạn có thể lấy thông tin chi tiết về các database của mình:
+Ngoài ra, utility function `pg_blocking_pids()` nhận process identifier của một backend và trả về danh sách các process identifier đang block process đó.
 
-[source,text]
+== Kiểm tra database
+
+Bạn có thể lấy thông tin chi tiết về trạng thái của các database bằng cách query catalog `pg_stat_database`. Catalog này cung cấp thông tin về các transaction `COMMIT` và `ROLLBACK`, deadlock và conflict. Lưu ý rằng deadlock và rollback là những event có thể xảy ra tự nhiên trong database; tuy nhiên, nếu các con số này tăng nhanh, có thể đã xảy ra lỗi trong application hoặc một số client đang cố thực hiện thao tác không phù hợp trong database và do đó bị buộc phải rollback.
+
+Ví dụ, bạn có thể dùng query sau để lấy thông tin chi tiết về các database của mình:
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT datname, xact_commit, xact_rollback, blks_read,
 conflicts, deadlocks,
@@ -133,17 +242,54 @@ tup_deleted      | 0
 stats_reset      |
 ....
 
-Như bạn thấy, database `forumdb` không có conflict hoặc deadlock nào, và số transaction đã commit (column `xact_commit`) cao hơn nhiều so với số transaction đã abort (column `xact_rollback`). Vì vậy, chúng ta có thể giả định rằng database đang ổn và application đang phát hành các query tốt.
+.SQL
+[source,sql]
+....
+SELECT
+    datname,
+    xact_commit,
+    xact_rollback,
+    blks_read,
+    conflicts,
+    deadlocks,
+    tup_fetched,
+    tup_inserted,
+    tup_updated,
+    tup_deleted,
+    stats_reset
+FROM pg_stat_database;
+....
 
-Column cuối cùng, `stats_reset`, đặc biệt quan trọng vì nó cho biết statistics information của một database đã được reset, tức là đã bị xóa, hay chưa. Biết đã bao lâu kể từ khi statistics được reset sẽ giúp xác thực database. Nếu column này rỗng, statistics của database chưa bao giờ được reset thủ công.
+.Output
+[source,output]
+....
+...
+-[ RECORD 6 ]-+------------------------------
+datname         | forumdb
+xact_commit    | 802
+xact_rollback | 9
+blks_read      | 1800
+conflicts      | 0
+deadlocks      | 0
+tup_fetched    | 32977
+tup_inserted     | 1391
+tup_updated      | 46
+tup_deleted      | 0
+stats_reset      |
+....
 
-== Inspecting tables and indexes
 
-Các special catalog `pg_stat_user_tables` và `pg_stat_user_indexes` cung cấp thông tin chi tiết về việc sử dụng một table hoặc một index, chẳng hạn như số tuple, số lần đọc và ghi, v.v.
+Như bạn thấy, database `forumdb` không có conflict hoặc deadlock nào, và số transaction đã commit (column `xact_commit`) cao hơn nhiều so với số transaction đã abort (column `xact_rollback`). Vì vậy, có thể giả định rằng database đang hoạt động bình thường và các application đang gửi những query phù hợp.
 
-Để hiểu rõ hơn, hãy xét một table trong đó một số transaction đã bị xóa hoặc cập nhật và các record mới được insert; query sau cung cấp thông tin chi tiết về status của table đó:
+Column cuối cùng, `stats_reset`, đặc biệt quan trọng vì nó cho biết statistics của một database đã được reset, tức là bị xóa, hay chưa. Biết khoảng thời gian đã trôi qua kể từ lần reset statistics sẽ giúp bạn đánh giá trạng thái database. Nếu column này rỗng, statistics của database chưa bao giờ được reset thủ công.
 
-[source,text]
+== Kiểm tra table và index
+
+Các catalog chuyên dụng `pg_stat_user_tables` và `pg_stat_user_indexes` cung cấp thông tin chi tiết về việc sử dụng table hoặc index, chẳng hạn như số tuple, số lần đọc và ghi, v.v.
+
+Để hiểu rõ hơn, hãy xét một table trong đó một số tuple đã bị delete hoặc update và các tuple mới được insert; query sau cung cấp thông tin chi tiết về trạng thái của table đó:
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT relname, seq_scan, idx_scan,
              n_tup_ins, n_tup_del, n_tup_upd, n_tup_hot_upd,
@@ -160,6 +306,39 @@ idx_scan             | 0
 n_tup_ins            | 100007
 n_tup_del            | 63
 ....
+
+.SQL
+[source,sql]
+....
+SELECT
+    relname,
+    seq_scan,
+    idx_scan,
+    n_tup_ins,
+    n_tup_del,
+    n_tup_upd,
+    n_tup_hot_upd,
+    n_live_tup,
+    n_dead_tup,
+    last_vacuum,
+    last_autovacuum,
+    last_analyze,
+    last_autoanalyze
+FROM pg_stat_user_tables;
+....
+
+.Output
+[source,output]
+....
+-[ RECORD 1 ]----+------------------------------
+relname              | tags
+seq_scan             | 20
+idx_scan             | 0
+n_tup_ins            | 100007
+n_tup_del            | 63
+....
+
+
 [source,text]
 ....
 n_tup_upd            | 200030
@@ -172,17 +351,17 @@ last_analyze         |
 last_autoanalyze | 2023-09-15 15:13:47.60569+00
 ....
 
-Các column `last_vacuum`, `last_analyze`, `last_autovacuum` và `last_autoanalyze` đặc biệt quan trọng để xác định liệu việc vacuum và analyze thủ công hoặc tự động đã chạy trên table hay chưa; thông tin này có thể rất quan trọng để hiểu các daemon tự động có đang hoạt động đúng hay không. Column `n_live_tup` báo cáo các tuple hiện đang visible theo MVCC (xem Chapter 11, Transactions, MVCC, WALs, and Checkpoints), trong khi column `n_dead_tup` báo cáo số tuple không còn visible nhưng vẫn chiếm chỗ và sẽ được reclaim bởi vacuum thủ công hoặc tự động.
+Các column `last_vacuum`, `last_analyze`, `last_autovacuum` và `last_autoanalyze` đặc biệt quan trọng để xác định vacuum và analyze thủ công hoặc tự động đã chạy trên table hay chưa; thông tin này có thể rất hữu ích để hiểu các daemon tự động có hoạt động đúng hay không. Column `n_live_tup` báo cáo các tuple hiện đang visible theo MVCC (xem Chapter 11, Transactions, MVCC, WALs, and Checkpoints), trong khi column `n_dead_tup` báo cáo số tuple không còn visible nhưng vẫn chiếm chỗ và sẽ được reclaim bởi vacuum thủ công hoặc tự động.
 
-Các column còn lại phần lớn có thể tự giải thích; `seq_scan` và `idx_scan` lần lượt là số lần table được truy cập bằng sequential scan hoặc bằng một index trong số các index hiện có; `n_tup_ins`, `n_tup_upd` và `n_tup_del` cung cấp thông tin về số tuple được insert mới, cũng như số tuple lần lượt được update hoặc delete. Column `n_tup_upd_hot` báo cáo số tuple được update tại chỗ thay vì được tạo mới, nhờ một cơ chế có tên Heap Only Tuple (HOT).
+Các column còn lại phần lớn đều dễ hiểu; `seq_scan` và `idx_scan` lần lượt là số lần table được truy cập bằng sequential scan hoặc bằng một index trong số các index hiện có; `n_tup_ins`, `n_tup_upd` và `n_tup_del` cung cấp thông tin về số tuple mới được insert, số tuple được update và số tuple được delete. Column `n_tup_upd_hot` báo cáo số tuple được update tại chỗ thay vì được tạo mới, nhờ một cơ chế có tên Heap Only Tuple (HOT).
 
-Catalog đặc biệt `pg_stat_user_indexes` cung cấp thông tin chi tiết về việc sử dụng các index hiện có. Cụ thể, các field `idx_scan`, `idx_tup_read` và `idx_tup_fetch` cho biết số lần index được sử dụng, số tuple của index đã được đọc và số tuple của table đã được lấy nhờ index. Để biết thêm thông tin, hãy xem Chapter 13, Query Tuning, Indexes, and Performance Optimization.
+Catalog chuyên dụng `pg_stat_user_indexes` cung cấp thông tin chi tiết về việc sử dụng các index hiện có. Cụ thể, các column `idx_scan`, `idx_tup_read` và `idx_tup_fetch` cho biết số lần index được sử dụng, số tuple của index đã được đọc và số tuple của table đã được lấy nhờ index. Để biết thêm thông tin, hãy xem Chapter 13, Query Tuning, Indexes, and Performance Optimization.
 
-Có các catalog đôi khác có tên chứa “all” hoặc “sys”, cho biết chúng tham chiếu đến tất cả table hiện có, bao gồm các table nội bộ của PostgreSQL, hoặc chỉ tham chiếu đến các table sau (system table). Vì vậy, `pg_stat_all_tables` tương tự `pg_stat_user_tables` nhưng cũng bao gồm thông tin về system table, được lưu trong `pg_stat_sys_tables`. Điều tương tự cũng áp dụng cho `pg_stat_all_indexes`; đây là union của `pg_stat_user_indexes` và `pg_stat_sys_indexes`.
+Có những cặp catalog khác có tên chứa “all” hoặc “sys”, cho biết chúng lần lượt tham chiếu đến tất cả table hiện có, bao gồm table nội bộ của PostgreSQL, hoặc chỉ tham chiếu đến system table. Vì vậy, `pg_stat_all_tables` tương tự `pg_stat_user_tables` nhưng cũng bao gồm thông tin về system table, được lưu trong `pg_stat_sys_tables`. Điều tương tự cũng áp dụng cho `pg_stat_all_indexes`; đây là union của `pg_stat_user_indexes` và `pg_stat_sys_indexes`.
 
 == Thống kê bổ sung
 
-PostgreSQL có một tập catalog liên quan đến statistics rất phong phú, và không phải tất cả đều có thể được mô tả ở đây do giới hạn về dung lượng.
+PostgreSQL có một tập catalog liên quan đến statistics rất phong phú, nhưng do giới hạn về dung lượng, không thể mô tả tất cả ở đây.
 
 Một số catalog quan trọng nhất cần được nhắc đến gồm:
 
@@ -192,14 +371,14 @@ Một số catalog quan trọng nhất cần được nhắc đến gồm:
 * `pg_statio_user_tables`, `pg_statio_user_indexes` cùng các catalog liên quan `pg_statio_all_tables` và `pg_statio_all_indexes` cung cấp thông tin về input/output ở cấp table hoặc index, cho biết số hit và miss từ buffer cache cũng như số page mới được đọc từ storage.
 * `pg_stat_database` và `pg_stat_database_conflicts` cung cấp thông tin về trạng thái của một database, bao gồm transaction đã thực thi, conflict, rollback, v.v.
 
-Cũng có nhiều progress statistics chỉ ghi nhận các operation đang diễn ra và trạng thái progress của chúng. Những progress statistics mà bạn có nhiều khả năng muốn sử dụng nhất là:
+Cũng có nhiều progress statistics chỉ ghi nhận các operation đang diễn ra và trạng thái progress của chúng. Những progress statistics bạn có nhiều khả năng muốn sử dụng nhất là:
 
 * `pg_stat_progress_analyze` và `pg_stat_progress_vacuum` cung cấp thông tin lần lượt về mọi operation `ANALYZE` hoặc `VACUUM`.
 * `pg_stat_progress_cluster` cung cấp thông tin về progress của mọi operation `CLUSTER` hoặc `VACUUM FULL`.
 * `pg_stat_progress_copy` cung cấp thông tin về mọi command `COPY`, vì vậy cũng hữu ích cho các activity liên quan đến `pg_dump`.
 * `pg_stat_progress_create_index` cho biết việc tạo index đang được thực hiện như thế nào.
-* `pg_stat_progress_basebackup` cho biết thông tin về một base backup, một cách copy cluster đang chạy ở mức physical.
+* `pg_stat_progress_basebackup` cho biết thông tin về một base backup, tức quá trình copy cluster đang chạy ở mức physical.
 
-Bạn nên dành thời gian làm quen với tất cả statistics catalog để có thể tự tin monitor cluster của mình.
+Bạn nên dành thời gian làm quen với tất cả statistics catalog để có thể tự tin theo dõi cluster của mình.
 
-Trong section tiếp theo, bạn sẽ tìm hiểu về một extension rất tiện dụng, có thể giúp bạn quản lý cluster và kiểm soát các activity của cluster.
+Trong section tiếp theo, bạn sẽ tìm hiểu về một extension rất tiện dụng, có thể giúp bạn quản lý cluster và kiểm soát activity của cluster.

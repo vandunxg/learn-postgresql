@@ -1,8 +1,8 @@
 = Khám phá data types
 
-Với tư cách người dùng, chúng ta đã có cơ hội trải nghiệm sức mạnh và tính linh hoạt của server-side function; ví dụ, trong Chapter 5, Advanced Statements, chúng ta đã sử dụng một query tương tự query sau:
+Với tư cách người dùng, chúng ta đã có dịp trải nghiệm sức mạnh và tính linh hoạt của server-side function. Chẳng hạn, trong Chapter 5, Advanced Statements, chúng ta đã sử dụng một query tương tự như query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
       forumdb=> select * from categories where upper(title) like 'A%';
        pk | title |            description
@@ -11,36 +11,54 @@ Với tư cách người dùng, chúng ta đã có cơ hội trải nghiệm s�
       (1 row)
 ....
 
-Trong đoạn code này, function `upper` là một server-side function; function này chuyển tất cả ký tự trong một string thành chữ uppercase. Trong chapter này, chúng ta sẽ có được kiến thức để viết những function như function `upper` được gọi trong query trước đó.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM categories
+WHERE upper(title) like 'A%';
+....
 
-Trong section này, chúng ta sẽ nói về data type. Chúng ta sẽ đề cập ngắn gọn đến các type chuẩn được PostgreSQL quản lý và cách tạo type mới.
+.Output
+[source,output]
+....
+       pk | title |            description
+      ----+-------+------------------------------
+        4 | A.I   | Machine Learning discussions
+      (1 row)
+....
+
+
+Trong đoạn code này, function `upper` là một server-side function; nó chuyển toàn bộ ký tự trong một string thành chữ in hoa. Trong chương này, chúng ta sẽ có đủ kiến thức để viết những function như `upper`, được gọi trong query trước đó.
+
+Trong phần này, chúng ta sẽ tìm hiểu về data type. Chúng ta sẽ điểm qua các data type chuẩn do PostgreSQL quản lý và cách tạo data type mới.
 
 == Khái niệm extensibility
 
-Extensibility là gì? Extensibility là khả năng mở rộng functionality và data type của PostgreSQL. Extensibility là một tính năng PostgreSQL cực kỳ hữu ích vì cho phép chúng ta có các data type, function và functional index không có trong base system. Trong chapter này, chúng ta sẽ đề cập đến extension ở cấp data type, cũng như việc bổ sung các function mới.
+Extensibility là gì? Đó là khả năng mở rộng tính năng và data type của PostgreSQL. Đây là một tính năng cực kỳ hữu ích vì cho phép chúng ta sử dụng những data type, function và functional index không có trong hệ thống lõi. Trong chương này, chúng ta sẽ đề cập đến extension ở cấp data type, cũng như cách bổ sung các function mới.
 
 == Standard data types
 
-Trong các chapter trước, dù chưa thật sự rõ ràng, chúng ta đã sử dụng các data type chuẩn. Đó là khi chúng ta học cách sử dụng các command Data Definition Language (DDL). Tuy nhiên, bây giờ chúng ta sẽ xem xét chủ đề này sâu hơn. Sau đây là danh sách ngắn các data type được sử dụng nhiều nhất:
+Trong các chương trước, dù chưa thật sự nhận ra, chúng ta đã sử dụng các data type chuẩn khi học cách dùng những command thuộc Data Definition Language (DDL). Tuy nhiên, bây giờ chúng ta sẽ xem xét chủ đề này sâu hơn. Sau đây là danh sách ngắn các data type được sử dụng phổ biến nhất:
 
-* Boolean type
-* Numeric types
-* Character types
-* Date/time
+* Boolean data type
+* Numeric data types
+* Character data types
+* Date/time data types
 * NoSQL data types: hstore, xml, json và jsonb
 
-Với mỗi data type, chúng ta sẽ trình bày một operation mẫu, sau đó là phần giải thích ngắn. Để biết thêm thông tin về các data type chuẩn được PostgreSQL hỗ trợ, hãy tham khảo tài liệu chính thức tại https://www.postgresql.org/docs/current/extend-type-system.html.
+Với mỗi data type, chúng ta sẽ trình bày một thao tác mẫu rồi giải thích ngắn gọn. Để biết thêm thông tin về các data type chuẩn được PostgreSQL hỗ trợ, hãy tham khảo tài liệu chính thức tại https://www.postgresql.org/docs/current/extend-type-system.html.
 
 == Boolean data type
 
-Trước tiên, chúng ta sẽ giới thiệu Boolean data type. PostgreSQL hỗ trợ Boolean data type. Boolean type (được xác định bằng `BOOLEAN` hoặc `BOOL`), giống như tất cả data type được PostgreSQL hỗ trợ, có thể nhận value `NULL`. Vì vậy, Boolean data type có thể nhận các value `NULL`, `FALSE` và `TRUE`. Input function của Boolean type chấp nhận các biểu diễn sau cho trạng thái `TRUE`:
+Trước tiên, hãy tìm hiểu về Boolean data type. PostgreSQL hỗ trợ Boolean data type. Boolean data type (được chỉ định bằng `BOOLEAN` hoặc `BOOL`), cũng như mọi data type khác mà PostgreSQL hỗ trợ, có thể nhận giá trị `NULL`. Vì vậy, Boolean data type có thể nhận các giá trị `NULL`, `FALSE` và `TRUE`. Input function của Boolean data type chấp nhận các cách biểu diễn sau cho trạng thái `TRUE`:
 
 [cols="5*", options="header"]
 |===
 | State | true | yes | on | 1
 |===
 
-Đối với trạng thái `false`, chúng ta có các biểu diễn sau:
+Đối với trạng thái `false`, có các cách biểu diễn sau:
 
 [cols="5*", options="header"]
 |===
@@ -51,7 +69,7 @@ Hãy xem một số ví dụ, bắt đầu với table `users`:
 
 . Trước tiên, hãy hiển thị nội dung của table `users`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> select * from users;
     pk |      username       | gecos |                email
@@ -62,25 +80,73 @@ Hãy xem một số ví dụ, bắt đầu với table `users`:
    (3 rows)
 ....
 
-. Bây giờ hãy thêm một Boolean data type vào table `users`:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM users;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+    pk |      username       | gecos |                email
+   ----+----------------+-------+------------------------
+     1 | luca_ferrari        |         | luca@pgtraining.com
+     2 | enrico_pirozzi |              | enrico@pgtraiing.com
+     3 | newuser             |         | newuser@pgtraining.com
+   (3 rows)
+....
+
+
+. Bây giờ, hãy thêm một Boolean data type vào table `users`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> alter table users add user_on_line boolean;
    ALTER TABLE
 ....
 
-. Hãy update một số value:
+.SQL
+[source,sql]
+....
+ALTER TABLE users ADD user_on_line boolean;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   ALTER TABLE
+....
+
+
+. Hãy update một số giá trị:
+
+[source,console,role="transcript"]
 ....
    forumdb=> update users set user_on_line = true where pk=1;
    UPDATE 1
 ....
 
-. Bây giờ, nếu muốn tìm tất cả record có field `user_on_line` được đặt thành `true`, chúng ta phải thực hiện như sau:
+.SQL
+[source,sql]
+....
+UPDATE users
+SET
+    user_on_line = TRUE
+WHERE pk = 1;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   UPDATE 1
+....
+
+
+. Bây giờ, nếu muốn tìm tất cả row có column `user_on_line` mang giá trị `true`, chúng ta thực hiện như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> \x
    Expanded display is on.
@@ -93,9 +159,28 @@ Hãy xem một số ví dụ, bắt đầu với table `users`:
    user_on_line | t
 ....
 
-. Nếu muốn tìm tất cả record có field `user_on_line` được đặt thành `NULL`, như chúng ta đã thấy trong Chapter 4, Basic Statements, chúng ta phải thực hiện như sau:
+.SQL
+[source,sql]
+....
+\x SELECT * FROM users WHERE user_on_line = TRUE;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   Expanded display is on.
+   -[ RECORD 1 ]+--------------------
+   pk              | 1
+   username        | luca_ferrari
+   gecos           |
+   email           | luca@pgtraining.com
+   user_on_line | t
+....
+
+
+. Nếu muốn tìm tất cả row có column `user_on_line` mang giá trị `NULL`, như đã thấy trong Chapter 4, Basic Statements, chúng ta thực hiện như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select * from users where user_on_line is NULL;
    -[ RECORD 1 ]+-----------------------
@@ -112,25 +197,51 @@ Hãy xem một số ví dụ, bắt đầu với table `users`:
    user_on_line |
 ....
 
-Như vậy, chúng ta đã tìm hiểu Boolean data type.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM users
+WHERE user_on_line IS NULL;
+....
+
+.Output
+[source,output]
+....
+   -[ RECORD 1 ]+-----------------------
+   pk              | 2
+   username        | enrico_pirozzi
+   gecos           |
+   email           | enrico@pgtraiing.com
+   user_on_line |
+   -[ RECORD 2 ]+-----------------------
+   pk              | 3
+   username        | newuser
+   gecos           |
+   email           | newuser@pgtraining.com
+   user_on_line |
+....
+
+
+Như vậy, chúng ta đã tìm hiểu xong Boolean data type.
 
 == Numeric data type
 
-PostgreSQL hỗ trợ nhiều loại numeric data type; những loại được sử dụng nhiều nhất như sau:
+PostgreSQL hỗ trợ nhiều numeric data type; các loại được sử dụng phổ biến nhất gồm:
 
 * `integer` hoặc `int4` (số nguyên 4 byte).
 * `bigint` hoặc `int8` (số nguyên 8 byte).
-* `real` (độ chính xác biến thiên 4 byte, không chính xác với độ chính xác 6 chữ số thập phân).
-* `double precision` (độ chính xác biến thiên 8 byte, không chính xác với độ chính xác 15 chữ số thập phân).
-* `numeric` (precision, scale), trong đó precision của một numeric là tổng số chữ số có nghĩa trong toàn bộ number, còn scale của một numeric là số chữ số thập phân trong phần fractional. Ví dụ, `5.827` có precision bằng 4 và scale bằng 3.
+* `real` (độ chính xác biến thiên, chiếm 4 byte; không chính xác với 6 chữ số thập phân).
+* `double precision` (độ chính xác biến thiên, chiếm 8 byte; không chính xác với 15 chữ số thập phân).
+* `numeric` (precision, scale), trong đó precision của một giá trị numeric là tổng số chữ số có nghĩa trong toàn bộ số, còn scale của một giá trị numeric là số chữ số ở phần thập phân. Ví dụ, `5.827` có precision bằng 4 và scale bằng 3.
 
-Bây giờ, chúng ta sẽ xem một số ví dụ ngắn về từng type trong các section tiếp theo.
+Bây giờ, chúng ta sẽ xem một số ví dụ ngắn về từng data type trong các phần tiếp theo.
 
 === Integer types
 
-Như có thể thấy ở đây, nếu cast một number sang integer type như `integer` hoặc `bigint`, PostgreSQL sẽ tạo ra value bị truncate từ input number:
+Như có thể thấy, khi cast một số sang data type integer như `integer` hoặc `bigint`, PostgreSQL sẽ tạo ra giá trị đã truncate từ số đầu vào:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \x
    Expanded display is off.
@@ -160,11 +271,47 @@ Như có thể thấy ở đây, nếu cast một number sang integer type như 
    (1 row)
 ....
 
-=== Data type number với precision cố định
+.SQL
+[source,sql]
+....
+\x SELECT 1.123456789::integer AS my_field;
+SELECT 1.123456789::int4 AS my_field;
+SELECT 1.123456789::bigint AS my_field;
+SELECT 1.123456789::int8 AS my_field;
+....
 
-Trong ví dụ sau, chúng ta sẽ xem query tương tự query đã thấy trước đó, nhưng lần này sẽ cast sang `real` và `double precision`:
+.Output
+[source,output]
+....
+   Expanded display is off.
+       my_field
+   ----------
+              1
+   (1 row)
 
-[source,text]
+
+       my_field
+   ----------
+              1
+   (1 row)
+       my_field
+   ----------
+              1
+   (1 row)
+
+
+       my_field
+   ----------
+              1
+   (1 row)
+....
+
+
+=== Numeric data type với precision cố định
+
+Trong ví dụ sau, chúng ta sẽ thực thi một query tương tự query trước đó, nhưng lần này cast sang `real` và `double precision`:
+
+[source,console,role="transcript"]
 ....
       forumdb=> select 1.123456789::real as my_field;
        my_field
@@ -180,11 +327,34 @@ Trong ví dụ sau, chúng ta sẽ xem query tương tự query đã thấy trư
       (1 row)
 ....
 
-Như có thể thấy ở đây, trong query đầu tiên, result bị cắt đến chữ số thứ sáu; điều này xảy ra vì type `real` có độ chính xác ít nhất 6 chữ số thập phân.
+.SQL
+[source,sql]
+....
+SELECT 1.123456789::real AS my_field;
+SELECT 1.123456789::double precision AS my_field;
+....
 
-Bây giờ giả sử chúng ta muốn tính tổng value `0.1` 10 lần. Result đúng phải là number `1`. Thay vào đó, nếu thực thi:
+.Output
+[source,output]
+....
+       my_field
+      -----------
+       1.1234568
+      (1 row)
 
-[source,text]
+
+        my_field
+      -------------
+       1.123456789
+      (1 row)
+....
+
+
+Như có thể thấy, trong query đầu tiên, kết quả bị cắt ở chữ số thứ sáu; điều này xảy ra vì data type `real` có độ chính xác ít nhất 6 chữ số thập phân.
+
+Bây giờ, giả sử chúng ta muốn tính tổng giá trị `0.1` 10 lần. Kết quả đúng phải là số `1`. Tuy nhiên, nếu thực thi:
+
+[source,console,role="transcript"]
 ....
       forumdb=> select sum(0.1::real) from generate_series(1,10);
           sum
@@ -193,13 +363,30 @@ Bây giờ giả sử chúng ta muốn tính tổng value `0.1` 10 lần. Result
       (1 row)
 ....
 
-Chúng ta nhận được value `1.0000001`. Điều này xảy ra do lỗi rounding nội tại trong `real` data type, vì vậy không nên sử dụng `real` data type trong các field biểu diễn tiền. Cách đúng để thực hiện phép tính tổng này là sử dụng `numeric` data type.
+.SQL
+[source,sql]
+....
+SELECT sum(0.1::real)
+FROM generate_series(1, 10);
+....
 
-=== Data type number với precision tùy ý
+.Output
+[source,output]
+....
+          sum
+      -----------
+       1.0000001
+      (1 row)
+....
 
-Trong section cuối cùng về numeric data type này, chúng ta sẽ thực hiện query giống query đã thấy trước đó, nhưng sẽ cast sang arbitrary precision:
 
-[source,text]
+Chúng ta nhận được giá trị `1.0000001`. Điều này xảy ra do lỗi làm tròn nội tại trong `real` data type, vì vậy không nên sử dụng `real` data type cho các column dùng để biểu diễn tiền. Cách đúng để thực hiện phép tính tổng này là sử dụng `numeric` data type.
+
+=== Numeric data type với precision tùy ý
+
+Trong phần cuối cùng về numeric data type này, chúng ta sẽ thực thi query tương tự query trước đó, nhưng cast sang arbitrary precision:
+
+[source,console,role="transcript"]
 ....
       forumdb=> select 1.123456789::numeric(10,1) as my_field;
        my_field
@@ -222,11 +409,41 @@ Trong section cuối cùng về numeric data type này, chúng ta sẽ thực hi
    (1 row)
 ....
 
-Như có thể thấy từ các ví dụ ở đây, chúng ta quyết định scale có bao nhiêu chữ số.
+.SQL
+[source,sql]
+....
+SELECT 1.123456789::numeric(10, 1) AS my_field;
+SELECT 1.123456789::numeric(10, 5) AS my_field;
+SELECT 1.123456789::numeric(10, 9) AS my_field;
+....
 
-Nhưng điều gì xảy ra nếu chúng ta thực hiện query như sau?
+.Output
+[source,output]
+....
+       my_field
+      ----------
+             1.1
+      (1 row)
 
-[source,text]
+
+    my_field
+   ----------
+      1.12346
+   (1 row)
+
+
+      my_field
+   -------------
+    1.123456789
+   (1 row)
+....
+
+
+Như có thể thấy từ các ví dụ trên, scale quy định số chữ số.
+
+Nhưng điều gì xảy ra nếu chúng ta thực hiện query sau đây?
+
+[source,console,role="transcript"]
 ....
    forumdb=> select 1.123456789::numeric(10,11) as my_field;
    ERROR:      numeric field overflow
@@ -234,11 +451,26 @@ Nhưng điều gì xảy ra nếu chúng ta thực hiện query như sau?
    value less than 10^-1.
 ....
 
-Kết quả là một error. Điều này xảy ra vì data type được định nghĩa là numeric type với value precision bằng 10, do đó chúng ta không thể có parameter scale bằng hoặc lớn hơn value precision.
+.SQL
+[source,sql]
+....
+SELECT 1.123456789::numeric(10, 11) AS my_field;
+....
 
-Tương tự, ví dụ tiếp theo cũng tạo ra một error:
+.Output
+[source,output]
+....
+   ERROR:      numeric field overflow
+   DETAIL: A field with precision 10, scale 11 must round to an absolute
+   value less than 10^-1.
+....
 
-[source,text]
+
+Kết quả là một error. Điều này xảy ra vì data type được định nghĩa với precision bằng 10, nên parameter scale không thể bằng hoặc lớn hơn precision.
+
+Tương tự, ví dụ tiếp theo cũng tạo ra error:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select 1.123456789::numeric(10,10) as my_field;
    ERROR:      numeric field overflow
@@ -246,16 +478,31 @@ Tương tự, ví dụ tiếp theo cũng tạo ra một error:
    value less than 1.
 ....
 
-Trong ví dụ trước, query tạo ra một error vì scale là 10, nghĩa là chúng ta phải có 10 chữ số, nhưng tổng cộng chúng ta có 11 chữ số:
+.SQL
+[source,sql]
+....
+SELECT 1.123456789::numeric(10, 10) AS my_field;
+....
+
+.Output
+[source,output]
+....
+   ERROR:      numeric field overflow
+   DETAIL: A field with precision 10, scale 10 must round to an absolute
+   value less than 1.
+....
+
+
+Trong ví dụ trước, query tạo ra error vì scale là 10, nghĩa là chúng ta phải có 10 chữ số, nhưng tổng cộng chúng ta có 11 chữ số:
 
 [source,text]
 ....
  Digits         1   2   3      4       5       6        7        8       9       10       11
                 1   .   1      2       3       4        5        6       7        8       9
 ....
-Tuy nhiên, nếu trong số của chúng ta không có chữ số đầu tiên, query sẽ hoạt động:
+Tuy nhiên, nếu số của chúng ta không có chữ số đầu tiên, query sẽ hoạt động:
 
-[source,text]
+[source,console,role="transcript"]
 ....
       forumdb=> select 0.123456789::numeric(10,10) as my_field;
            my_field
@@ -264,9 +511,25 @@ Tuy nhiên, nếu trong số của chúng ta không có chữ số đầu tiên,
       (1 row)
 ....
 
-Bây giờ hãy quay lại ví dụ trong paragraph trước, vốn cho ra một sum không chính xác, và lặp lại ví dụ bằng data type `numeric`:
+.SQL
+[source,sql]
+....
+SELECT 0.123456789::numeric(10, 10) AS my_field;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+           my_field
+      --------------
+       0.1234567890
+      (1 row)
+....
+
+
+Bây giờ, hãy quay lại ví dụ ở đoạn trước, vốn cho kết quả của sum không chính xác, và thực hiện lại với data type `numeric`:
+
+[source,console,role="transcript"]
 ....
       forumdb=> select sum(0.1::numeric(2,2)) from generate_series(1,10);
        sum
@@ -275,27 +538,44 @@ Bây giờ hãy quay lại ví dụ trong paragraph trước, vốn cho ra một
       (1 row)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT sum(0.1::numeric(2, 2))
+FROM generate_series(1, 10);
+....
+
+.Output
+[source,output]
+....
+       sum
+      ------
+       1.00
+      (1 row)
+....
+
+
 Như có thể thấy, giá trị của sum hiện đã chính xác; vì vậy, cách đúng để biểu diễn tiền là sử dụng data type `numeric`.
 
-Như vậy, chúng ta đã tìm hiểu toàn bộ các data type numeric khác nhau.
+Như vậy, chúng ta đã tìm hiểu các numeric data type khác nhau.
 
-== Data type ký tự
+== Character data type
 
-Các data type ký tự được sử dụng nhiều nhất trong PostgreSQL là:
+Các character data type được sử dụng phổ biến nhất trong PostgreSQL là:
 
 * `character(n)/char(n)` (độ dài cố định, được đệm bằng khoảng trắng)
 * `character varying(n)/varchar(n)` (độ dài thay đổi với giới hạn)
 * `varchar/text` (độ dài thay đổi không giới hạn)
 
-Bây giờ, chúng ta sẽ xem một số ví dụ để thấy PostgreSQL quản lý các loại data type này như thế nào.
+Bây giờ, chúng ta sẽ xem một số ví dụ để thấy PostgreSQL quản lý những data type này như thế nào.
 
-== Data type ký tự với độ dài cố định
+== Character data type với độ dài cố định
 
-Chúng ta sẽ kiểm tra cách chúng hoạt động bằng ví dụ sau:
+Hãy kiểm tra cách chúng hoạt động qua ví dụ sau:
 
 . Hãy bắt đầu bằng cách tạo một test table mới:
 
-[source,text]
+[source,console,role="transcript"]
 ....
          forumdb=> create table new_tags (
          pk integer not null primary key,
@@ -304,12 +584,28 @@ Chúng ta sẽ kiểm tra cách chúng hoạt động bằng ví dụ sau:
          CREATE TABLE
 ....
 
-Trong code trước, chúng ta đã tạo một table mới tên là `new_tags` với field `tag` có data type `char(10)`.
+.SQL
+[source,sql]
+....
+CREATE TABLE new_tags (
+    pk integer NOT NULL PRIMARY KEY,
+    tag char(10)
+);
+....
+
+.Output
+[source,output]
+....
+         CREATE TABLE
+....
+
+
+Trong đoạn code trên, chúng ta đã tạo một table mới tên là `new_tags` với column `tag` có data type `char(10)`.
 
 [%start=2]
-. Bây giờ hãy thêm một số record và xem PostgreSQL hoạt động như thế nào:
+. Bây giờ, hãy thêm một số row và xem PostgreSQL hoạt động như thế nào:
 
-[source,text]
+[source,console,role="transcript"]
 ....
       forumdb=> insert into new_tags values (1,'first tag');
       INSERT 0 1
@@ -317,15 +613,32 @@ Trong code trước, chúng ta đã tạo một table mới tên là `new_tags` 
       INSERT 0 1
 ....
 
-Để tiếp tục phân tích, chúng ta phải giới thiệu hai function mới:
+.SQL
+[source,sql]
+....
+INSERT INTO new_tags
+VALUES (1, 'first tag');
+INSERT INTO new_tags
+VALUES (2, 'tag');
+....
 
-* `length(p)`: đếm số ký tự, trong đó `p` là một input parameter và là một string
-* `octet_length(p)`: đếm số byte, trong đó `p` là một input parameter và là một string
+.Output
+[source,output]
+....
+      INSERT 0 1
+      INSERT 0 1
+....
+
+
+Để phân tích tiếp, chúng ta cần giới thiệu hai function mới:
+
+* `length(p)`: đếm số ký tự, trong đó `p` là một input parameter kiểu string
+* `octet_length(p)`: đếm số byte, trong đó `p` là một input parameter kiểu string
 
 [%start=3]
 . Hãy thực thi query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
       forumdb=> \x
       Expanded display is on.
@@ -345,15 +658,40 @@ Trong code trước, chúng ta đã tạo một table mới tên là `new_tags` 
       char_length      | 3
 ....
 
-Như có thể thấy, tổng độ dài của vùng space được field chiếm bên trong luôn là 10; điều này đúng ngay cả khi số ký tự được nhập khác nhau. Điều này xảy ra vì chúng ta đã định nghĩa field là `char(10)`, với độ dài cố định là 10, nên ngay cả khi chèn một string ngắn hơn, phần chênh lệch giữa 10 và số ký tự thực của string sẽ được lấp đầy bằng các ký tự khoảng trắng.
+.SQL
+[source,sql]
+....
+\x SELECT pk, tag, length(tag), octet_length(tag), char_ length(tag) FROM new_tags;
+....
 
-== Data type ký tự với độ dài thay đổi có giới hạn
+.Output
+[source,output]
+....
+      Expanded display is on.
+      -[ RECORD 1 ]+-----------
+      pk               | 1
+      tag              | first tag
+      length           | 9
+      octet_length | 10
+      char_length      | 9
+      -[ RECORD 2 ]+-----------
+      pk               | 2
+      tag              | tag
+      length           | 3
+      octet_length | 10
+      char_length      | 3
+....
 
-Trong section này, chúng ta sẽ lặp lại chính ví dụ đã dùng ở section trước, nhưng lần này sẽ sử dụng data type `varchar(10)` cho field `tag`:
+
+Như có thể thấy, tổng độ dài lưu trữ của column luôn là 10; điều này đúng ngay cả khi số ký tự được nhập vào khác nhau. Đó là vì chúng ta đã định nghĩa column là `char(10)`, có độ dài cố định 10. Do đó, ngay cả khi chèn một string ngắn hơn, phần chênh lệch giữa 10 và số ký tự thực của string sẽ được lấp đầy bằng khoảng trắng.
+
+== Character data type với độ dài thay đổi có giới hạn
+
+Trong phần này, chúng ta sẽ lặp lại ví dụ ở phần trước, nhưng lần này sử dụng data type `varchar(10)` cho column `tag`:
 
 . Hãy tạo lại table `new_tags`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
               forumdb=> drop table if exists new_tags;
               DROP TABLE
@@ -366,9 +704,29 @@ Trong section này, chúng ta sẽ lặp lại chính ví dụ đã dùng ở se
               CREATE TABLE
 ....
 
-. Sau đó, hãy insert một số data:
+.SQL
+[source,sql]
+....
+DROP TABLE if EXISTS new_tags;
+CREATE TABLE new_tags (
+    pk integer NOT NULL PRIMARY KEY,
+    tag varchar(10)
+);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+              DROP TABLE
+
+
+              CREATE TABLE
+....
+
+
+. Sau đó, hãy insert một số dữ liệu:
+
+[source,console,role="transcript"]
 ....
               forumdb=> insert into new_tags values (1,'first tag');
               INSERT 0 1
@@ -378,9 +736,28 @@ Trong section này, chúng ta sẽ lặp lại chính ví dụ đã dùng ở se
               INSERT 0 1
 ....
 
+.SQL
+[source,sql]
+....
+INSERT INTO new_tags
+VALUES (1, 'first tag');
+INSERT INTO new_tags
+VALUES (2, 'tag');
+....
+
+.Output
+[source,output]
+....
+              INSERT 0 1
+
+
+              INSERT 0 1
+....
+
+
 . Bây giờ, nếu lặp lại query như trước, chúng ta nhận được kết quả sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
               forumdb=> \x
               Expanded display is off.
@@ -393,27 +770,59 @@ Trong section này, chúng ta sẽ lặp lại chính ví dụ đã dùng ở se
               (2 rows)
 ....
 
-Như có thể thấy, lần này, kích thước thực bên trong và số ký tự trong string là giống nhau.
+.SQL
+[source,sql]
+....
+\x SELECT pk, tag, length(tag), octet_length(tag) FROM new_tags;
+....
+
+.Output
+[source,output]
+....
+              Expanded display is off.
+               pk |      tag      | length | octet_length
+              ----+-----------+--------+--------------
+                1 | first tag |            9 |               9
+                2 | tag           |        3 |               3
+              (2 rows)
+....
+
+
+Như có thể thấy, lần này kích thước lưu trữ thực tế bằng số ký tự trong string.
 
 [%start=4]
-. Bây giờ hãy thử insert một string dài hơn 10 ký tự và xem điều gì xảy ra:
+. Bây giờ, hãy thử insert một string dài hơn 10 ký tự và xem điều gì xảy ra:
 
-[source,text]
+[source,console,role="transcript"]
 ....
              forumdb=> insert into new_tags values (3,'this sentence has more
              than 10 characters');
              ERROR:   value too long for type character varying(10)
 ....
 
-PostgreSQL trả lời chính xác bằng một error vì input string vượt quá kích thước của field.
+.SQL
+[source,sql]
+....
+INSERT INTO new_tags
+VALUES (3, 'this sentence has more than 10 characters');
+....
 
-== Data type ký tự với độ dài thay đổi không giới hạn
+.Output
+[source,output]
+....
+             ERROR:   value too long for type character varying(10)
+....
 
-Trong section này, chúng ta lại sử dụng cùng ví dụ như trước, nhưng lần này sẽ dùng data type `text` cho field `tag`.
 
-Hãy tạo lại table `new_tags` và insert lại cùng data đã insert trước đó:
+PostgreSQL trả về error như mong đợi vì input string vượt quá kích thước của column.
 
-[source,text]
+== Character data type với độ dài thay đổi không giới hạn
+
+Trong phần này, chúng ta lại sử dụng ví dụ trước, nhưng lần này dùng data type `text` cho column `tag`.
+
+Hãy tạo lại table `new_tags` và insert lại cùng dữ liệu đã insert trước đó:
+
+[source,console,role="transcript"]
 ....
    forumdb=>      drop table if exists new_tags;
    DROP TABLE
@@ -431,9 +840,37 @@ Hãy tạo lại table `new_tags` và insert lại cùng data đã insert trư�
    INSERT 0 3
 ....
 
-Lần này, PostgreSQL insert chính xác cả ba record. Đó là vì data type `text` là một data type ký tự có độ dài không giới hạn, như có thể thấy trong query sau:
+.SQL
+[source,sql]
+....
+DROP TABLE if EXISTS new_tags;
+CREATE TABLE new_tags (
+   pk integer NOT NULL PRIMARY KEY,
+   tag text
+   );
+INSERT INTO new_tags
+VALUES
+    (1, 'first tag'),
+    (2, 'tag'),
+    (3, 'this sentence has more than 10 characters');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   DROP TABLE
+
+
+   CREATE TABLE
+
+
+   INSERT 0 3
+....
+
+
+Lần này, PostgreSQL insert được cả ba row. Đó là vì data type `text` là một character data type có độ dài không giới hạn, như có thể thấy trong query sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select pk,substring(tag from 0 for 20),length(tag),octet_
    length(tag) from new_tags ;
@@ -445,26 +882,49 @@ Lần này, PostgreSQL insert chính xác cả ba record. Đó là vì data type
    (3 rows)
 ....
 
-Trong ví dụ trước, chúng ta có thể thấy data type `text` hoạt động chính xác như data type `varchar(n)` đã thấy trước đó. Điểm khác biệt duy nhất giữa `text` và `varchar(n)` là type `text` không có giới hạn kích thước. Điều quan trọng cần lưu ý là trong query trước, chúng ta đã sử dụng function `substring`. Function `substring` lấy một phần của string, bắt đầu từ vị trí do parameter `from` chỉ định và kéo dài `n` ký tự; ví dụ, nếu viết `substring(tag from 0 for 20)`, nghĩa là chúng ta muốn lấy 20 ký tự đầu tiên của string `tag` làm output.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    substring(tag FROM 0 FOR 20),
+    length(tag),
+    octet_ length(tag)
+FROM new_tags;
+....
 
-Như vậy, chúng ta đã trình bày xong tất cả data type ký tự.
+.Output
+[source,output]
+....
+    pk |          substring         | length | octet_length
+   ----+---------------------+--------+--------------
+        1 | first tag               |       9 |               9
+        2 | tag                     |       3 |               3
+        3 | this sentence has m |          41 |              41
+   (3 rows)
+....
+
+
+Trong ví dụ trước, chúng ta có thể thấy data type `text` hoạt động chính xác như data type `varchar(n)` đã thấy trước đó. Điểm khác biệt duy nhất giữa `text` và `varchar(n)` là data type `text` không có giới hạn kích thước. Cần lưu ý rằng trong query trước, chúng ta đã sử dụng function `substring`. Function `substring` lấy một phần của string, bắt đầu tại vị trí do parameter `from` chỉ định và kéo dài `n` ký tự; ví dụ, nếu viết `substring(tag from 0 for 20)`, nghĩa là chúng ta muốn lấy 20 ký tự đầu tiên của string `tag` làm output.
+
+Như vậy, chúng ta đã trình bày xong các character data type.
 
 == Data type date/timestamp
 
-Trong section này, chúng ta sẽ nói về cách lưu trữ date và time trong PostgreSQL. PostgreSQL hỗ trợ cả date và time, cũng như sự kết hợp giữa date và time (`timestamp`). PostgreSQL quản lý thời gian với cả thiết lập có time zone và không có time zone, như được mô tả trong documentation chính thức (https://www.postgresql.org/docs/current/datatype-datetime.html).
+Trong phần này, chúng ta sẽ tìm hiểu cách lưu trữ date và time trong PostgreSQL. PostgreSQL hỗ trợ cả date và time, cũng như sự kết hợp giữa date và time (`timestamp`). PostgreSQL hỗ trợ time zone và cả trường hợp không có time zone, như được mô tả trong documentation chính thức (https://www.postgresql.org/docs/current/datatype-datetime.html).
 
 [quote]
 ____
-PostgreSQL hỗ trợ đầy đủ các SQL date và time type. Date được tính theo lịch Gregorian.
+PostgreSQL hỗ trợ đầy đủ các data type date và time của SQL. Date được tính theo lịch Gregorian.
 
 ____
 == Data type date
 
-Việc quản lý date thường trở thành một bài toán khó đối với developer. Đó là vì date được biểu diễn khác nhau tùy theo quốc gia nơi chúng ta phải lưu data – ví dụ, cách của Mỹ là month/day/year, còn format của châu Âu là day/month/year. PostgreSQL giúp chúng ta bằng cách cung cấp các công cụ cần thiết để giải quyết vấn đề này tốt nhất, như sau:
+Quản lý date thường là một bài toán khó đối với developer vì date được biểu diễn khác nhau tùy theo quốc gia nơi chúng ta lưu dữ liệu – ví dụ, cách của Mỹ là month/day/year, còn format của châu Âu là day/month/year. PostgreSQL cung cấp các công cụ cần thiết để giải quyết vấn đề này, như sau:
 
-. Điều đầu tiên chúng ta phải làm là xem PostgreSQL lưu trữ date bên trong như thế nào. Để làm vậy, chúng ta phải thực hiện query sau:
+. Trước tiên, chúng ta cần xem PostgreSQL lưu trữ date bên trong như thế nào. Để làm vậy, hãy thực hiện query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
                forumdb=> \x
                Expanded display is on.
@@ -479,19 +939,40 @@ Việc quản lý date thường trở thành một bài toán khó đối với
                pending_restart | f
 ....
 
-Trước hết, hãy xem view `pg_settings`. Bằng cách sử dụng view `pg_settings`, chúng ta có thể xem các parameter được thiết lập trong file configuration `postgresql.conf`. Trong result trước, chúng ta thấy configuration để hiển thị date là MDY (month/day/year). Nếu muốn thay đổi parameter này trên toàn cục, chúng ta phải chỉnh sửa file `postgresql.conf`.
+.SQL
+[source,sql]
+....
+\x SELECT * FROM pg_settings WHERE name = 'DateStyle';
+....
+
+.Output
+[source,output]
+....
+               Expanded display is on.
+               -[ RECORD 1 ]---+--------------------------------------------------
+               --
+               name                | DateStyle
+               setting             | ISO, MDY
+               [..]
+               sourcefile          |
+               sourceline          |
+               pending_restart | f
+....
+
+
+Trước hết, hãy xem view `pg_settings`. View `pg_settings` cho phép chúng ta xem các parameter được thiết lập trong file configuration `postgresql.conf`. Trong kết quả trên, configuration cho biết date được hiển thị theo MDY (month/day/year). Nếu muốn thay đổi parameter này trên toàn cục, chúng ta phải chỉnh sửa file `postgresql.conf`.
 
 [%start=2]
-. Trên một server Debian hoặc dựa trên Debian, chúng ta có thể chỉnh sửa file như sau:
+. Trên Debian hoặc một server dựa trên Debian, chúng ta có thể chỉnh sửa file như sau:
 
 [source,text]
 ....
             root@pgdev:/# vim /etc/postgresql/16/main/postgresql.conf
 ....
 
-. Sau đó, chúng ta phải sửa section sau:
+. Sau đó, chúng ta phải sửa phần sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
             #Locale and Formatting
 
@@ -499,7 +980,20 @@ Trước hết, hãy xem view `pg_settings`. Bằng cách sử dụng view `pg_s
             datestyle = 'iso, mdy'
 ....
 
-. Sau khi thay đổi parameter này, trong query trên `pg_settings`, parameter `context` là `'user'`; chúng ta chỉ cần reload server. Trong trường hợp này, không cần restart:
+.Command
+[source,bash]
+....
+Locale and Formatting
+....
+
+.Output
+[source,output]
+....
+            datestyle = 'iso, mdy'
+....
+
+
+. Sau khi thay đổi parameter này, query trên `pg_settings` cho biết parameter `context` là `'user'`; chúng ta chỉ cần reload server. Trong trường hợp này, không cần restart:
 
 [source,text]
 ....
@@ -508,12 +1002,12 @@ Trước hết, hãy xem view `pg_settings`. Bằng cách sử dụng view `pg_s
             postgresql.service.
 ....
 
-Để biết thêm thông tin về view `pg_settings`, chúng tôi đề nghị truy cập https://www.postgresql.org/docs/current/view-pg-settings.html.
+Để biết thêm thông tin về view `pg_settings`, hãy tham khảo https://www.postgresql.org/docs/current/view-pg-settings.html.
 
 [%start=5]
-. Chúng ta đã biết các parameter bên trong để hiển thị date, vì vậy bây giờ hãy xem cách insert, update và hiển thị date. Nếu biết giá trị của parameter date-style, cách PostgreSQL chuyển một string thành date là như sau:
+. Bây giờ chúng ta đã biết các parameter kiểm soát cách hiển thị date, hãy xem cách insert, update và hiển thị date. Với giá trị của parameter DateStyle, PostgreSQL chuyển một string thành date như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
              forumdb=> \x
              Expanded display is off.
@@ -524,12 +1018,29 @@ Trước hết, hãy xem view `pg_settings`. Bằng cách sử dụng view `pg_s
              (1 row)
 ....
 
-Cách này đơn giản nhưng không đặc biệt thân thiện với người dùng. Cách tốt nhất để quản lý date là sử dụng một số function PostgreSQL cung cấp cho chúng ta.
+.SQL
+[source,sql]
+....
+\x SELECT '12-31-2020'::date;
+....
+
+.Output
+[source,output]
+....
+             Expanded display is off.
+                  date
+             ------------
+              2020-12-31
+             (1 row)
+....
+
+
+Cách này đơn giản nhưng không thật sự thân thiện với người dùng. Cách tốt nhất để quản lý date là sử dụng một số function do PostgreSQL cung cấp.
 
 [%start=6]
-. Function đầu tiên chúng ta sẽ nói đến là function `to_date()`. Function `to_date()` chuyển một string cho trước thành date. Syntax của function `to_date()` như sau:
+. Function đầu tiên chúng ta sẽ nói đến là function `to_date()`. Function `to_date()` chuyển một string cho trước thành date. Cú pháp của function `to_date()` như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
               forumdb=> select to_date('31/12/2020','dd/mm/yyyy') ;
                 to_date
@@ -538,12 +1049,28 @@ Cách này đơn giản nhưng không đặc biệt thân thiện với người
              (1 row)
 ....
 
-Function `to_date()` nhận hai string parameter. Parameter thứ nhất chứa value mà chúng ta muốn chuyển thành date. Parameter thứ hai chứa pattern của date. Function `to_date()` trả về một date value.
+.SQL
+[source,sql]
+....
+SELECT to_date('31/12/2020', 'dd/mm/yyyy');
+....
+
+.Output
+[source,output]
+....
+                to_date
+             ------------
+              2020-12-31
+             (1 row)
+....
+
+
+Function `to_date()` nhận hai string parameter. Parameter thứ nhất chứa giá trị mà chúng ta muốn chuyển thành date. Parameter thứ hai chứa pattern của date. Function `to_date()` trả về một giá trị date.
 
 [%start=7]
-. Bây giờ hãy quay lại table `posts` và thực thi query sau:
+. Bây giờ, hãy quay lại table `posts` và thực thi query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
               forumdb=> \x
               Expanded display is on.
@@ -562,9 +1089,34 @@ Function `to_date()` nhận hai string parameter. Parameter thứ nhất chứa 
               created_on | 2023-01-23 15:26:21.367814+00
 ....
 
-Làm thế nào chúng ta có các combination date/time (timestamp) nếu chưa từng có ai nhập những value này vào table? Điều này có thể xảy ra vì table `posts` đã được tạo như sau:
+.SQL
+[source,sql]
+....
+\x SELECT pk, title, created_on FROM posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+              Expanded display is on.
+              -[ RECORD 1 ]-----------------------------
+              pk           | 5
+              title        | Indexing PostgreSQL
+              created_on | 2023-01-23 15:21:55.747463+00
+              -[ RECORD 2 ]-----------------------------
+              pk           | 6
+              title        | Indexing Mysql
+              created_on | 2023-01-23 15:22:02.38953+00
+              -[ RECORD 3 ]-----------------------------
+              pk           | 7
+              title        | A view of      Data types in C++
+              created_on | 2023-01-23 15:26:21.367814+00
+....
+
+
+Vì sao chúng ta có các giá trị date/time (timestamp) này dù chưa ai từng nhập những giá trị đó vào table? Điều này xảy ra vì table `posts` đã được tạo như sau:
+
+[source,console,role="transcript"]
 ....
               forumdb=> \d posts;
                Table "public.posts"
@@ -576,12 +1128,31 @@ Làm thế nào chúng ta có các combination date/time (timestamp) nếu chưa
               created_on       | timestamp with time zone|             | CURRENT_TIMESTAMP
 ....
 
-Như có thể thấy, field `created_on` có `CURRENT_TIMESTAMP` làm giá trị mặc định, nghĩa là nếu không có value nào được insert, current timestamp của server sẽ được insert. Bây giờ giả sử chúng ta muốn hiển thị date theo format khác – ví dụ format châu Âu, `created_on: 03-01-2020`.
+.SQL
+[source,sql]
+....
+\d posts;
+....
+
+.Output
+[source,output]
+....
+               Table "public.posts"
+                Column             | Type                          |[...]| Default
+               ----------------+-------------------------+[...]+--------
+              pk               | integer                       |       | [..]
+              title            | text                          |       |
+              [......]
+              created_on       | timestamp with time zone|             | CURRENT_TIMESTAMP
+....
+
+
+Như có thể thấy, column `created_on` có `CURRENT_TIMESTAMP` làm giá trị mặc định, nghĩa là nếu không insert giá trị nào, current timestamp của server sẽ được insert. Bây giờ, giả sử chúng ta muốn hiển thị date theo format khác – ví dụ format châu Âu, `created_on: 03-01-2020`.
 
 [%start=8]
-. Để đạt được mục tiêu này, chúng ta phải sử dụng một built-in function khác, function `to_char`:
+. Để đạt được mục tiêu này, chúng ta phải sử dụng một built-in function khác là `to_char`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
              forumdb=> select pk,title,to_char(created_on,'dd-mm-yyyy') as
              created_on
@@ -600,15 +1171,43 @@ Như có thể thấy, field `created_on` có `CURRENT_TIMESTAMP` làm giá tr�
              created_on | 23-01-2023
 ....
 
-Như được minh họa ở đây, `to_char()` là inverse của function `to_date()`.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    to_char(created_on, 'dd-mm-yyyy') AS created_on
+FROM posts;
+....
+
+.Output
+[source,output]
+....
+             -[ RECORD 1 ]----------------------------
+             pk          | 5
+             title       | Indexing PostgreSQL
+             created_on | 23-01-2023
+             -[ RECORD 2 ]----------------------------
+             pk          | 6
+             title       | Indexing Mysql
+             created_on | 23-01-2023
+             -[ RECORD 3 ]----------------------------
+             pk          | 7
+             title       | A view of     Data types in C++
+             created_on | 23-01-2023
+....
+
+
+Như được minh họa ở đây, `to_char()` là function ngược của `to_date()`.
 
 == Data type timestamp
 
-PostgreSQL có thể quản lý date và time có time zone và không có time zone. Chúng ta có thể lưu cả date và time bằng data type `timestamp`. Trong PostgreSQL có data type `timestamp with time zone` để hiển thị date và time với time zone, và data type `timestamp without time zone` để lưu date và time không có time zone.
+PostgreSQL có thể quản lý date và time cả khi có time zone lẫn khi không có time zone. Chúng ta có thể lưu cả date và time bằng data type `timestamp`. PostgreSQL có data type `timestamp with time zone` để hiển thị date và time với time zone, và data type `timestamp without time zone` để lưu date và time không có time zone.
 
-Bây giờ hãy đi qua một số ví dụ. Trước hết, hãy tạo một table mới:
+Bây giờ, hãy xem một số ví dụ. Trước hết, hãy tạo một table mới:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> create table new_posts as select pk,title,created_on::timestamp
    with time zone as created_on_t, created_on::timestamp without time zone as
@@ -616,9 +1215,24 @@ Bây giờ hãy đi qua một số ví dụ. Trước hết, hãy tạo một ta
    SELECT 3
 ....
 
-Chúng ta vừa tạo một table mới tên là `new_posts` với structure sau:
+.SQL
+[source,sql]
+....
+CREATE TABLE new_posts AS SELECT pk, title, created_on::timestamp
+   WITH time zone AS created_on_t, created_on::timestamp without time zone AS
+   create_on_nt FROM posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   SELECT 3
+....
+
+
+Chúng ta vừa tạo một table mới tên là `new_posts` với cấu trúc sau:
+
+[source,console,role="transcript"]
 ....
       forumdb=# \d new_posts;
        Table "public.new_posts"
@@ -630,9 +1244,28 @@ Chúng ta vừa tạo một table mới tên là `new_posts` với structure sau
        create_on_nt | timestamp without time zone |
 ....
 
-Table này hiện có cùng value cho field `create_on_t` (`timestamp with time zone`) và field `created_on_nt` (`timestamp without time zone`), như có thể thấy ở đây:
+.SQL
+[source,sql]
+....
+\d new_posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+       Table "public.new_posts"
+       Column       | Type                           | [...]
+      --------------+----------------------------+----------
+       pk           | integer                         |
+       title        | text                            |
+       created_on_t | timestamp with time zone        |
+       create_on_nt | timestamp without time zone |
+....
+
+
+Hiện table có cùng giá trị ở column `create_on_t` (`timestamp with time zone`) và column `created_on_nt` (`timestamp without time zone`), như có thể thấy ở đây:
+
+[source,console,role="transcript"]
 ....
       forumdb=> select * from new_posts ;
       -[ RECORD 1 ]+------------------------------
@@ -652,35 +1285,104 @@ Table này hiện có cùng value cho field `create_on_t` (`timestamp with time 
       create_on_nt | 2023-01-23 15:26:21.367814
 ....
 
-Bây giờ hãy giới thiệu một PostgreSQL environment variable có tên là biến `timezone`. Biến này cho biết value hiện tại của time zone:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM new_posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+      -[ RECORD 1 ]+------------------------------
+      pk           | 5
+      title        | Indexing PostgreSQL
+      created_on_t | 2023-01-23 15:21:55.747463+00
+      create_on_nt | 2023-01-23 15:21:55.747463
+      -[ RECORD 2 ]+------------------------------
+      pk           | 6
+      title        | Indexing Mysql
+      created_on_t | 2023-01-23 15:22:02.38953+00
+      create_on_nt | 2023-01-23 15:22:02.38953
+      -[ RECORD 3 ]+------------------------------
+      pk           | 7
+      title        | A view of    Data types in C++
+      created_on_t | 2023-01-23 15:26:21.367814+00
+      create_on_nt | 2023-01-23 15:26:21.367814
+....
+
+
+Tiếp theo, hãy xem một environment variable của PostgreSQL có tên `timezone`. Biến này cho biết giá trị time zone hiện tại:
+
+[source,console,role="transcript"]
 ....
       forumdb=> show timezone;
       -[ RECORD 1 ]-----
       TimeZone | Etc/UTC
 ....
 
-Trên server này, time zone được đặt là UTC; nếu muốn chỉ thay đổi value này trong session hiện tại, chúng ta phải thực hiện query sau:
+.SQL
+[source,sql]
+....
+show timezone;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+      -[ RECORD 1 ]-----
+      TimeZone | Etc/UTC
+....
+
+
+Trên server này, time zone được đặt là UTC. Nếu chỉ muốn thay đổi giá trị này trong session hiện tại, hãy thực hiện query sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> set timezone='CET';
    SET
 ....
 
+.SQL
+[source,sql]
+....
+SET timezone = 'CET';
+....
+
+.Output
+[source,output]
+....
+   SET
+....
+
+
 Bây giờ, time zone được đặt là CET:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> show timezone;
    -[ RECORD 1 ]-
    TimeZone | CET
 ....
 
-Bây giờ, nếu thực thi lại query đã thực hiện trước đó, chúng ta sẽ thấy field có time zone đã thay đổi value:
+.SQL
+[source,sql]
+....
+show timezone;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   -[ RECORD 1 ]-
+   TimeZone | CET
+....
+
+
+Bây giờ, nếu thực thi lại query trước đó, chúng ta sẽ thấy column có time zone đã thay đổi giá trị:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select * from new_posts ;
    -[ RECORD 1 ]+------------------------------
@@ -700,4 +1402,32 @@ Bây giờ, nếu thực thi lại query đã thực hiện trước đó, chún
    create_on_nt | 2023-01-23 15:26:21.367814
 ....
 
-Điều này cho thấy sự khác biệt giữa `timestamp with a time zone` và `timestamp without a time zone`. Để biết thêm thông tin về chủ đề date và time, hãy tham khảo documentation chính thức tại https://www.postgresql.org/docs/current/datatype-datetime.html.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM new_posts;
+....
+
+.Output
+[source,output]
+....
+   -[ RECORD 1 ]+------------------------------
+   pk              | 5
+   title           | Indexing PostgreSQL
+   created_on_t | 2023-01-23 16:21:55.747463+01
+   create_on_nt | 2023-01-23 15:21:55.747463
+   -[ RECORD 2 ]+------------------------------
+   pk              | 6
+   title           | Indexing Mysql
+   created_on_t | 2023-01-23 16:22:02.38953+01
+   create_on_nt | 2023-01-23 15:22:02.38953
+   -[ RECORD 3 ]+------------------------------
+   pk              | 7
+   title           | A view of      Data types in C++
+   created_on_t | 2023-01-23 16:26:21.367814+01
+   create_on_nt | 2023-01-23 15:26:21.367814
+....
+
+
+Điều này cho thấy sự khác biệt giữa `timestamp with a time zone` và `timestamp without a time zone`. Để biết thêm thông tin về date và time, hãy tham khảo documentation chính thức tại https://www.postgresql.org/docs/current/datatype-datetime.html.

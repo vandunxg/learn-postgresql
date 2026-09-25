@@ -1,11 +1,11 @@
 = Tóm tắt
 
-PostgreSQL có thể xử lý nhiều database trong một cluster duy nhất, được phục vụ từ phần disk storage nằm trong một directory duy nhất có tên `PGDATA`. Cluster chạy nhiều process khác nhau; một process đặc biệt có tên `postmaster` chịu trách nhiệm spawn các process khác, mỗi process cho một client connection, và theo dõi trạng thái của các process maintenance.
+PostgreSQL có thể xử lý nhiều database trong một cluster duy nhất; disk storage của cluster nằm trong một directory duy nhất có tên `PGDATA`. Cluster chạy nhiều process khác nhau; một process đặc biệt, gọi là `postmaster`, chịu trách nhiệm spawn các process khác, mỗi process phục vụ một client connection, đồng thời theo dõi trạng thái của các maintenance process.
 
-Configuration của cluster được quản lý thông qua các text-based configuration file, trong đó file chính là `postgresql.conf`. Có thể filter incoming user connection bằng các rule được đặt trong text file `pg_hba.conf`.
+Configuration của cluster được quản lý thông qua các configuration file dạng text, trong đó file chính là `postgresql.conf`. Các rule trong text file `pg_hba.conf` dùng để lọc các connection từ user đi vào cluster.
 
-Bạn có thể tương tác với trạng thái của cluster thông qua tool `pg_ctl` hoặc, tùy operating system, bằng các program khác được cung cấp như `service` hoặc `systemctl`.
+Bạn có thể quản lý trạng thái của cluster bằng tool `pg_ctl` hoặc, tùy operating system, bằng các chương trình khác được cung cấp, chẳng hạn `service` hoặc `systemctl`.
 
-Chương này đã trình bày những thông tin cần thiết để bạn không chỉ có thể install PostgreSQL mà còn có thể start và stop nó thường xuyên, integrate nó với operating system, và connect đến cluster.
+Chương này đã trình bày những thông tin cần thiết để bạn không chỉ cài đặt PostgreSQL mà còn biết cách thường xuyên khởi động, dừng và tích hợp PostgreSQL với operating system, cũng như kết nối đến cluster.
 
-Ở chương tiếp theo, bạn sẽ học cách manage user và connection.
+Trong chương tiếp theo, bạn sẽ học cách quản lý user và connection.

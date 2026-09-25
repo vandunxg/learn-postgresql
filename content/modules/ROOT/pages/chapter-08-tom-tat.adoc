@@ -1,12 +1,12 @@
 = Tóm tắt
 
-Trong chapter này, chúng ta đã trình bày chủ đề trigger và rule. Chúng ta đã khám phá rule và trigger bằng một số ví dụ giống nhau. Chúng ta đã xác lập rằng rule là event handler đơn giản còn trigger là event handler phức tạp.
-Chúng ta đã giới thiệu concept về các trigger variable:
+Trong chương này, chúng ta đã trình bày về trigger và rule. Chúng ta đã tìm hiểu rule và trigger thông qua một số ví dụ tương tự. Chúng ta đã xác định rằng rule là một event handler đơn giản, còn trigger là một event handler phức tạp hơn.
+Chúng ta đã giới thiệu khái niệm về các biến của trigger:
 
 * `NEW`
 * `OLD`
 * `TG_OP`
 
-Bên cạnh các trigger dựa trên data manipulation, chúng ta cũng đã giới thiệu sơ lược các PostgreSQL event trigger, cho phép developer và database administrator kiểm soát tốt hơn việc fire và execute function.
+Bên cạnh các trigger xử lý thao tác dữ liệu, chúng ta cũng đã giới thiệu sơ lược về các event trigger của PostgreSQL, cho phép developer và database administrator kiểm soát tốt hơn việc kích hoạt và thực thi function.
 
-Chúng ta đã hiểu rằng trigger là các event handler cực kỳ phức tạp. Trong chapter này, chúng ta bắt đầu cho thấy sức mạnh của các tool được cung cấp cho PostgreSQL DBA; trong chapter tiếp theo, chúng ta sẽ nói về partitioning và sẽ sử dụng các topic đã trình bày trong chapter này để thực hiện điều đó.
+Chúng ta đã hiểu rằng trigger là các event handler cực kỳ phức tạp. Trong chương này, chúng ta đã bắt đầu cho thấy sức mạnh của các công cụ dành cho PostgreSQL DBA; trong chương tiếp theo, chúng ta sẽ nói về partitioning và vận dụng các nội dung đã trình bày trong chương này để thực hiện điều đó.

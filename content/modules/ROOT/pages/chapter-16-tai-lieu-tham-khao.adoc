@@ -1,13 +1,13 @@
 = Tài liệu tham khảo
 
-* Tài liệu chính thức về PostgreSQL cluster configuration: https://www.postgresql.org/docs/current/runtime-config.html
+* Tài liệu chính thức về configuration của PostgreSQL cluster: https://www.postgresql.org/docs/current/runtime-config.html
 * PGConfig online configurator: https://www.pgconfig.org/
 * Tài liệu chính thức về PostgreSQL statistics collector: https://www.postgresql.org/docs/current/monitoring-stats.html
 * Tài liệu chính thức về PostgreSQL `pg_stat_statements`: https://www.postgresql.org/docs/current/pgstatstatements.html
 
 == Tìm hiểu thêm trên Discord
 
-Để tham gia cộng đồng Discord dành cho cuốn sách này - nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới - hãy theo QR code bên dưới:
+Để tham gia cộng đồng Discord dành cho cuốn sách này, nơi bạn có thể gửi feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy quét QR code bên dưới:
 
 https://discord.gg/jYWCjF6Tku
 

@@ -1,21 +1,21 @@
 = Kiểm tra kiến thức
 
-* *`pg_ctl` command là gì?*
+* *Lệnh `pg_ctl` là gì?*
 
-  `pg_ctl` là một command được cung cấp cùng PostgreSQL, cho phép bạn start, restart, stop cluster và thực hiện các action khác trên cluster. Nó thường được dùng để manage toàn bộ cluster. Xem phần về `pg_ctl` để biết thêm chi tiết.
+  `pg_ctl` là một lệnh đi kèm với PostgreSQL, cho phép bạn khởi động, khởi động lại, dừng cluster và thực hiện các thao tác khác trên cluster. Lệnh này thường được dùng để quản lý toàn bộ cluster. Xem phần về `pg_ctl` để biết thêm chi tiết.
 
 * *Template database là gì?*
 
-  Template database là một database có thể được dùng làm cơ sở để clone một database khác (mới), database mới đó ban đầu sẽ bao gồm cùng các object. Xem phần *The template databases* để biết thêm chi tiết.
+  Template database là một database có thể được dùng làm cơ sở để clone một database khác. Ban đầu, database mới sẽ chứa các object giống như trong template database. Xem phần *Các template database* để biết thêm chi tiết.
 
-* *`psql` command là gì?*
+* *Lệnh `psql` là gì?*
 
-  `psql` là client application chính thức để connect đến một PostgreSQL database. Đây là một command-line application có thể được dùng để nhập các SQL statement và lấy result từ cluster. Nó được cung cấp trong mọi version của PostgreSQL. Xem phần *The psql command-line client* để biết thêm chi tiết.
+  `psql` là client chính thức để kết nối tới một database PostgreSQL. Đây là một ứng dụng dòng lệnh có thể dùng để nhập các SQL statement và lấy kết quả từ cluster. Nó được cung cấp trong mọi phiên bản PostgreSQL. Xem phần *Client dòng lệnh psql* để biết thêm chi tiết.
 
 * *Connection string là gì?*
 
-  Connection string là một URI chỉ định tất cả property cần thiết để connect đến một database, thường bao gồm username, host, database, v.v. Xem phần *The connection string scction* để biết thêm chi tiết.
+  Connection string là một URI chỉ định mọi parameter cần thiết để kết nối tới một database, thường bao gồm username, host, database, v.v. Xem phần *Giới thiệu về connection string* để biết thêm chi tiết.
 
-* *Các psql special command là gì?*
+* *Các lệnh đặc biệt của psql là gì?*
 
-  Special command là tất cả short command bắt đầu bằng ký hiệu backslash, chẳng hạn `\d`. Đây là các command mang tính thông tin và chỉ hợp lệ bên trong `psql client`. Xem phần *A glance at the psql commands* để biết thêm chi tiết.
+  Đây là các lệnh ngắn bắt đầu bằng ký hiệu backslash, chẳng hạn `\d`; chúng cung cấp thông tin và chỉ dùng được trong `psql client`. Xem phần *Tổng quan về các command của psql* để biết thêm chi tiết.

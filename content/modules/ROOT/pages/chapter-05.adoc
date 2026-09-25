@@ -1,9 +1,9 @@
-= 5. Advanced Statements
+= 5. Các statement nâng cao
 
-Trong chapter trước, chúng ta đã bắt đầu những bước đầu tiên với PostgreSQL. Trong chapter này, chúng ta sẽ phân tích ngôn ngữ SQL sâu hơn và viết các query phức tạp hơn. Chúng ta sẽ lại đề cập đến `SELECT`/`INSERT`/`UPDATE`, nhưng lần này sẽ sử dụng các option nâng cao xoay quanh chúng. Sau đó, chúng ta sẽ đi sâu vào join, common table expressions (CTEs) và merge.
+Ở chương trước, chúng ta đã bắt đầu làm quen với PostgreSQL. Trong chương này, chúng ta sẽ tìm hiểu sâu hơn về ngôn ngữ SQL và viết các query phức tạp hơn. Chúng ta sẽ tiếp tục đề cập đến `SELECT`/`INSERT`/`UPDATE`, nhưng lần này sẽ sử dụng các tùy chọn nâng cao dành cho chúng. Sau đó, chúng ta sẽ đi sâu vào JOIN, common table expressions (CTEs) và MERGE.
 
 Các chủ đề chúng ta sẽ thảo luận gồm:
 
-* Khám phá statement `SELECT`
+* Tìm hiểu statement `SELECT`
 * Sử dụng `UPSERT` và `MERGE`
-* Khám phá CTE
+* Tìm hiểu CTE

@@ -1,59 +1,42 @@
 = Quản lý trigger trong PostgreSQL
 
-Ở section trước, chúng ta đã nói về rule. Trong section này, chúng ta sẽ nói về trigger, trigger là gì và cách sử dụng chúng. Chúng ta cần bắt đầu bằng việc hiểu trigger là gì; nếu đã hiểu rule là gì thì việc này sẽ đơn giản. Ở section trước, chúng ta định nghĩa rule là event handler đơn giản; bây giờ chúng ta có thể định nghĩa trigger là event handler phức tạp. Với trigger, cũng như với rule, có các record `NEW` và `OLD`, mang cùng ý nghĩa trong trigger như trong rule. Với trigger, các event có thể quản lý là `INSERT`/`DELETE`/`UPDATE` và `TRUNCATE`. Một khác biệt nữa giữa rule và trigger là với trigger, có thể xử lý các event `INSERT`/`UPDATE`/`DELETE` và `TRUNCATE` trước hoặc sau khi chúng xảy ra. Với trigger, chúng ta cũng có thể sử dụng option `INSTEAD OF`, nhưng chỉ trên view.
+Trong phần trước, chúng ta đã nói về rule. Trong phần này, chúng ta sẽ tìm hiểu trigger và cách sử dụng trigger. Trước hết, nếu đã hiểu rule thì việc hiểu trigger khá đơn giản: rule là một event handler đơn giản, còn trigger là một event handler phức tạp hơn. Cũng như rule, trigger có các record `NEW` và `OLD`, với cùng ý nghĩa. Trigger có thể xử lý các event `INSERT`/`DELETE`/`UPDATE` và `TRUNCATE`. Một điểm khác giữa rule và trigger là trigger có thể xử lý các event `INSERT`/`UPDATE`/`DELETE` và `TRUNCATE` trước hoặc sau khi chúng xảy ra. Trigger cũng hỗ trợ option `INSTEAD OF`, nhưng chỉ trên view.
 
-Do đó, chúng ta có thể quản lý các event sau:
+Do đó, các event chúng ta có thể xử lý gồm:
 
 * `BEFORE INSERT/UPDATE/DELETE/TRUNCATE`
 * `AFTER INSERT/UPDATE/DELETE/TRUNCATE`
 * `INSTEAD OF INSERT/UPDATE/DELETE`
 
-Với rule, chỉ có thể có record `NEW` cho operation `INSERT`, record `NEW` và `OLD` cho operation `UPDATE`, và record `OLD` cho operation `DELETE`. Hai item đầu tiên trong list cũng có thể được sử dụng trên foreign table cũng như table thực, còn item thứ ba chỉ có thể được sử dụng trên view. Để biết thêm thông tin, xem https://www.postgresql.org/docs/current/sql-createtrigger.html.
+Với rule, record `NEW` chỉ có thể tồn tại cho operation `INSERT`, record `NEW` và `OLD` cho operation `UPDATE`, còn record `OLD` cho operation `DELETE`. Hai mục đầu tiên trong danh sách cũng có thể áp dụng cho foreign table và table thông thường, còn mục thứ ba chỉ áp dụng cho view. Xem thêm tại https://www.postgresql.org/docs/current/sql-createtrigger.html.
 
-Bây giờ chúng ta sẽ thực hiện những bước đầu tiên để sử dụng trigger và tìm hiểu cách đạt được các kết quả giống như khi sử dụng rule. Với trigger, chúng ta có thể làm mọi thứ có thể làm với rule và còn nhiều hơn thế.
+Tiếp theo, chúng ta sẽ thực hiện những bước đầu tiên để sử dụng trigger và tìm hiểu cách đạt được các kết quả tương tự như khi dùng rule. Trigger cho phép chúng ta làm mọi việc rule có thể làm, và còn nhiều hơn thế.
 
-Trước khi tiếp tục, chúng ta cần ghi nhớ hai điều:
+Trước khi tiếp tục, cần ghi nhớ hai điều:
 
-* Nếu trigger và rule cùng đồng thời tồn tại trên cùng một event trong một table, rule luôn được fire trước trigger.
-* Nếu có nhiều trigger trên cùng một event của một table (ví dụ `BEFORE INSERT`), chúng được thực thi theo thứ tự alphabet.
+* Nếu trigger và rule cùng tồn tại trên cùng một event của một table, rule luôn được kích hoạt trước trigger.
+* Nếu có nhiều trigger trên cùng một event của một table (ví dụ `BEFORE INSERT`), chúng được thực thi theo thứ tự bảng chữ cái.
 
-Có một category trigger khác, được gọi là event trigger, sẽ được trình bày trong section *Event triggers*.
+Có một loại trigger khác gọi là event trigger; loại trigger này sẽ được trình bày trong phần *Event trigger*.
 
 == Cú pháp trigger
 
-Như được mô tả trong tài liệu chính thức, cú pháp để định nghĩa một trigger như sau:
+Theo tài liệu chính thức, cú pháp định nghĩa trigger như sau:
 
-[source,text]
+[source,sql]
 ....
-CREATE [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event
-    [ OR ... ] }
-    ON table_name
-    [ FROM referenced_table_name ]
-    [ NOT DEFERRABLE | [ DEFERRABLE ] [ INITIALLY IMMEDIATE | INITIALLY
-    DEFERRED ] ]
-    [ REFERENCING { { OLD | NEW } TABLE [ AS ] transition_relation_name } [
-    ... ] ]
-    [ FOR [ EACH ] { ROW | STATEMENT } ]
-    [ WHEN ( condition ) ]
-    EXECUTE { FUNCTION | PROCEDURE } function_name ( arguments )
-
-where event can be one of:
-
-    INSERT
-    UPDATE [ OF column_name [, ... ] ]
-    DELETE
-    TRUNCATE
+CREATE [ CONSTRAINT ] TRIGGER name { BEFORE | AFTER | INSTEAD OF } { event [ OR ... ] } ON table_name [ FROM referenced_table_name ] [ NOT DEFERRABLE | [ DEFERRABLE ] [ INITIALLY IMMEDIATE | INITIALLY DEFERRED ] ] [ REFERENCING { { OLD | NEW } TABLE [ AS ] transition_relation_name } [ ... ] ] [ FOR [ EACH ] { ROW | STATEMENT } ] [ WHEN (condition) ] EXECUTE { FUNCTION | PROCEDURE } function_name (arguments) WHERE event can be one of: INSERT UPDATE [ OF column_name [, ... ] ] DELETE TRUNCATE
 ....
 
-Chúng ta sẽ chỉ xem xét những khía cạnh được sử dụng nhiều nhất của cú pháp này; để biết thêm thông tin, xem https://www.PostgreSQL.org/docs/current/sql-createtrigger.html. Các điểm chính về việc thực thi một trigger như sau:
+Ở đây, chúng ta chỉ xem xét những phần được sử dụng nhiều nhất của cú pháp này; xem thêm tại https://www.PostgreSQL.org/docs/current/sql-createtrigger.html. Các điểm chính khi thực thi trigger là:
 
-* Event mà chúng ta muốn xử lý, ví dụ `INSERT`, `DELETE` hoặc `UPDATE`.
-* Khi nào chúng ta muốn bắt đầu thực thi `TRIGGER` (ví dụ `BEFORE INSERT`).
-* Trigger gọi một function để thực hiện một action.
+* Event cần xử lý, chẳng hạn `INSERT`, `DELETE` hoặc `UPDATE`.
+* Thời điểm `TRIGGER` bắt đầu được thực thi (chẳng hạn `BEFORE INSERT`).
+* Trigger gọi một function để thực hiện một thao tác.
 
-Function được trigger gọi phải được định nghĩa theo một cách cụ thể, như prototype sau:
+Function được trigger gọi phải được định nghĩa theo một dạng cụ thể, như prototype sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 CREATE OR REPLACE FUNCTION function_name RETURNS trigger as
 $$
@@ -68,56 +51,81 @@ $$
 LANGUAGE 'plpgsql';
 ....
 
-Các function được trigger gọi là những function không có input parameter và phải trả về type `TRIGGER`; các function này nhận parameter từ record `NEW`/`OLD`. Bắt đầu từ prototype của function trước đó, một định nghĩa `TRIGGER` khả dĩ cho event `BEFORE INSERT` có thể được mô tả như sau:
-
-[source,text]
+.Command
+[source,bash]
 ....
-CREATE TRIGGER trigger_name BEFORE INSERT on table_name FOR EACH ROW
-EXECUTE PROCEDURE function_name.
-....
-
-Cũng có cú pháp sau:
-
-[source,text]
-....
-CREATE TRIGGER trigger_name BEFORE INSERT on table_name FOR EACH STATEMENT
-EXECUTE PROCEDURE function_name.
+CREATE OR REPLACE FUNCTION function_name RETURNS trigger as
+$
+$
 ....
 
-Sự khác biệt giữa `FOR EACH ROW` và `FOR EACH STATEMENT` là:
+.Output
+[source,output]
+....
+DECLARE
+\....
+BEGIN
 
-* Trigger được định nghĩa với `FOR EACH ROW` được thực thi cho mỗi row tham gia vào operation (ví dụ, cho mỗi row được insert, update hoặc delete) thỏa mãn condition của trigger.
+
+     RETURN
+END;
+LANGUAGE 'plpgsql';
+....
+
+
+Các function được trigger gọi không nhận input parameter và phải trả về data type `TRIGGER`; các function này nhận các giá trị từ record `NEW`/`OLD`. Dựa trên prototype trước đó, một định nghĩa `TRIGGER` cho event `BEFORE INSERT` có thể được định nghĩa như sau:
+
+[source,sql]
+....
+CREATE TRIGGER trigger_name BEFORE INSERT ON table_name FOR EACH ROW EXECUTE PROCEDURE function_name.
+....
+
+Cũng có thể dùng cú pháp sau:
+
+[source,sql]
+....
+CREATE TRIGGER trigger_name BEFORE INSERT ON table_name FOR EACH STATEMENT EXECUTE PROCEDURE function_name.
+....
+
+Sự khác nhau giữa `FOR EACH ROW` và `FOR EACH STATEMENT` là:
+
+* Trigger được định nghĩa với `FOR EACH ROW` sẽ được thực thi cho từng row tham gia vào operation (ví dụ từng row được insert, update hoặc delete) và thỏa mãn condition của trigger.
 * Trigger được định nghĩa với `FOR EACH STATEMENT` chỉ được thực thi một lần cho mỗi SQL statement thỏa mãn condition của trigger, bất kể operation liên quan đến bao nhiêu row.
 
-Trong section tiếp theo, chúng ta sẽ thử triển khai những gì đã viết với rule, lần này áp dụng trigger.
+Trong phần tiếp theo, chúng ta sẽ thử triển khai những gì đã làm với rule, lần này bằng trigger.
 
 == Trigger trên `INSERT`
 
-Trong section này, chúng ta sẽ xem cách tạo những trigger đầu tiên:
+Trong phần này, chúng ta sẽ xem cách tạo các trigger đầu tiên:
 
-. Hãy quay lại rule mà chúng ta đã viết trong section về option *ALSO*; chúng ta đã viết một rule như sau:
+. Hãy quay lại rule đã viết trong phần nói về tùy chọn *ALSO*; khi đó chúng ta đã viết rule sau:
 
-[source,text]
+[source,sql]
 ....
-   create or replace rule r_tags1
-       as on INSERT to tags
-       where NEW.tag like 'a%' DO ALSO
-    insert into new_a_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
-   parent);
+CREATE OR REPLACE rule r_tags1 AS ON INSERT to tags WHERE NEW.tag like 'a%' DO ALSO INSERT INTO new_a_tags (pk, tag, parent)VALUES (NEW.pk, NEW.tag, NEW. parent);
 ....
 
-. Bây giờ hãy xem cách đạt được cùng mục tiêu bằng trigger. Trước hết, hãy quay lại tình trạng ban đầu:
+. Bây giờ hãy xem cách đạt cùng mục tiêu bằng trigger. Trước hết, hãy đưa môi trường về trạng thái ban đầu:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> drop table if exists new_tags cascade;
    forumdb=> create table new_tags as select * from tags limit 0;
    forumdb=> truncate table new_a_tags;
 ....
 
-. Bây giờ chúng ta có thể tạo function, function này sau đó sẽ được trigger gọi:
+.SQL
+[source,sql]
+....
+DROP TABLE if EXISTS new_tags CASCADE;
+CREATE TABLE new_tags AS SELECT * FROM tags LIMIT 0;
+truncate TABLE new_a_tags;
+....
 
-[source,text]
+
+. Bây giờ có thể tạo function mà trigger sẽ gọi:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE OR REPLACE FUNCTION f_tags() RETURNS trigger as
    $$
@@ -133,24 +141,67 @@ Trong section này, chúng ta sẽ xem cách tạo những trigger đầu tiên:
    CREATE FUNCTION
 ....
 
-   Hãy xem kỹ hơn ý nghĩa của code:
+.Command
+[source,bash]
+....
+$
+$
+....
 
-** Statement `lower(substring (NEW.tag from 1 for 1))` lấy character đầu tiên của một string và chuyển nó thành chữ thường.
-** Statement `RETURN NEW` truyền record mới từ table đến `INSERT` trong table `new_tags`.
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION f_tags()
+    RETURNS trigger AS
+....
+
+.Output
+[source,output]
+....
+   BEGIN
+       IF lower(substring(NEW.tag from 1 for 1)) = 'a' THEN
+    insert into new_a_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+       END IF;
+       RETURN NEW;
+   END;
+   LANGUAGE 'plpgsql';
+   CREATE FUNCTION
+....
+
+
+   Hãy xem kỹ hơn đoạn code này thực hiện gì:
+
+** Statement `lower(substring (NEW.tag from 1 for 1))` lấy ký tự đầu tiên của một chuỗi rồi chuyển ký tự đó thành chữ thường.
+** Statement `RETURN NEW` trả record mới về cho thao tác `INSERT` trên table `new_tags`.
 
 [%start=4]
-. Bây giờ hãy định nghĩa trigger trên event `BEFORE INSERT` của table `t_tags`:
+. Bây giờ hãy định nghĩa trigger cho event `BEFORE INSERT` trên table `t_tags`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TRIGGER t_tags BEFORE INSERT on new_tags FOR EACH
    ROW EXECUTE PROCEDURE f_tags();
    CREATE TRIGGER
 ....
 
-. Vì vậy, khi một value được insert vào table `new_tags`, trước khi thực thi `INSERT`, trigger được thực thi và trả record `NEW` về action mặc định (`INSERT` trên table `new_tags`). Bây giờ hãy kiểm tra xem nó có hoạt động không:
+.SQL
+[source,sql]
+....
+CREATE TRIGGER t_tags BEFORE INSERT ON new_tags FOR EACH
+   ROW EXECUTE PROCEDURE f_tags();
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TRIGGER
+....
+
+
+. Vì vậy, khi insert một giá trị vào table `new_tags`, trigger sẽ chạy trước operation `INSERT` rồi trả record `NEW` để operation mặc định tiếp tục (tức `INSERT` trên table `new_tags`). Bây giờ hãy kiểm tra xem trigger có hoạt động không:
+
+[source,console,role="transcript"]
 ....
    forumdb=> insert into new_tags (pk,tag,parent) values (1,'bsd
    unix',NULL);
@@ -175,23 +226,53 @@ Trong section này, chúng ta sẽ xem cách tạo những trigger đầu tiên:
    (1 row)
 ....
 
-   Như chúng ta có thể thấy ở đây, nó hoạt động!
+.SQL
+[source,sql]
+....
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (1, 'bsd unix', NULL);
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (2, 'alpine linux', 1);
+SELECT *
+FROM new_tags;
+SELECT *
+FROM new_a_tags;
+....
+
+.Output
+[source,output]
+....
+   INSERT 0 1
+
+   INSERT 0 1
+
+    pk |      tag        | parent
+   ----+--------------+--------
+     1 | bsd unix        |
+     2 | alpine linux |           1
+   (2 rows)
+
+
+    pk |      tag        | parent
+   ----+--------------+--------
+     2 | alpine linux |           1
+   (1 row)
+....
+
+
+   Như kết quả cho thấy, trigger hoạt động!
 
 [%start=6]
-. Từ đây, chúng ta sẽ tiếp tục từng bước để hiểu rõ hơn sự khác biệt giữa làm việc với rule và làm việc với trigger. Mục tiêu chúng ta muốn đạt được với trigger là nhận được kết quả giống như kết quả có thể đạt được với rule sau:
+. Từ đây, chúng ta sẽ tiếp tục từng bước để hiểu rõ hơn sự khác nhau giữa rule và trigger. Mục tiêu là đạt được kết quả giống như rule sau:
 
-[source,text]
+[source,sql]
 ....
-   create or replace rule r_tags2
-    as on INSERT to tags
-   where NEW.tag ilike 'b%'
-   DO INSTEAD insert into new_b_tags(pk,tag,parent)values (NEW.pk,NEW.
-   tag,NEW.parent);
+CREATE OR REPLACE rule r_tags2 AS ON INSERT to tags WHERE NEW.tag ilike 'b%' DO INSTEAD INSERT INTO new_b_tags (pk, tag, parent)VALUES (NEW.pk, NEW. tag, NEW.parent);
 ....
 
-. Trước mắt, hãy sử dụng cùng cách làm mà chúng ta đã sử dụng trong rule bằng cách tạo một function mới, function này sau đó sẽ được trigger fire:
+. Trước hết, hãy dùng lại cách tiếp cận đã dùng với rule bằng cách tạo một function mới để trigger gọi:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE OR REPLACE FUNCTION f2_tags() RETURNS trigger as
    $$
@@ -213,11 +294,46 @@ Trong section này, chúng ta sẽ xem cách tạo những trigger đầu tiên:
    CREATE TRIGGER
 ....
 
-. Statement `(substring(NEW.tag from 1 for 1)) = 'b'` gần như giống hệt điều chúng ta đã thấy đầu tiên khi nói về rule. Khác biệt nằm ở `RETURN NULL`, nghĩa là nếu value `NEW.tag` bắt đầu bằng b thì một value `NULL` được trả về action mặc định và `INSERT` trên table `new_tags` sẽ không insert value nào. Ngược lại, nếu condition `IF` không được thỏa mãn thì function trả về `NEW` và record được insert vào table `new_tags`.
+.Command
+[source,bash]
+....
+$
+$
+....
 
-   Hãy xem nó có hoạt động không:
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION f2_tags()
+    RETURNS trigger AS
+CREATE TRIGGER t2_tags BEFORE INSERT ON new_tags FOR EACH
+   ROW EXECUTE PROCEDURE f2_tags();
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   BEGIN
+    IF lower(substring(NEW.tag from 1 for 1)) = 'b' THEN
+    insert into new_b_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+    RETURN NULL;
+    END IF;
+    RETURN NEW;
+   END;
+   LANGUAGE 'plpgsql';
+   CREATE FUNCTION
+
+
+   CREATE TRIGGER
+....
+
+
+. Statement `(substring(NEW.tag from 1 for 1)) = 'b'` gần như giống hệt điều chúng ta đã thấy khi bắt đầu nói về rule. Điểm khác biệt nằm ở `RETURN NULL`: nếu giá trị `NEW.tag` bắt đầu bằng b, function trả về `NULL`, nên operation mặc định không thực hiện `INSERT` nào vào table `new_tags`. Ngược lại, nếu condition `IF` không thỏa mãn, function trả về `NEW` và record được chèn vào table `new_tags`.
+
+   Hãy kiểm tra xem trigger có hoạt động không:
+
+[source,console,role="transcript"]
 ....
    forumdb=> truncate new_tags;
    TRUNCATE TABLE
@@ -231,12 +347,33 @@ Trong section này, chúng ta sẽ xem cách tạo những trigger đầu tiên:
    INSERT 0 0
 ....
 
-   Như chúng ta có thể thấy, condition `IF` hoạt động, và kết quả `INSERT 0 0` có nghĩa là không có record nào được insert vào table `new_tags`. Điều này xảy ra vì trigger hoạt động trên event `BEFORE INSERT` và condition `IF` đã chuyển record sang table `new_b_tags`.
+.SQL
+[source,sql]
+....
+truncate new_tags;
+truncate new_a_tags;
+truncate new_b_tags;
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (1, 'bsd unix', NULL);
+....
+
+.Output
+[source,output]
+....
+   TRUNCATE TABLE
+   TRUNCATE TABLE
+   TRUNCATE TABLE
+
+   INSERT 0 0
+....
+
+
+   Như kết quả cho thấy, condition `IF` hoạt động; output `INSERT 0 0` cho biết không có record nào được chèn vào table `new_tags`. Điều này xảy ra vì trigger chạy trên event `BEFORE INSERT` và condition `IF` đã chuyển record sang table `new_b_tags`.
 
 [%start=9]
-. Bây giờ chúng ta sẽ xem cách viết toàn bộ procedure bằng một trigger duy nhất. Trước hết, hãy quay lại các condition ban đầu của environment. Như trước đó, chúng ta xóa dữ liệu trong các table và, sử dụng option `CASCADE`, xóa trigger đã chọn cùng tất cả trigger liên kết với nó:
+. Bây giờ chúng ta sẽ xem cách viết toàn bộ quy trình bằng một trigger duy nhất. Trước hết, hãy đưa môi trường về trạng thái ban đầu. Như trước, chúng ta xóa dữ liệu trong các table và dùng option `CASCADE` để xóa trigger đã chọn cùng mọi trigger liên kết với nó:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> TRUNCATE new_tags;
    TRUNCATE TABLE
@@ -250,9 +387,30 @@ Trong section này, chúng ta sẽ xem cách tạo những trigger đầu tiên:
    DROP TRIGGER
 ....
 
-. Trong bước cuối cùng này, chúng ta sẽ kết hợp những gì đã viết trong các function `f_tags()` và `f2_tags()` thành một function duy nhất, `f3_tags()`, function này sẽ được fire từ trigger `t3_tags` trên event `BEFORE INSERT`:
+.SQL
+[source,sql]
+....
+TRUNCATE new_tags;
+TRUNCATE new_a_tags;
+TRUNCATE new_b_tags;
+DROP TRIGGER t_tags ON new_tags CASCADE;
+DROP TRIGGER t2_tags ON new_tags CASCADE;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   TRUNCATE TABLE
+   TRUNCATE TABLE
+   TRUNCATE TABLE
+   DROP TRIGGER
+   DROP TRIGGER
+....
+
+
+. Ở bước cuối, chúng ta sẽ kết hợp nội dung của hai function `f_tags()` và `f2_tags()` thành một function duy nhất là `f3_tags()`. Function này sẽ được trigger `t3_tags` gọi trên event `BEFORE INSERT`:
+
+[source,console,role="transcript"]
 ....
     forumdb=> CREATE OR REPLACE FUNCTION f3_tags() RETURNS trigger as
     $$
@@ -279,9 +437,49 @@ Trong section này, chúng ta sẽ xem cách tạo những trigger đầu tiên:
     CREATE TRIGGER
 ....
 
-Function này chứa logic của hai function đã thấy trước đó. Bằng cách này, chúng ta có thể giải quyết vấn đề một cách gọn gàng hơn bằng cách sử dụng một function duy nhất và một trigger duy nhất. Hãy xem nó có hoạt động không:
+.Command
+[source,bash]
+....
+$
+$
+....
 
-[source,text]
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION f3_tags()
+    RETURNS trigger AS
+CREATE TRIGGER t3_tags BEFORE INSERT ON new_tags FOR EACH
+    ROW EXECUTE PROCEDURE f3_tags();
+....
+
+.Output
+[source,output]
+....
+    BEGIN
+     IF lower(substring(NEW.tag from 1 for 1)) = 'a' THEN
+         insert into new_a_tags(pk,tag,parent)values (NEW.pk,NEW.
+    tag,NEW.parent);
+         RETURN NEW;
+     ELSIF lower(substring(NEW.tag from 1 for 1)) = 'b' THEN
+         insert into new_b_tags(pk,tag,parent)values (NEW.pk,NEW.
+    tag,NEW.parent);
+         RETURN NULL;
+    ELSE
+         RETURN NEW;
+    END IF;
+    END;
+    LANGUAGE 'plpgsql';
+    CREATE FUNCTION
+
+
+    CREATE TRIGGER
+....
+
+
+Function này chứa logic của hai function đã thấy trước đó. Nhờ vậy, chúng ta giải quyết vấn đề gọn gàng hơn bằng một function duy nhất và một trigger duy nhất. Hãy kiểm tra xem nó có hoạt động không:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into new_tags (pk,tag,parent) values (1,'operating
 systems',NULL);
@@ -319,17 +517,63 @@ forumdb=> select * from new_a_tags ;
    (1 row)
 ....
 
-Như có thể thấy, function hoạt động.
+.SQL
+[source,sql]
+....
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (1, 'operating systems', NULL);
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (2, 'alpine linux', 1);
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (3, 'bsd unix', 1);
+SELECT *
+FROM new_tags;
+.
+ pk | tag | parent
+----+-------------------+--------
+ 1 | operating systems |
+  2 | alpine linux | 1
+(2 rows)
+SELECT * FROM new_a_tags;
+SELECT *
+FROM new_b_tags;
+....
 
-== Variable `TG_OP`
+.Output
+[source,output]
+....
+INSERT 0 1
 
-Như được trình bày trong tài liệu chính thức tại https://www.PostgreSQL.org/docs/current/plpgsql-trigger.html, có thể điều khiển trigger trong PostgreSQL bằng các special variable; trong số đó có hai variable chúng ta đã thấy (`NEW` và `OLD`). Có một special variable khác tên là `TG_OP`, cho biết trigger được fire từ event nào. Các value khả dĩ của variable `TG_OP` là `INSERT`, `DELETE`, `UPDATE` và `TRUNCATE`.
 
-== Trigger trên `UPDATE` / `DELETE`
+INSERT 0 1
 
-Bây giờ hãy quay lại ví dụ chúng ta đã sử dụng trong *Figure 8.1*. Mục tiêu chúng ta muốn đạt được là tạo một function duy nhất có thể xử lý các event `INSERT`, `DELETE` và `UPDATE`. Trước hết, hãy quay lại các condition ban đầu trong environment:
+INSERT 0 0
 
-[source,text]
+
+    pk |       tag        | parent
+----+--------------+--------
+      2 | alpine linux |              1
+   (1 row)
+
+
+    pk |     tag     | parent
+   ----+----------+--------
+     3 | bsd unix |             1
+   (1 row)
+....
+
+
+Như kết quả cho thấy, function hoạt động.
+
+== Biến `TG_OP`
+
+Theo tài liệu chính thức tại https://www.PostgreSQL.org/docs/current/plpgsql-trigger.html, PostgreSQL cho phép điều khiển trigger bằng các biến đặc biệt. Trong đó, chúng ta đã gặp hai biến `NEW` và `OLD`. Một biến đặc biệt khác, `TG_OP`, cho biết trigger được kích hoạt bởi event nào. Các giá trị có thể có của `TG_OP` là `INSERT`, `DELETE`, `UPDATE` và `TRUNCATE`.
+
+== Trigger cho `UPDATE` / `DELETE`
+
+Bây giờ hãy quay lại ví dụ đã dùng trong *Hình 8.1*. Mục tiêu là tạo một function duy nhất có thể xử lý các event `INSERT`, `DELETE` và `UPDATE`. Trước hết, hãy đưa môi trường về trạng thái ban đầu:
+
+[source,console,role="transcript"]
 ....
 forumdb=> truncate new_tags;
 TRUNCATE TABLE
@@ -341,12 +585,31 @@ forumdb=> drop trigger t3_tags on new_tags cascade;
 DROP TRIGGER
 ....
 
-Bây giờ, như trước đó, chúng ta sẽ tiếp tục từng bước. Bước đầu tiên là viết phần code sẽ được thực hiện trong event `INSERT`. Sau đó, chúng ta sẽ xem cách mở rộng function để quản lý các event `DELETE` và `UPDATE`.
-Function xử lý cả ba event sẽ là function `fcopy_tags()`; function này sẽ được trigger `tcopy_tags` gọi. Function `fcopy_tags()` sử dụng variable `TG_OP` để có thể phân biệt giữa các event `INSERT`, `UPDATE` và `DELETE`.
+.SQL
+[source,sql]
+....
+truncate new_tags;
+truncate new_a_tags;
+truncate new_b_tags;
+DROP trigger t3_tags ON new_tags CASCADE;
+....
 
-Bắt đầu bằng cách viết function `fcopy_tags()` để xử lý event `INSERT`:
+.Output
+[source,output]
+....
+TRUNCATE TABLE
+TRUNCATE TABLE
+TRUNCATE TABLE
+DROP TRIGGER
+....
 
-[source,text]
+
+Như trước, chúng ta sẽ tiếp tục từng bước. Trước tiên, chúng ta viết phần code xử lý event `INSERT`; sau đó mở rộng function để quản lý các event `DELETE` và `UPDATE`.
+Function xử lý cả ba event sẽ là `fcopy_tags()`; trigger `tcopy_tags` sẽ gọi function này. Function `fcopy_tags()` dùng biến `TG_OP` để phân biệt các event `INSERT`, `UPDATE` và `DELETE`.
+
+Bắt đầu bằng việc viết function `fcopy_tags()` để xử lý event `INSERT`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE OR REPLACE FUNCTION fcopy_tags() RETURNS trigger as
    $$
@@ -367,16 +630,64 @@ Bắt đầu bằng cách viết function `fcopy_tags()` để xử lý event `I
    CREATE FUNCTION
 ....
 
-[source,text]
+.Command
+[source,bash]
+....
+$
+$
+....
+
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION fcopy_tags()
+    RETURNS trigger AS
+....
+
+.Output
+[source,output]
+....
+   BEGIN
+   IF TG_OP = 'INSERT' THEN
+          IF lower(substring(NEW.tag from 1 for 1)) = 'a' THEN
+              insert into new_a_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+          ELSIF lower(substring(NEW.tag from 1 for 1)) = 'b' THEN
+              insert into new_b_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+          END IF;
+          RETURN NEW;
+   END IF;
+   END;
+   LANGUAGE 'plpgsql';
+   CREATE FUNCTION
+....
+
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TRIGGER tcopy_tags_ins BEFORE INSERT on new_tags FOR EACH
    ROW EXECUTE PROCEDURE fcopy_tags();
    CREATE TRIGGER
 ....
 
-Bây giờ hãy xem code này có hoạt động với event `INSERT` hay không:
+.SQL
+[source,sql]
+....
+CREATE TRIGGER tcopy_tags_ins BEFORE INSERT ON new_tags FOR EACH
+   ROW EXECUTE PROCEDURE fcopy_tags();
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TRIGGER
+....
+
+
+Bây giờ, hãy kiểm tra code này có hoạt động với event `INSERT` hay không:
+
+[source,console,role="transcript"]
 ....
    forumdb=> insert into new_tags (pk,tag,parent) values (1,'operating
    systems',NULL);
@@ -411,16 +722,62 @@ Bây giờ hãy xem code này có hoạt động với event `INSERT` hay không
    (3 rows)
 ....
 
-Rõ ràng là code hoạt động!
+.SQL
+[source,sql]
+....
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (1, 'operating systems', NULL);
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (2, 'alpine linux', 1);
+INSERT INTO new_tags (pk, tag, parent)
+VALUES (3, 'bsd unix', 1);
+SELECT *
+FROM new_a_tags;
+SELECT *
+FROM new_b_tags;
+SELECT *
+FROM new_tags;
+....
 
-Tiếp theo, hãy xử lý event `DELETE`. Chúng ta cần làm những việc sau:
+.Output
+[source,output]
+....
+   INSERT 0 1
+   INSERT 0 1
+   INSERT 0 1
 
-* Thêm một số dòng code vào function để quản lý operation `DELETE`.
-* Thêm một trigger mới có khả năng xử lý event `DELETE`.
 
-Function sẽ trở thành như sau:
+       pk |      tag         | parent
+   ----+--------------+--------
+        2 | alpine linux |              1
+   (1 row)
 
-[source,text]
+
+       pk |    tag      | parent
+   ----+----------+--------
+        3 | bsd unix |          1
+   (1 row)
+
+
+       pk |           tag           | parent
+   ----+-------------------+--------
+        1 | operating systems |
+        2 | alpine linux            |       1
+        3 | bsd unix                |       1
+   (3 rows)
+....
+
+
+Rõ ràng, code hoạt động!
+
+Tiếp theo, xử lý event `DELETE`. Cần làm hai việc:
+
+* Bổ sung một số dòng code vào function để xử lý operation `DELETE`.
+* Tạo thêm một trigger có thể xử lý event `DELETE`.
+
+Function sẽ như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE OR REPLACE FUNCTION fcopy_tags() RETURNS trigger as
    $$
@@ -450,7 +807,50 @@ Function sẽ trở thành như sau:
    CREATE FUNCTION
 ....
 
-Đoạn code sau đã được thêm:
+.Command
+[source,bash]
+....
+$
+$
+....
+
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION fcopy_tags()
+    RETURNS trigger AS
+....
+
+.Output
+[source,output]
+....
+   BEGIN
+   IF TG_OP = 'INSERT' THEN
+            IF lower(substring(NEW.tag from 1 for 1)) = 'a' THEN
+                insert into new_a_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+            ELSIF lower(substring(NEW.tag from 1 for 1)) = 'b' THEN
+                insert into new_b_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+            END IF;
+            RETURN NEW;
+
+   END IF;
+   IF TG_OP = 'DELETE' THEN
+          IF lower(substring(OLD.tag from 1 for 1)) = 'a' THEN
+                    DELETE FROM new_a_tags WHERE pk = OLD.pk;
+              ELSIF lower(substring(OLD.tag from 1 for 1)) = 'b' THEN
+                    DELETE FROM new_b_tags WHERE pk = OLD.pk;
+          END IF;
+          RETURN OLD;
+   END IF;
+   END;
+   LANGUAGE 'plpgsql';
+   CREATE FUNCTION
+....
+
+
+Đoạn code được thêm vào là:
 
 [source,text]
 ....
@@ -464,18 +864,32 @@ Function sẽ trở thành như sau:
    END IF;
 ....
 
-Đoạn code này xóa dữ liệu trong các table `a_tags` và `b_tags` nếu record bị xóa bắt đầu bằng chữ a hoặc b. Bây giờ chúng ta phải tạo một trigger mới có khả năng xử lý các event `DELETE`:
+Đoạn code này xóa dữ liệu khỏi các table `a_tags` và `b_tags` nếu record bị xóa bắt đầu bằng chữ a hoặc b. Bây giờ cần tạo một trigger mới có thể xử lý event `DELETE`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE TRIGGER tcopy_tags_del
    AFTER DELETE on new_tags FOR EACH ROW EXECUTE PROCEDURE fcopy_tags();
    CREATE TRIGGER
 ....
 
-Trigger được thực thi `AFTER DELETE`; trong trường hợp này, sẽ không có khác biệt nếu chúng ta tạo các function `TRIGGER` `BEFORE` hoặc `AFTER INSERT`. Hãy xem trigger trên event `DELETE` này có hoạt động không:
+.SQL
+[source,sql]
+....
+CREATE TRIGGER tcopy_tags_del
+   AFTER DELETE ON new_tags FOR EACH ROW EXECUTE PROCEDURE fcopy_tags();
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TRIGGER
+....
+
+
+Trigger được thực thi `AFTER DELETE`; trong trường hợp này, việc tạo function `TRIGGER` với `BEFORE` hay `AFTER INSERT` không tạo ra khác biệt. Hãy kiểm tra xem trigger trên event `DELETE` có hoạt động không:
+
+[source,console,role="transcript"]
 ....
    forumdb=> delete from new_tags where pk=2;
    DELETE 1
@@ -501,11 +915,47 @@ Trigger được thực thi `AFTER DELETE`; trong trường hợp này, sẽ kh�
    (1 row)
 ....
 
-Như chúng ta có thể thấy, `TRIGGER` hoạt động.
+.SQL
+[source,sql]
+....
+DELETE FROM new_tags WHERE pk = 2;
+DELETE FROM new_tags WHERE pk = 3;
+SELECT *
+FROM new_a_tags;
+SELECT *
+FROM new_b_tags;
+SELECT *
+FROM new_tags;
+....
 
-Ở bước cuối cùng, chúng ta cần xử lý event `UPDATE`. Hãy viết function và các trigger thành một phiên bản hoàn chỉnh từ đầu. Một lần nữa, hãy đưa environment về các condition ban đầu:
+.Output
+[source,output]
+....
+   DELETE 1
+   DELETE 1
 
-[source,text]
+    pk | tag | parent
+   ----+-----+--------
+   (0 rows)
+
+
+    pk | tag | parent
+   ----+-----+--------
+   (0 rows)
+
+
+    pk |            tag         | parent
+   ----+-------------------+--------
+     1 | operating systems |
+   (1 row)
+....
+
+
+Kết quả cho thấy, `TRIGGER` hoạt động.
+
+Ở bước cuối, chúng ta cần xử lý event `UPDATE`. Hãy viết lại function và các trigger thành một phiên bản hoàn chỉnh từ đầu. Một lần nữa, hãy đưa môi trường về trạng thái ban đầu:
+
+[source,console,role="transcript"]
 ....
    forumdb=> truncate new_tags ;
    TRUNCATE TABLE
@@ -520,9 +970,34 @@ Như chúng ta có thể thấy, `TRIGGER` hoạt động.
    INSERT 0 3
 ....
 
-Bây giờ chúng ta có thể viết code hoàn chỉnh cho event `UPDATE`:
+.SQL
+[source,sql]
+....
+truncate new_tags;
+truncate new_a_tags;
+truncate new_b_tags;
+INSERT INTO new_tags (pk, tag, parent)
+VALUES
+    (1, 'operating systems', NULL),
+    (2, 'alpine linux', 1),
+    (3, 'bsd unix', 1);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   TRUNCATE TABLE
+   TRUNCATE TABLE
+   TRUNCATE TABLE
+
+
+   INSERT 0 3
+....
+
+
+Bây giờ, chúng ta có thể viết code hoàn chỉnh để xử lý event `UPDATE`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE OR REPLACE FUNCTION fcopy_tags() RETURNS trigger as
    $$
@@ -566,11 +1041,68 @@ Bây giờ chúng ta có thể viết code hoàn chỉnh cho event `UPDATE`:
    CREATE TRIGGER
 ....
 
-Trong trường hợp này, trigger phải được định nghĩa với `AFTER UPDATE` chứ không phải `BEFORE UPDATE` vì trong phần `UPDATE`, chúng ta có instruction `DELETE FROM new_tags WHERE pk = OLD.pk`; nếu trigger được định nghĩa với `BEFORE UPDATE`, chúng ta sẽ gặp lỗi vì đã cố xóa một record đang được dành cho `UPDATE`.
+.Command
+[source,bash]
+....
+$
+$
+....
 
-Hãy xem function hoàn chỉnh có hoạt động không:
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION fcopy_tags()
+    RETURNS trigger AS
+CREATE TRIGGER tcopy_tags_upd
+          AFTER UPDATE ON new_tags FOR EACH ROW EXECUTE PROCEDURE fcopy_tags();
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   BEGIN
+   IF TG_OP = 'INSERT' THEN
+            IF lower(substring(NEW.tag from 1 for 1)) = 'a' THEN
+                 insert into new_a_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+           ELSIF lower(substring(NEW.tag from 1 for 1)) = 'b' THEN
+                 insert into new_b_tags(pk,tag,parent)values (NEW.pk,NEW.tag,NEW.
+   parent);
+           END IF;
+           RETURN NEW;
+       END IF;
+   IF TG_OP = 'DELETE' THEN
+           IF lower(substring(OLD.tag from 1 for 1)) = 'a' THEN
+                 DELETE FROM new_a_tags WHERE pk = OLD.pk;
+           ELSIF lower(substring(OLD.tag from 1 for 1)) = 'b' THEN
+                 DELETE FROM new_b_tags WHERE pk = OLD.pk;
+           END IF;
+           RETURN OLD;
+   END IF;
+   IF TG_OP = 'UPDATE' THEN
+          IF (lower(substring(OLD.tag from 1 for 1)) in( 'a','b') ) THEN
+                 DELETE FROM new_a_tags WHERE pk=OLD.pk;
+                 DELETE FROM new_b_tags WHERE pk=OLD.pk;
+                 DELETE FROM new_tags WHERE pk = OLD.pk;
+                 INSERT into new_tags(pk,tag,parent) values (NEW.pk,NEW.tag,NEW.
+   parent);
+           END IF;
+           RETURN NEW;
+   END IF;
+   END;
+   LANGUAGE 'plpgsql';
+   CREATE FUNCTION
+
+
+   CREATE TRIGGER
+....
+
+
+Trong trường hợp này, trigger phải được định nghĩa với `AFTER UPDATE`, không phải `BEFORE UPDATE`, vì phần xử lý `UPDATE` chứa câu lệnh `DELETE FROM new_tags WHERE pk = OLD.pk`; nếu trigger được định nghĩa với `BEFORE UPDATE`, sẽ xảy ra lỗi vì chúng ta cố xóa một record đang được xử lý bởi `UPDATE`.
+
+Hãy kiểm tra xem function hoàn chỉnh có hoạt động không:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select * from new_tags;
     pk |           tag           | parent
@@ -619,4 +1151,68 @@ Hãy xem function hoàn chỉnh có hoạt động không:
    (3 rows)
 ....
 
-Như kết quả cho thấy, cách tiếp cận dùng trigger hoạt động. Trong section này, chúng ta đã thấy cách sửa đổi các event thuộc Data Manipulation Level (DML) bằng cách sử dụng rule và trigger. Trong section tiếp theo, chúng ta sẽ thấy cũng có thể intercept và sửa đổi các event liên quan đến operation DDL bằng event trigger.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM new_tags;
+SELECT *
+FROM new_a_tags;
+SELECT *
+FROM new_b_tags;
+UPDATE new_tags
+SET
+    tag = 'apple dos'
+WHERE pk = 3;
+SELECT *
+FROM new_a_tags;
+SELECT *
+FROM new_tags;
+....
+
+.Output
+[source,output]
+....
+    pk |           tag           | parent
+   ----+-------------------+--------
+     1 | operating systems |
+     2 | alpine linux            |       1
+     3 | bsd unix                |       1
+   (3 rows)
+
+
+    pk |       tag        | parent
+   ----+--------------+--------
+     2 | alpine linux |              1
+   (1 row)
+
+
+
+    pk |     tag     | parent
+   ----+----------+--------
+     3 | bsd unix |          1
+   (1 row)
+
+
+   UPDATE 1
+
+
+
+    pk |       tag        | parent
+   ----+--------------+--------
+        2 | alpine linux |           1
+        3 | apple dos      |         1
+   (2 rows)
+
+
+
+       pk |         tag          | parent
+   ----+-------------------+--------
+        1 | operating systems |
+        2 | alpine linux         |        1
+        3 | apple dos            |        1
+   (3 rows)
+....
+
+
+Như kết quả cho thấy, cách tiếp cận dùng trigger hoạt động. Trong phần này, chúng ta đã thấy cách sửa đổi các event thuộc Data Manipulation Level (DML) bằng rule và trigger. Trong phần tiếp theo, chúng ta sẽ thấy có thể can thiệp vào và sửa đổi các event liên quan đến operation DDL bằng event trigger.

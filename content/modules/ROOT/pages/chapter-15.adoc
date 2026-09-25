@@ -1,11 +1,11 @@
-= 15. Backup and Restore
+= 15. Backup và Restore
 
-Dù hardware và software của bạn vững chắc đến đâu, sớm hay muộn bạn cũng sẽ cần quay lại một thời điểm trong quá khứ để khôi phục data đã vô tình bị xóa hoặc hư hỏng. Đó là mục đích của backup — cung cấp một bản copy an toàn mà bạn có thể giữ trong một khoảng thời gian cụ thể, đủ để khôi phục khi mất data. Là một database cluster cấp enterprise, PostgreSQL cung cấp một tập tool chuyên biệt để database administrator xử lý việc backup và restore, và chapter này sẽ trình bày tất cả tool chính mà bạn có thể tận dụng để bảo đảm data của mình tồn tại sau mọi sự cố vô ý.
+Cho dù phần cứng và phần mềm của bạn đáng tin cậy đến đâu, sớm hay muộn bạn cũng sẽ cần quay lại một thời điểm trong quá khứ để khôi phục dữ liệu đã vô tình bị xóa hoặc hư hỏng. Đó là mục đích của backup: cung cấp một bản sao an toàn mà bạn có thể lưu giữ trong một khoảng thời gian nhất định, đủ lâu để khôi phục khi dữ liệu bị mất. Là một database cluster cấp enterprise, PostgreSQL cung cấp một bộ công cụ chuyên biệt để database administrator thực hiện backup và restore. Chương này trình bày các công cụ chính mà bạn có thể sử dụng để bảo đảm dữ liệu vẫn được bảo toàn sau mọi sự cố ngoài ý muốn.
 
-Backup và restore không phải là chủ đề quá phức tạp, nhưng đây là phần nền tảng trong mọi production system và đòi hỏi planning cẩn thận. Thực tế, với một bản backup, bạn đang giữ một bản copy chính xác khác của database phòng khi có sự cố nghiêm trọng; bản copy bổ sung này sẽ tiêu tốn resource, đáng kể nhất là storage space. Quyết định cần bao nhiêu bản copy bổ sung, thu thập chúng thường xuyên đến mức nào và phải giữ chúng trong bao lâu là việc cần được cân nhắc kỹ, nằm ngoài scope của chapter này. Trong chapter này, chúng ta sẽ xem xét các cách chính để thực hiện backup, theo logical hoặc physical, cùng tất cả tool mà một PostgreSQL distribution cung cấp để bạn quản lý backup.
+Backup và restore không phải là chủ đề quá phức tạp, nhưng đây là nền tảng của mọi production system và đòi hỏi phải lập kế hoạch cẩn thận. Trên thực tế, khi tạo một bản backup, bạn đang giữ một bản sao chính xác khác của database để đề phòng sự cố nghiêm trọng; bản sao bổ sung này sẽ tiêu tốn tài nguyên, đáng kể nhất là dung lượng lưu trữ. Việc quyết định cần bao nhiêu bản sao bổ sung, tạo chúng với tần suất nào và giữ chúng trong bao lâu cần được cân nhắc kỹ, nhưng nằm ngoài phạm vi của chương này. Trong chương này, chúng ta sẽ xem xét các cách chính để thực hiện backup, dưới dạng logical hoặc physical, cùng với toàn bộ tool mà một bản phân phối PostgreSQL cung cấp để bạn quản lý backup.
 
-Trong chapter này, chúng ta sẽ đề cập đến các chủ đề sau:
+Trong chương này, chúng ta sẽ đề cập đến các chủ đề sau:
 
-* Giới thiệu các loại backup và restore khác nhau
-* Tìm hiểu logical backup
-* Tìm hiểu physical backup
+* Giới thiệu về các loại backup và restore khác nhau
+* Tìm hiểu về logical backup
+* Tìm hiểu về physical backup

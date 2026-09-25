@@ -1,44 +1,54 @@
 = Quản lý extension
 
-Mỗi extension được quản lý ở database level, nghĩa là mọi database cần extension đều phải quản lý lifecycle của extension đó. Nói cách khác, không có cách quản lý extension ở per-cluster level rồi áp dụng extension cho mọi database bên trong cluster.
+Mỗi extension được quản lý ở cấp database, nghĩa là mọi database cần extension đều phải quản lý vòng đời của extension đó. Nói cách khác, không thể quản lý extension ở cấp cluster rồi áp dụng extension đó cho mọi database bên trong cluster.
 
-Extension chủ yếu được quản lý bằng ba SQL statement: `CREATE EXTENSION`, `DROP EXTENSION` và `ALTER EXTENSION`, lần lượt dùng để cài đặt extension vào database, remove extension khỏi database và sửa đổi attribute hoặc upgrade extension.
+Extension chủ yếu được quản lý bằng ba SQL statement: `CREATE EXTENSION`, `DROP EXTENSION` và `ALTER EXTENSION`, lần lượt dùng để cài đặt extension vào database, xóa extension khỏi database và thay đổi thuộc tính hoặc nâng cấp extension.
 
 Mỗi extension được xác định bằng một mnemonic và một version; nếu không chỉ định version, PostgreSQL giả định rằng bạn muốn làm việc với version mới nhất hiện có hoặc version đã được cài đặt.
 
-Trong các subsection tiếp theo, từng management statement trong ba statement trên sẽ được giải thích.
+Các tiểu mục tiếp theo sẽ lần lượt giải thích ba statement này.
 
 == Tạo extension
 
-Statement `CREATE EXTENSION` cho phép bạn cài đặt một extension hiện có vào database hiện tại.
+Statement `CREATE EXTENSION` cho phép cài đặt một extension đã có sẵn vào database hiện tại.
 
-Synopsis của statement như sau:
+Cú pháp của statement như sau:
 
 [source,sql]
 ....
-CREATE EXTENSION [ IF NOT EXISTS ] extension_name
-     [ WITH ] [ SCHEMA schema_name ]
-                [ VERSION version ]
-                [ CASCADE ]
+CREATE EXTENSION [ IF NOT EXISTS ] extension_name [ WITH ] [ SCHEMA schema_name ] [ VERSION version ] [ CASCADE ]
 ....
 
-Tên extension là mnemonic của extension; như bạn thấy, bạn có thể chỉ định version number của extension cần cài đặt. Nếu extension phụ thuộc vào extension khác, option `CASCADE` cho phép system tự động thực thi một `CREATE EXTENSION` đệ quy cho dependency đó. Bạn có thể quyết định schema nơi các extension object phải được đặt vào; tất nhiên, điều này chỉ có ý nghĩa đối với những extension có thể relocate.
+Tên extension là mnemonic của extension; như bạn thấy, bạn có thể chỉ định version của extension cần cài đặt. Nếu extension phụ thuộc vào extension khác, option `CASCADE` cho phép hệ thống tự động thực thi đệ quy một `CREATE EXTENSION` cho dependency đó. Bạn có thể chỉ định schema để đặt các object của extension; tất nhiên, điều này chỉ có ý nghĩa đối với những extension có thể di chuyển.
 
-Như bạn có thể hình dung, `IF NOT EXISTS` cho phép command xử lý êm thấm nếu extension đã được cài đặt. Chính xác hơn, nó không làm gì nếu extension đã được cài đặt trong database.
+Như bạn có thể hình dung, `IF NOT EXISTS` cho phép command hoàn tất mà không báo lỗi nếu extension đã được cài đặt. Cụ thể, command không làm gì nếu extension đã được cài đặt trong database.
 
-Để thấy rõ hơn cách `CREATE EXTENSION` hoạt động, hãy giả sử chúng ta muốn cài đặt procedural language PL/Perl trong database `forumdb`; vì extension PL/Perl có sẵn dưới dạng PostgreSQL contrib module, extension này đáng lẽ đã có sẵn bên trong cluster.
+Để thấy rõ hơn cách `CREATE EXTENSION` hoạt động, hãy giả sử chúng ta muốn cài đặt procedural language PL/Perl vào database `forumdb`; vì extension PL/Perl có sẵn dưới dạng PostgreSQL contrib module, extension này vốn đã có sẵn trong cluster.
 
 Vì vậy, để cài đặt nó, bạn phải thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# CREATE EXTENSION plperl;
 CREATE EXTENSION
 ....
 
-Lưu ý rằng extension PL/Perl (mnemonic `plperl`) yêu cầu được cài đặt bởi database administrator. Nếu bạn thử cài đặt lại extension đó, command sẽ fail trừ khi bạn sử dụng clause `IF NOT EXISTS`:
+.SQL
+[source,sql]
+....
+CREATE EXTENSION plperl;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+CREATE EXTENSION
+....
+
+
+Lưu ý rằng extension PL/Perl (mnemonic `plperl`) phải do database administrator cài đặt. Nếu thử cài đặt lại extension này, command sẽ thất bại trừ khi bạn sử dụng clause `IF NOT EXISTS`:
+
+[source,console,role="transcript"]
 ....
 forumdb=# CREATE EXTENSION plperl;
 ERROR:    extension "plperl" already exists
@@ -48,31 +58,61 @@ NOTICE:    extension "plperl" already exists, skipping
 CREATE EXTENSION
 ....
 
-Một ví dụ đơn giản khác là cài đặt một version cụ thể của extension `pg_stat_statements`:
+.SQL
+[source,sql]
+....
+CREATE EXTENSION plperl;
+CREATE EXTENSION IF NOT EXISTS plperl;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ERROR:    extension "plperl" already exists
+
+NOTICE:    extension "plperl" already exists, skipping
+CREATE EXTENSION
+....
+
+
+Một ví dụ đơn giản khác là cài đặt một version cụ thể cho extension `pg_stat_statements`:
+
+[source,console,role="transcript"]
 ....
 forumdb=# CREATE EXTENSION pg_stat_statements VERSION '1.10';
 CREATE EXTENSION
 ....
 
+.SQL
+[source,sql]
+....
+CREATE EXTENSION pg_stat_statements VERSION '1.10';
+....
+
+.Output
+[source,output]
+....
+CREATE EXTENSION
+....
+
+
 [quote]
 ____
-Lưu ý rằng `pg_stat_statements` yêu cầu thay đổi configuration parameter `shared_preload_libraries`, và thay đổi đó lại yêu cầu cluster phải được restart. Trong Docker image của chapter này, setting `shared_preload_libraries` đã được cấu hình phù hợp để bạn sử dụng extension `pg_stat_statements`. Nếu muốn thay đổi PostgreSQL configuration thủ công để sử dụng `pg_stat_statements`, bạn cần sửa configuration file `postgresql.conf` hoặc thực thi:
+Lưu ý rằng `pg_stat_statements` yêu cầu thay đổi configuration parameter `shared_preload_libraries`, và thay đổi đó lại yêu cầu restart cluster. Trong Docker image của chương này, `shared_preload_libraries` đã được cấu hình phù hợp để bạn sử dụng extension `pg_stat_statements`. Nếu muốn tự thay đổi cấu hình PostgreSQL để sử dụng `pg_stat_statements`, bạn cần sửa file cấu hình `postgresql.conf` hoặc thực thi:
 
 [source,sql]
 ....
 ALTER SYSTEM SET shared_preload_libraries TO 'pg_stat_statements';
 ....
 
-Sau đó restart cluster.
+Sau đó, hãy restart cluster.
 
 ____
 == Xem các extension đã cài đặt
 
-Trong `psql` terminal, bạn có thể lấy danh sách các extension đã cài đặt bằng special command `\dx`:
+Trong terminal `psql`, bạn có thể lấy danh sách các extension đã cài đặt bằng meta-command `\dx`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# \dx
                                       List of installed extensions
@@ -87,9 +127,31 @@ of all SQL statements executed
 (3 rows)
 ....
 
-Có thể lấy chính thông tin này từ catalog đặc biệt `pg_extension`, bằng cách join với `pg_namespace` để trích xuất thông tin dễ đọc về schema nơi extension đang tồn tại:
+.SQL
+[source,sql]
+....
+\dx
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                                      List of installed extensions
+       Name             | Version |      Schema      |
+Description
+--------------------+---------+------------+------------------------------
+-----------------------------
+ pg_stat_statements | 1.10     | public               | track execution statistics
+of all SQL statements executed
+ plperl                 | 1.0       | pg_catalog | PL/Perl procedural language
+ plpgsql                | 1.0       | pg_catalog | PL/pgSQL procedural language
+(3 rows)
+....
+
+
+Bạn cũng có thể lấy thông tin này từ catalog đặc biệt `pg_extension` bằng cách join với `pg_namespace` để lấy thông tin dễ đọc hơn về schema nơi extension đang tồn tại:
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT x.extname, x.extversion, n.nspname
               FROM pg_extension x JOIN pg_namespace n
@@ -103,11 +165,33 @@ forumdb=# SELECT x.extname, x.extversion, n.nspname
 (3 rows)
 ....
 
-== Tìm các version extension hiện có
+.SQL
+[source,sql]
+....
+SELECT
+    x.extname,
+    x.extversion,
+    n.nspname
+FROM pg_extension x JOIN pg_namespace n ON n.oid = x.extnamespace;
+....
 
-Bạn có thể inspect cluster để lấy thông tin về các version extension hiện có, tức các version mà bạn thực sự có thể cài đặt trong một database. Catalog đặc biệt `pg_available_extension_versions` cho phép lấy tất cả version hiện có của mọi extension khả dụng. Ví dụ, extension `pg_stat_statements` có các value sau trong cluster:
+.Output
+[source,output]
+....
+            extname       | extversion | nspname
+--------------------+------------+------------
+ plpgsql                | 1.0           | pg_catalog
+ plperl                 | 1.0           | pg_catalog
+ pg_stat_statements | 1.10               | public
+(3 rows)
+....
 
-[source,text]
+
+== Tìm các version hiện có của extension
+
+Bạn có thể kiểm tra cluster để lấy thông tin về các version hiện có của extension, tức là những version bạn thực sự có thể cài đặt trong một database. Catalog đặc biệt `pg_available_extension_versions` cho phép lấy tất cả version hiện có của mọi extension khả dụng. Ví dụ, extension `pg_stat_statements` có các giá trị sau trong cluster:
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT name, version
               FROM pg_available_extension_versions
@@ -126,25 +210,52 @@ pg_stat_statements | 1.7
 pg_stat_statements | 1.10
 ....
 
-Điều hữu ích cần biết là extension `pg_stat_statements` có thể được cài đặt ở một version trong khoảng từ 1.4 đến 1.10, tùy nhu cầu của bạn.
+.SQL
+[source,sql]
+....
+SELECT
+    name,
+    version
+FROM pg_available_extension_versions
+WHERE name = 'pg_stat_statements';
+....
+
+.Output
+[source,output]
+....
+            name        | version
+--------------------+---------
+            name        | version
+--------------------+---------
+pg_stat_statements | 1.4
+pg_stat_statements | 1.5
+pg_stat_statements | 1.6
+pg_stat_statements | 1.8
+pg_stat_statements | 1.9
+pg_stat_statements | 1.7
+pg_stat_statements | 1.10
+....
+
+
+Điều hữu ích cần biết là extension `pg_stat_statements` có thể được cài đặt với một version trong khoảng từ 1.4 đến 1.10, tùy nhu cầu của bạn.
 
 [quote]
 ____
-Bạn nên luôn cài đặt version mới nhất của một extension, tức version có number cao nhất, trừ khi bị buộc phải cài một version cụ thể vì backward compatibility.
+Bạn nên luôn cài đặt version mới nhất của một extension, tức là version có số hiệu cao nhất, trừ khi buộc phải cài một version cụ thể vì yêu cầu tương thích ngược.
 
 ____
 == Sửa đổi extension hiện có
 
-Statement `ALTER EXTENSION` rất phong phú và phức tạp, cho phép bạn sửa đổi hoàn toàn một extension hiện có. Statement này cho phép thực hiện bốn thay đổi chính đối với một extension hiện có:
+Statement `ALTER EXTENSION` rất phong phú và phức tạp, cho phép bạn sửa đổi một extension hiện có một cách toàn diện. Statement này cho phép thực hiện bốn thay đổi chính đối với một extension hiện có:
 
-* Upgrade extension lên version mới.
-* Set schema của một relocatable extension.
-* Add một database object vào extension.
-* Remove một database object khỏi extension.
+* Nâng cấp extension lên version mới.
+* Đặt schema cho một relocatable extension.
+* Thêm một database object vào extension.
+* Gỡ một database object khỏi extension.
 
-Để upgrade một extension đã cài đặt, bạn phải chỉ định clause `UPDATE`, đồng thời chỉ định target version number. Ví dụ, hãy xét extension `pg_stat_statements` đã trình bày trước đó và giả sử chúng ta cài version 1.6 của nó để upgrade. Để update extension lên version 1.10, có thể phát hành một statement `ALTER EXTENSION` như ví dụ sau:
+Để nâng cấp một extension đã cài đặt, bạn phải chỉ định clause `UPDATE`, đồng thời chỉ định version đích. Ví dụ, hãy xét extension `pg_stat_statements` đã trình bày trước đó và giả sử chúng ta đã cài version 1.6 của extension này. Để nâng cấp extension lên version 1.10, có thể thực thi một statement `ALTER EXTENSION` như ví dụ sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# CREATE EXTENSION
             pg_stat_statements WITH VERSION '1.6';
@@ -155,7 +266,25 @@ forumdb=# ALTER EXTENSION pg_stat_statements
 ALTER EXTENSION
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+CREATE EXTENSION
+    pg_stat_statements WITH VERSION '1.6';
+ALTER EXTENSION pg_stat_statements
+    UPDATE TO '1.10';
+....
+
+.Output
+[source,output]
+....
+CREATE EXTENSION
+
+ALTER EXTENSION
+....
+
+
+[source,console,role="transcript"]
 ....
 forumdb=# \dx pg_stat_statements
                                       List of installed extensions
@@ -168,9 +297,29 @@ all SQL statements executed
 (1 row)
 ....
 
-Di chuyển một relocatable extension từ schema này sang schema khác được thực hiện bằng cách chỉ định clause `SET SCHEMA`, ví dụ:
+.SQL
+[source,sql]
+....
+\dx pg_stat_statements
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                                      List of installed extensions
+       Name             | Version | Schema |
+Description
+--------------------+---------+--------+----------------------------------
+-------------------------
+ pg_stat_statements | 1.10            | public | track execution statistics of
+all SQL statements executed
+(1 row)
+....
+
+
+Có thể di chuyển một relocatable extension từ schema này sang schema khác bằng cách chỉ định clause `SET SCHEMA`, ví dụ:
+
+[source,console,role="transcript"]
 ....
 forumdb=# ALTER EXTENSION pg_stat_statements SET SCHEMA my_schema;
 ALTER EXTENSION
@@ -186,31 +335,82 @@ all SQL statements executed
 (1 row)
 ....
 
-Command đó sẽ chuyển tất cả extension object vào schema `my_schema`, schema này phải tồn tại trước khi extension được relocate.
+.SQL
+[source,sql]
+....
+ALTER EXTENSION pg_stat_statements SET SCHEMA my_schema;
+\dx pg_stat_statements
+....
 
-Nếu muốn remove một database object hiện có khỏi một extension, chẳng hạn một table, bạn có thể sử dụng clause `DROP`, theo sau là type của object và tất nhiên là tên của nó. Điều quan trọng là phải hiểu rằng việc remove một object khỏi extension sẽ không remove object khỏi database; thay vào đó, nó unlink object lifecycle khỏi lifecycle của extension. Nói cách khác, một object bị loại khỏi extension sẽ trở thành một database object thông thường. Ví dụ, nếu remove view `pg_stat_statements` khỏi extension cùng tên, bạn có thể chỉ định object type (`VIEW`) sau clause `DROP`, như sau:
+.Output
+[source,output]
+....
+ALTER EXTENSION
 
-[source,text]
+                                      List of installed extensions
+       Name             | Version |     Schema     |
+Description
+--------------------+---------+-----------+-------------------------------
+----------------------------
+ pg_stat_statements | 1.10            | my_schema | track execution statistics of
+all SQL statements executed
+(1 row)
+....
+
+
+Command đó sẽ chuyển tất cả object của extension vào schema `my_schema`; schema này phải tồn tại trước khi extension được relocate.
+
+Nếu muốn gỡ một database object hiện có khỏi một extension, chẳng hạn một table, bạn có thể sử dụng clause `DROP`, theo sau là type và tên của object. Điều quan trọng cần hiểu là việc gỡ một object khỏi extension không xóa object đó khỏi database; thay vào đó, nó tách vòng đời của object khỏi vòng đời của extension. Nói cách khác, object bị gỡ khỏi extension sẽ trở thành một database object thông thường. Ví dụ, nếu gỡ view `pg_stat_statements` khỏi extension cùng tên, bạn có thể chỉ định object type (`VIEW`) sau clause `DROP`, như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=# ALTER EXTENSION pg_stat_statements
             DROP VIEW pg_stat_statements;
 ALTER EXTENSION
 ....
 
-Nếu extension đã được relocate, cần chỉ định qualified name cho mọi object, tức đặt schema hiện tại của extension trước tên object. Ví dụ, sau khi relocate extension vào namespace `my_schema`, command trên trở thành:
+.SQL
+[source,sql]
+....
+ALTER EXTENSION pg_stat_statements
+    DROP VIEW pg_stat_statements;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ALTER EXTENSION
+....
+
+
+Nếu extension đã được relocate, cần chỉ định qualified name cho mọi object, tức là đặt schema hiện tại của extension trước tên object. Ví dụ, sau khi relocate extension vào namespace `my_schema`, command trên trở thành:
+
+[source,console,role="transcript"]
 ....
 forumdb=# ALTER EXTENSION pg_stat_statements
             DROP VIEW my_schema.pg_stat_statements;
 ALTER EXTENSION
 ....
 
-Kết quả của command `DROP VIEW` trên là view vốn được tạo tại thời điểm deployment extension vẫn còn trong database và có thể được query như bình thường; nhưng view này hiện là một object có lifecycle độc lập với chính extension.
+.SQL
+[source,sql]
+....
+ALTER EXTENSION pg_stat_statements
+    DROP VIEW my_schema.pg_stat_statements;
+....
 
-Có thể dễ dàng thấy view vẫn khả dụng bằng cách query nó:
+.Output
+[source,output]
+....
+ALTER EXTENSION
+....
 
-[source,text]
+
+Kết quả của command `DROP VIEW` trên là view vốn được tạo khi triển khai extension vẫn còn trong database và vẫn có thể được truy vấn như bình thường; tuy nhiên, view này hiện là một object có vòng đời độc lập với chính extension.
+
+Bạn có thể dễ dàng xác nhận view vẫn khả dụng bằng cách query nó:
+
+[source,console,role="transcript"]
 ....
 forumdb=# SELECT count(*) FROM pg_stat_statements;
  count
@@ -219,18 +419,49 @@ forumdb=# SELECT count(*) FROM pg_stat_statements;
 (1 row)
 ....
 
-Tất nhiên, có thể add một object mới vào extension bằng clause `ADD`, hoạt động như điều ngược lại với `DROP` và yêu cầu type cùng tên của object. Ví dụ, để add view `pg_stat_statements` trở lại extension, có thể thực hiện như sau:
+.SQL
+[source,sql]
+....
+SELECT count(*)
+FROM pg_stat_statements;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ count
+-------
+     2
+(1 row)
+....
+
+
+Tất nhiên, bạn có thể thêm một object mới vào extension bằng clause `ADD`; clause này hoạt động ngược với `DROP` và yêu cầu chỉ định type và tên của object. Ví dụ, để thêm view `pg_stat_statements` trở lại extension, có thể thực hiện như sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=# ALTER EXTENSION pg_stat_statements
             ADD VIEW pg_stat_statements;
 ALTER EXTENSION
 ....
 
-Bạn cũng có thể add các object của riêng mình vào extension. Chẳng hạn, việc add một table mới vào extension có nghĩa là table đó sẽ trải qua lifecycle của extension:
+.SQL
+[source,sql]
+....
+ALTER EXTENSION pg_stat_statements
+    ADD VIEW pg_stat_statements;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ALTER EXTENSION
+....
+
+
+Bạn cũng có thể thêm các object của riêng mình vào extension. Chẳng hạn, khi thêm một table mới vào extension, table đó sẽ được quản lý theo vòng đời của extension:
+
+[source,console,role="transcript"]
 ....
 forumdb=# CREATE TABLE t_ext( i int, t text );
 forumdb=# ALTER EXTENSION pg_stat_statements
@@ -238,11 +469,26 @@ forumdb=# ALTER EXTENSION pg_stat_statements
 ALTER EXTENSION
 ....
 
-Table `t_ext` hiện là một phần của extension, do đó nó không thể tiếp tục được thao tác bằng các statement không tính đến extension.
+.SQL
+[source,sql]
+....
+CREATE TABLE t_ext(i int, t text);
+ALTER EXTENSION pg_stat_statements
+    ADD TABLE t_ext;
+....
 
-Ví dụ, nếu bạn cố delete table, PostgreSQL sẽ ngăn bạn làm hỏng extension:
+.Output
+[source,output]
+....
+ALTER EXTENSION
+....
 
-[source,text]
+
+Table `t_ext` hiện là một phần của extension, do đó không thể tiếp tục thao tác với nó bằng các statement không tính đến extension.
+
+Ví dụ, nếu bạn cố xóa table, PostgreSQL sẽ ngăn bạn làm hỏng extension:
+
+[source,console,role="transcript"]
 ....
 forumdb=# DROP TABLE t_ext;
 ERROR: cannot drop table t_ext because extension pg_stat_statements
@@ -250,34 +496,63 @@ requires it
 HINT: You can drop extension pg_stat_statements instead.
 ....
 
-Ví dụ cuối này cho thấy rõ sức mạnh của extension: mọi object thuộc một extension được quản lý như một thể thống nhất, vì vậy không thể vô tình quản lý hoặc remove chúng, do chúng phụ thuộc lẫn nhau. Điều này có nghĩa là để delete table nói trên, bạn phải remove table khỏi extension trước khi tự drop table, hoặc delete toàn bộ extension.
+.SQL
+[source,sql]
+....
+DROP TABLE t_ext;
+....
 
-== Remove extension hiện có
+.Output
+[source,output]
+....
+ERROR: cannot drop table t_ext because extension pg_stat_statements
+requires it
+HINT: You can drop extension pg_stat_statements instead.
+....
 
-`DROP EXTENSION` delete một extension khỏi database hiện tại. Synopsis của statement như sau:
+
+Ví dụ cuối này cho thấy rõ sức mạnh của extension: mọi object thuộc một extension được quản lý như một thể thống nhất, vì vậy bạn không thể vô tình quản lý hoặc xóa chúng do chúng phụ thuộc lẫn nhau. Điều này có nghĩa là để xóa table nói trên, bạn phải gỡ table khỏi extension trước khi tự xóa table, hoặc xóa toàn bộ extension.
+
+== Xóa extension hiện có
+
+`DROP EXTENSION` xóa một extension khỏi database hiện tại. Cú pháp của statement như sau:
 
 [source,sql]
 ....
 DROP EXTENSION [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]
 ....
 
-Command hỗ trợ clause `IF EXISTS`, giống như nhiều statement khác. Ngoài ra, có thể chỉ định nhiều hơn một extension cần remove khỏi database.
+Command hỗ trợ clause `IF EXISTS`, giống như nhiều statement khác. Ngoài ra, bạn có thể chỉ định nhiều extension để xóa khỏi database.
 
-Option `CASCADE` cũng remove các database object phụ thuộc vào object của extension, trong khi option đối lập là `RESTRICT` khiến command fail nếu vẫn còn các object khác phụ thuộc vào extension này. Ngoài ra, có thể drop nhiều extension cùng lúc.
+Option `CASCADE` cũng xóa các database object phụ thuộc vào object của extension, trong khi option đối lập là `RESTRICT` khiến command thất bại nếu vẫn còn các object khác phụ thuộc vào extension này. Ngoài ra, bạn có thể xóa nhiều extension cùng lúc.
 
-Ví dụ, statement sau remove hai extension trong một lần, đồng thời remove tất cả object phụ thuộc vào các extension đó:
+Ví dụ, statement sau xóa hai extension cùng lúc, đồng thời xóa tất cả object phụ thuộc vào chúng:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# DROP EXTENSION plperl, plpgsql CASCADE;
 NOTICE: drop cascades to function get_max(integer,integer)
 DROP EXTENSION
 ....
 
-Như bạn thấy, vì user-defined function `get_max()` phụ thuộc vào một trong hai extension, option `CASCADE` đã khiến process drop cả function đó.
+.SQL
+[source,sql]
+....
+DROP EXTENSION plperl, plpgsql CASCADE;
+....
+
+.Output
+[source,output]
+....
+NOTICE: drop cascades to function get_max(integer,integer)
+DROP EXTENSION
+....
+
+
+Như bạn thấy, vì function do người dùng định nghĩa `get_max()` phụ thuộc vào một trong hai extension, option `CASCADE` đã khiến function đó cũng bị xóa.
 [quote]
 ____
-Function `get_max()` là một function PL/PgSQL đơn giản được cài đặt trong Docker container của chapter này và chỉ được dùng để minh họa rằng PostgreSQL đủ thông minh để xóa mọi object phụ thuộc khi drop một extension.
+Function `get_max()` là một function PL/PgSQL đơn giản được cài đặt trong Docker container của chương này và chỉ được dùng để minh họa rằng PostgreSQL đủ thông minh để xóa mọi object phụ thuộc khi xóa một extension.
 
 ____
-Tóm lại, bạn đã học cách quản lý một extension theo cách thủ công, từ cài đặt đến upgrade hoặc xóa nó; trong section tiếp theo, bạn sẽ học cách thực hiện các bước tương tự theo cách tự động hơn.
+Tóm lại, bạn đã học cách quản lý một extension theo cách thủ công, từ cài đặt đến nâng cấp hoặc xóa extension đó; trong phần tiếp theo, bạn sẽ học cách thực hiện các bước tương tự theo cách tự động hơn.

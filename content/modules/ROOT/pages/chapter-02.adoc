@@ -1,12 +1,12 @@
-= Làm quen với cluster của bạn
+= Làm quen với cluster
 
-Để trở thành một user và administrator thành thạo của PostgreSQL cluster, trước hết bạn phải biết và hiểu PostgreSQL hoạt động như thế nào. Một database system là một hệ thống rất phức tạp, và PostgreSQL, với tư cách là một Database Management System (DBMS) cấp enterprise, hoàn toàn không phải là một software system đơn giản. Tuy nhiên, nhờ design và implementation rất tốt, một khi hiểu các concept và terminology cơ bản của PostgreSQL, mọi thứ sẽ nhanh chóng trở nên dễ hiểu và rõ ràng.
+Để sử dụng thành thạo một PostgreSQL cluster trong vai trò user và administrator, trước hết bạn phải biết và hiểu PostgreSQL hoạt động như thế nào. Một database system vốn là một hệ thống phức tạp; PostgreSQL, với tư cách là một Database Management System (DBMS) cấp enterprise, dĩ nhiên không phải là một hệ thống phần mềm đơn giản. Tuy nhiên, nhờ được thiết kế và triển khai tốt, một khi đã nắm được các khái niệm và thuật ngữ cơ bản của PostgreSQL, mọi thứ sẽ nhanh chóng trở nên dễ hiểu và rõ ràng.
 
-Chương này tiếp nối nền tảng của chương trước và giới thiệu thêm một số terminology, concept PostgreSQL, đồng thời hướng dẫn bạn cách tương tác với cluster. Bạn cũng sẽ được làm quen với `psql` client, thành phần đi kèm PostgreSQL và là cách được khuyến nghị để connect tới database. Bạn có thể tự do sử dụng bất kỳ SQL client nào có thể connect tới PostgreSQL; mọi code và example trong chương này cũng sẽ chạy ngay trong bất kỳ client nào khác. Tuy vậy, chúng tôi khuyến nghị bạn dành thời gian học `psql`. Vì được ship cùng PostgreSQL, `psql` được đảm bảo hoạt động trong mọi tình huống và là cách mặc định để connect tới cluster. `psql` là một text-only client; nếu bạn cảm thấy thoải mái hơn khi dùng graphical client, bạn có thể xem xét pgAdmin4, một trong những PostgreSQL graphical client nổi tiếng nhất.
+Chương này tiếp nối nền tảng của chương trước, giới thiệu thêm một số thuật ngữ và khái niệm về PostgreSQL, đồng thời hướng dẫn bạn cách tương tác với cluster. Bạn cũng sẽ làm quen với client `psql`, được cung cấp cùng PostgreSQL và là client được khuyến nghị để kết nối với database. Bạn có thể tự do sử dụng bất kỳ SQL client nào có thể kết nối với PostgreSQL; mọi code và ví dụ trong chương này đều có thể chạy ngay với bất kỳ client nào khác. Tuy vậy, chúng tôi khuyến nghị bạn dành thời gian học cách sử dụng `psql`. Được cung cấp cùng PostgreSQL, `psql` được đảm bảo hoạt động trong mọi tình huống và là cách mặc định để kết nối với cluster. `psql` là một client dòng lệnh; nếu bạn cảm thấy thoải mái hơn khi dùng client đồ họa, bạn có thể tham khảo pgAdmin4, một trong những client đồ họa nổi tiếng nhất dành cho PostgreSQL.
 
-Chương này đề cập đến các topic chính sau:
+Chương này đề cập đến các chủ đề chính sau:
 
 * Quản lý cluster
-* Connect tới cluster
+* Kết nối với cluster
 * Khám phá disk layout của PGDATA
-* Khám phá các configuration file và parameter
+* Khám phá configuration file và parameter

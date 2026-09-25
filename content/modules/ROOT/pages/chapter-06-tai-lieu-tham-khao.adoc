@@ -1,9 +1,9 @@
 = Tài liệu tham khảo
 
-* Tài liệu chính thức về PostgreSQL window function: https://www.postgresql.org/docs/current/functions-window.html
+* Tài liệu chính thức của PostgreSQL về window function: https://www.postgresql.org/docs/current/functions-window.html
 
 == Tìm hiểu thêm trên Discord
 
-Để tham gia cộng đồng Discord dành cho cuốn sách này, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản phát hành mới, hãy follow QR code bên dưới:
+Để tham gia cộng đồng Discord của cuốn sách này, nơi bạn có thể chia sẻ phản hồi, đặt câu hỏi cho tác giả và biết thêm về các bản phát hành mới, hãy quét mã QR bên dưới:
 
 https://discord.gg/jYWCjF6Tku

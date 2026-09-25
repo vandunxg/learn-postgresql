@@ -1,16 +1,16 @@
-= 13. Query Tuning, Index và Tối ưu hóa Performance
+= 13. Query tuning, index và performance optimization
 
-Tuning performance là một trong những công việc phức tạp nhất trong công việc hằng ngày của một *database administrator (DBA)*. SQL là một ngôn ngữ khai báo, vì vậy nó không định nghĩa cách truy cập data bên dưới – trách nhiệm đó thuộc về database engine. Do đó, PostgreSQL phải chọn access tốt nhất hiện có tới data cho mỗi statement.
+Tối ưu hóa performance là một trong những nhiệm vụ phức tạp nhất trong công việc hằng ngày của một *database administrator (DBA)*. SQL là một ngôn ngữ khai báo, nên không định nghĩa cách truy cập vào data bên dưới; trách nhiệm đó thuộc về database engine. Vì vậy, với mỗi statement, PostgreSQL phải chọn cách truy cập tốt nhất hiện có vào data.
 
-Một component cụ thể, planner, chịu trách nhiệm quyết định path tốt nhất trong tất cả các path khả dụng tới data bên dưới, trong khi một component khác, optimizer, chịu trách nhiệm thực thi statement với một access plan cụ thể như vậy.
+Một thành phần cụ thể là planner, chịu trách nhiệm quyết định path tốt nhất trong số tất cả các path có thể dùng để truy cập data bên dưới; còn một thành phần khác là optimizer, chịu trách nhiệm thực thi statement theo access plan cụ thể đó.
 
-Mục tiêu của chapter này là dạy bạn cách PostgreSQL thực thi một query, cách planner tính execution plan tốt nhất, và cách bạn có thể hỗ trợ cải thiện performance bằng index.
+Mục tiêu của chương này là giúp bạn hiểu cách PostgreSQL thực thi một query, cách planner tính toán execution plan tốt nhất và cách bạn có thể hỗ trợ cải thiện performance bằng index.
 
-Trong chapter này, bạn sẽ tìm hiểu các chủ đề sau:
+Trong chương này, bạn sẽ tìm hiểu các chủ đề sau:
 
 * Thực thi một statement
 * Index
-* Statement `EXPLAIN`
-* Một ví dụ về query tuning
+* Câu lệnh `EXPLAIN`
+* Ví dụ về query tuning
 * `ANALYZE` và cách cập nhật statistics
 * Auto-explain

@@ -1,26 +1,26 @@
-= Concept cơ bản
+= Các khái niệm cơ bản
 
-Trước hết, hãy thử hiểu tại sao chúng ta phải partition data. Chúng ta nên bắt đầu bằng việc nói rằng một đặc điểm chung của mọi database là kích thước của chúng luôn tăng. Do đó, một database sau vài tháng tăng trưởng có thể đạt kích thước gigabyte, terabyte hoặc thậm chí petabyte.
+Trước hết, hãy tìm hiểu tại sao chúng ta cần partition dữ liệu. Một đặc điểm chung của mọi database là kích thước luôn tăng. Vì vậy, sau vài tháng tăng trưởng, một database có thể đạt kích thước gigabyte, terabyte hoặc thậm chí petabyte.
 
-Một điều khác chúng ta luôn phải ghi nhớ là không phải mọi table đều tăng với cùng tốc độ hoặc đạt cùng kích thước; một số table lớn hơn các table khác và một số index cũng lớn hơn các index khác.
+Một điều khác cần luôn ghi nhớ là không phải mọi table đều tăng với cùng tốc độ hoặc đạt cùng kích thước; một số table lớn hơn các table khác và một số index cũng lớn hơn các index khác.
 
-Chúng ta cũng cần biết rằng có một phần RAM của server, được chia sẻ giữa mọi PostgreSQL process, dùng để quản lý data hiện diện trong các table. Phần RAM này của server được gọi là `shared_buffers`.
+Chúng ta cũng cần biết rằng một phần RAM của server được chia sẻ giữa tất cả process PostgreSQL và dùng để quản lý dữ liệu hiện diện trong các table. Phần RAM này được gọi là `shared_buffers`.
 
-Cách PostgreSQL hoạt động như sau:
+PostgreSQL hoạt động như sau:
 
-. Data được lấy từ hard disk.
-. Data được đặt vào shared buffers.
-. Data được xử lý trong shared buffers.
-. Data được ghi xuống disk.
+. Dữ liệu được đọc từ hard disk.
+. Dữ liệu được đặt vào shared buffers.
+. Dữ liệu được xử lý trong shared buffers.
+. Dữ liệu được ghi xuống disk.
 
-Thông thường, trên một dedicated server chỉ dành cho PostgreSQL, kích thước của `shared_buffers` vào khoảng một phần ba hoặc một phần tư tổng RAM của server. Một link hữu ích để thiết lập một số PostgreSQL configuration parameter, bao gồm kích thước được khuyến nghị cho `shared_buffers`, là https://pgtune.leopard.in.ua.
+Thông thường, trên một dedicated server chỉ dành cho PostgreSQL, kích thước của `shared_buffers` vào khoảng một phần ba hoặc một phần tư tổng RAM của server. Một liên kết hữu ích để thiết lập một số parameter cấu hình của PostgreSQL, bao gồm kích thước `shared_buffers` được khuyến nghị, là https://pgtune.leopard.in.ua.
 
-Khi một table tăng quá mức so với kích thước của `shared_buffers`, performance có khả năng giảm. Trong trường hợp này, partitioning data có thể giúp chúng ta. Partitioning data nghĩa là chia một table rất lớn thành các table nhỏ hơn theo cách transparent đối với client program. Client program sẽ nghĩ rằng server vẫn chỉ có một table, nhưng việc có các table nhỏ hơn cũng có nghĩa là có các index nhỏ hơn, với khả năng ở lại trong memory cao hơn, từ đó tăng data performance; hơn nữa, việc có các table nhỏ hơn nghĩa là các vacuum process làm việc trên các table nhỏ hơn, giúp giảm thời gian execution của các vacuum process. Cuối cùng, khi chạy `vacuum full`, disk space được table sử dụng sẽ tăng gấp đôi, do đó có nhiều table nhỏ thay vì một table lớn sẽ giảm đáng kể mọi ảnh hưởng từ vấn đề này. Data partitioning có thể được thực hiện theo hai cách:
+Khi một table trở nên quá lớn so với kích thước của `shared_buffers`, hiệu năng có thể giảm. Trong trường hợp này, partitioning dữ liệu có thể hữu ích. Partitioning dữ liệu là việc chia một table rất lớn thành các table nhỏ hơn theo cách trong suốt đối với client program. Client program sẽ cho rằng server vẫn chỉ có một table, nhưng các table nhỏ hơn cũng đồng nghĩa với các index nhỏ hơn, có nhiều khả năng nằm trong memory hơn, từ đó cải thiện hiệu năng khi truy cập dữ liệu. Ngoài ra, các table nhỏ hơn cho phép các process VACUUM làm việc trên lượng dữ liệu nhỏ hơn, giúp giảm thời gian thực thi của các process VACUUM. Cuối cùng, khi chạy `vacuum full`, dung lượng disk mà table sử dụng sẽ tăng gấp đôi; do đó, có nhiều table nhỏ thay vì một table lớn sẽ giảm đáng kể ảnh hưởng của vấn đề này. Partitioning dữ liệu có thể được thực hiện theo hai cách:
 
-* Sử dụng table inheritance (cách duy nhất có thể dùng cho PostgreSQL < 10)
-* Sử dụng declarative partitioning (cách tốt nhất bắt đầu từ version 10)
+* Sử dụng table inheritance (cách duy nhất có thể sử dụng trước PostgreSQL 10)
+* Sử dụng declarative partitioning (cách tốt nhất từ version 10 trở đi)
 
-Sau khi hiểu khi nào nên partition data, hãy xem những loại table partitioning nào có thể thực hiện được. PostgreSQL hỗ trợ ba loại declarative partitioning:
+Sau khi hiểu khi nào nên partition dữ liệu, hãy xem chúng ta có thể thực hiện những loại table partitioning nào. PostgreSQL hỗ trợ ba loại declarative partitioning:
 
 * Range partitioning
 * List partitioning
@@ -28,19 +28,27 @@ Sau khi hiểu khi nào nên partition data, hãy xem những loại table parti
 
 Bây giờ chúng ta sẽ mô tả chi tiết ba phương pháp này.
 
-Trước khi bắt đầu, hãy nhớ khởi động Docker container có tên `chapter9`, như dưới đây:
+Trước khi bắt đầu, hãy nhớ khởi động Docker container có tên `chapter9` như dưới đây:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ bash run-pg-docker.sh chapter_09
 postgres@learn_postgresql:~$ psql -U forum forumdb
 ....
 
+.Command
+[source,bash]
+....
+bash run-pg-docker.sh chapter_09
+psql -U forum forumdb
+....
+
+
 == Range partitioning
 
-Range partitioning là khi table được chia thành các “interval”. Các interval không được overlap và range được định nghĩa thông qua một field hoặc một tập các field. Để biết thêm thông tin, xem https://www.postgresql.org/docs/current/ddl-partitioning.html.
+Range partitioning là cách chia table thành các interval. Các interval không được chồng lấn và range được xác định bằng một column hoặc một nhóm column. Để biết thêm thông tin, xem https://www.postgresql.org/docs/current/ddl-partitioning.html.
 
-Hãy xem một ví dụ về định nghĩa range partitioning. Giả sử chúng ta có table này:
+Hãy xem một ví dụ về cách định nghĩa range partitioning. Giả sử chúng ta có table sau:
 
 [cols="2*", options="header"]
 |===
@@ -51,9 +59,9 @@ Hãy xem một ví dụ về định nghĩa range partitioning. Giả sử chún
 | 2023-04-15 | 1
 |===
 
-*Table 9.1: Table trước khi range partitioning*
+*Table 9.1: Table trước khi áp dụng range partitioning*
 
-Bây giờ hãy xét việc chúng ta muốn chia table này thành hai table. Table thứ nhất (*TABLE A*) sẽ chứa mọi record có value `field_date` nằm trong khoảng từ 2023-03-01 đến 2023-03-31, còn table thứ hai (*TABLE B*) sẽ chứa mọi record có value `field_date` nằm trong khoảng từ 2023-04-01 đến 2023-04-30. Vì vậy, mục tiêu của chúng ta là có hai table như sau:
+Bây giờ, giả sử chúng ta muốn chia table này thành hai table. Table thứ nhất (*TABLE A*) sẽ chứa mọi row có giá trị `field_date` nằm trong khoảng từ 2023-03-01 đến 2023-03-31, còn table thứ hai (*TABLE B*) sẽ chứa mọi row có giá trị `field_date` nằm trong khoảng từ 2023-04-01 đến 2023-04-30. Vì vậy, mục tiêu là có hai table như sau:
 
 [cols="2*", options="header"]
 |===
@@ -73,13 +81,13 @@ Bây giờ hãy xét việc chúng ta muốn chia table này thành hai table. T
 
 *Table 9.3: Table B*
 
-Điều chúng ta vừa thấy là một ví dụ về partitioning theo range. Cách này hữu ích khi chúng ta có các table lớn, trong đó data có thể được chia theo time range, ví dụ như turnover, audit table hoặc log table.
+Ví dụ trên là một trường hợp partitioning theo range. Cách này hữu ích khi chúng ta có các table lớn, trong đó dữ liệu có thể được chia theo time range, ví dụ như table doanh thu, audit table hoặc log table.
 
 == List partitioning
 
-Trong list partitioning, table sẽ được partition bằng một list các value.
+Trong list partitioning, table được partition dựa trên một danh sách các giá trị.
 
-Hãy xem một ví dụ về định nghĩa list partitioning. Giả sử chúng ta có table này:
+Hãy xem một ví dụ về cách định nghĩa list partitioning. Giả sử chúng ta có table sau:
 
 [cols="2*", options="header"]
 |===
@@ -90,9 +98,9 @@ Hãy xem một ví dụ về định nghĩa list partitioning. Giả sử chúng
 | Japan | Tokyo
 |===
 
-*Table 9.4: Table trước khi list partitioning*
+*Table 9.4: Table trước khi áp dụng list partitioning*
 
-Giả sử bây giờ chúng ta muốn chia table này thành `n` table, mỗi state có một table. Table thứ nhất (*TABLE A*) sẽ chứa mọi record có value `field_state` bằng United States, table thứ hai (*TABLE B*) sẽ chứa mọi record có value `field_state` bằng Italy, còn table thứ ba (*TABLE C*) sẽ chứa các record có value `field_state` bằng Japan. Vì vậy, mục tiêu của chúng ta là có ba table như sau:
+Giả sử bây giờ chúng ta muốn chia table này thành `n` table, mỗi state có một table. Table thứ nhất (*TABLE A*) sẽ chứa mọi row có giá trị `field_state` bằng United States, table thứ hai (*TABLE B*) sẽ chứa mọi row có giá trị `field_state` bằng Italy, còn table thứ ba (*TABLE C*) sẽ chứa các row có giá trị `field_state` bằng Japan. Vì vậy, mục tiêu là có ba table như sau:
 
 [cols="2*", options="header"]
 |===
@@ -119,13 +127,13 @@ Giả sử bây giờ chúng ta muốn chia table này thành `n` table, mỗi s
 
 *Table 9.7: Table C*
 
-Đây là một ví dụ về partitioning theo list. Cách này hữu ích khi chúng ta có các table lớn, trong đó data có thể được chia theo một field duy nhất, chẳng hạn field city hoặc state trong telephone directory hoặc customer list.
+Đây là một ví dụ về list partitioning. Cách này hữu ích khi chúng ta có các table lớn, trong đó dữ liệu có thể được chia theo một column duy nhất, chẳng hạn như column city hoặc state trong danh bạ điện thoại hoặc danh sách khách hàng.
 
 == Hash partitioning
 
-Khi sử dụng hash partitioning, table sẽ được partition bằng các hash value để chia data vào các table khác nhau.
+Khi sử dụng hash partitioning, table được partition dựa trên các hash value để phân bổ dữ liệu vào các table khác nhau.
 
-Hãy xem một ví dụ về hash partitioning. Giả sử chúng ta có table này:
+Hãy xem một ví dụ về hash partitioning. Giả sử chúng ta có table sau:
 
 [cols="2*", options="header"]
 |===
@@ -136,7 +144,7 @@ Hãy xem một ví dụ về hash partitioning. Giả sử chúng ta có table n
 | 2023-04-15 | 2
 |===
 
-*Table 9.8: Table trước khi hash partitioning*
+*Table 9.8: Table trước khi áp dụng hash partitioning*
 
 Giả sử bây giờ chúng ta có một hash function chuyển đổi date thành một hash value; ví dụ, hãy xét toán tử `del mod` (`%`):
 
@@ -167,21 +175,21 @@ Vì vậy, sau quá trình partitioning, chúng ta sẽ có hai table:
 
 Đây là một ví dụ về partitioning theo hash.
 
-Trong các section tiếp theo, chúng ta sẽ xem cách PostgreSQL triển khai list, range và hash partitioning, nhưng trước đó, hãy dành thời gian nói về table inheritance.
+Trong các phần tiếp theo, chúng ta sẽ xem PostgreSQL triển khai list, range và hash partitioning như thế nào. Nhưng trước hết, hãy dành thời gian tìm hiểu table inheritance.
 
 Để biết thêm thông tin về partitioning, xem https://www.postgresql.org/docs/current/ddl-partitioning.html.
 
 == Table inheritance
 
-Một topic khác chúng ta phải xem xét là inheritance của table. PostgreSQL áp dụng concept inheritance từ database cho object. Concept này rất đơn giản và có thể tóm tắt như sau: giả sử chúng ta có hai table, *TABLE A* và *TABLE B*. Nếu định nghĩa *TABLE A* là parent table và *TABLE B* là child table, điều này có nghĩa là mọi record trong *TABLE B* sẽ có thể được truy cập từ *TABLE A*.
+Một khía cạnh khác cần xem xét là table inheritance. PostgreSQL áp dụng khái niệm database inheritance cho các object. Khái niệm này rất đơn giản và có thể tóm tắt như sau: giả sử chúng ta có hai table, *TABLE A* và *TABLE B*. Nếu định nghĩa *TABLE A* là parent table và *TABLE B* là child table, điều đó có nghĩa là mọi row trong *TABLE B* đều có thể được truy cập thông qua *TABLE A*.
 
-Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
+Hãy xem một ví dụ cho mô tả trên:
 
-. Hãy định nghĩa hai table.
+. Hãy định nghĩa hai table như sau:
 
    Table thứ nhất, parent table, được định nghĩa như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> create table table_a (
    pk integer not null primary key,
@@ -190,9 +198,25 @@ Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
    CREATE TABLE
 ....
 
-   Và table thứ hai, child table, được định nghĩa như sau:
+.SQL
+[source,sql]
+....
+CREATE TABLE table_a (
+   pk integer NOT NULL PRIMARY KEY,
+   tag text,
+   parent integer);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TABLE
+....
+
+
+   Table thứ hai, child table, được định nghĩa như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> create table table_b () inherits (table_a);
    CREATE TABLE
@@ -202,10 +226,27 @@ Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
    ALTER TABLE
 ....
 
-[%start=2]
-. Child table kế thừa tất cả field từ parent table. Parent table được hiển thị như sau:
+.SQL
+[source,sql]
+....
+CREATE TABLE table_b () inherits (table_a);
+ALTER TABLE table_b ADD CONSTRAINT table_b_pk PRIMARY
+   KEY(pk);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   CREATE TABLE
+
+   ALTER TABLE
+....
+
+
+[%start=2]
+. Child table kế thừa tất cả column của parent table. Thông tin của parent table như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> \d table_a;
                        Table "forum.table_a"
@@ -229,9 +270,40 @@ Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
    Number of child tables: 1 (Use \d+ to list them.)
 ....
 
-   Và để biết thêm chi tiết, hãy sử dụng command `\d+`:
+.SQL
+[source,sql]
+....
+\d table_a;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                       Table "forum.table_a"
+    Column |     Type      | Collation | Nullable | Default
+
+
+   --------+---------+-----------+----------+---------
+    pk       | integer |                  | not null |
+
+
+   tag     | text       |              |             |
+
+
+
+   parent | integer |                  |             |
+
+
+
+   Indexes:
+         "table_a_pkey" PRIMARY KEY, btree (pk)
+   Number of child tables: 1 (Use \d+ to list them.)
+....
+
+
+   Để xem chi tiết hơn, hãy sử dụng meta-command `\d+`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> \d+ table_a;
                       Table "forum.table_a"
@@ -261,17 +333,68 @@ Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
    Access method: heap
 ....
 
-   Trong table cuối này, chúng ta có thể thấy `table_b` là child table của `table_a`.
+.SQL
+[source,sql]
+....
+\d+ table_a;
+....
+
+.Output
+[source,output]
+....
+                      Table "forum.table_a"
+    Column | Type    | Collation | Nullable | Default | Storage              |
+   Compression | Stats target | Description
+
+
+   --------+---------+-----------+----------+---------+----------+-----
+   --------+--------------+
+    pk      | integer |                 | not null |              | plain    |
+   |               |
+
+
+   tag      | text       |             |           |           | extended |
+   |                 |
+
+
+
+   parent | integer |                  |             |           | plain    |
+   |              |
+
+
+
+   Indexes:
+         "table_a_pkey" PRIMARY KEY, btree (pk)
+   Child tables: table_b
+   Access method: heap
+....
+
+
+   Trong output cuối cùng này, có thể thấy `table_b` là child table của `table_a`.
 
 [%start=3]
-. Hãy làm tương tự cho table có tên `table_b`:
+. Làm tương tự với table có tên `table_b`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \d table_b;
                        Table "forum.table_b"
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+\d table_b;
+....
+
+.Output
+[source,output]
+....
+                       Table "forum.table_b"
+....
+
+
+[source,output]
 ....
    Column |      Type    | Collation | Nullable | Default
 
@@ -291,12 +414,12 @@ Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
   Inherits: table_a
 ....
 
-Ở đây, có thể thấy `table_b` là child table của `table_a`.
+Ở đây có thể thấy `table_b` là child table của `table_a`.
 
 [%start=4]
-. Bây giờ hãy xem hai table này hoạt động ra sao khi chúng ta insert, modify hoặc delete data. Ví dụ, hãy thực hiện một số thao tác insert như sau:
+. Bây giờ hãy xem hai table này hoạt động như thế nào khi chúng ta insert, sửa đổi hoặc delete dữ liệu. Ví dụ, hãy thực hiện một số thao tác insert:
 
-[source,text]
+[source,console,role="transcript"]
 ....
   forumdb=> insert into table_a (pk,tag,parent) values (1,'Operating
   Systems',0);
@@ -307,9 +430,28 @@ Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
   INSERT 0 1
 ....
 
-. Hãy xem data phản ứng ra sao nếu chúng ta thực thi command `select`:
+.SQL
+[source,sql]
+....
+INSERT INTO table_a (pk, tag, parent)
+VALUES (1, 'Operating Systems', 0);
+INSERT INTO table_b (pk, tag, parent)
+VALUES (2, 'Linux', 0);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  INSERT 0 1
+
+
+  INSERT 0 1
+....
+
+
+. Hãy xem dữ liệu thay đổi như thế nào khi thực thi command `select`:
+
+[source,console,role="transcript"]
 ....
   forumdb=> select * from table_b ;
    pk |    tag    | parent
@@ -320,12 +462,31 @@ Bây giờ hãy thử đưa ra một ví dụ về điều vừa mô tả:
   (1 row)
 ....
 
-Có thể thấy `table_b` có một record.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM table_b;
+....
+
+.Output
+[source,output]
+....
+   pk |    tag    | parent
+
+
+  ----+-------+--------
+    2 | Linux |           0
+  (1 row)
+....
+
+
+Có thể thấy `table_b` chứa một row.
 
 [%start=6]
-. Bây giờ chúng ta thực thi command sau:
+. Bây giờ hãy thực thi command sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
   forumdb=>      select * from table_a ;
    pk |            tag          | parent
@@ -337,12 +498,32 @@ Có thể thấy `table_b` có một record.
   (2 rows)
 ....
 
-Có vẻ như `table_a` có hai record. Điều này xảy ra vì table này kế thừa các attribute của table kia. Nếu thực thi một command `SELECT` trên parent table, chúng ta sẽ thấy tất cả record thuộc về parent table và tất cả record thuộc về child table.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM table_a;
+....
+
+.Output
+[source,output]
+....
+   pk |            tag          | parent
+
+
+  ----+-------------------+--------
+    1 | Operating Systems |            0
+    2 | Linux                   |      0
+  (2 rows)
+....
+
+
+Có vẻ như `table_a` có hai row. Điều này xảy ra vì table này kế thừa các thuộc tính của table kia. Nếu thực thi command `SELECT` trên parent table, chúng ta sẽ thấy tất cả row thuộc về parent table và tất cả row thuộc về child table.
 
 [%start=7]
-. Nếu muốn xem tất cả record chỉ thuộc về `table_a`, chúng ta phải dùng `ONLY` clause như sau:
+. Nếu muốn xem tất cả row chỉ thuộc về `table_a`, chúng ta phải dùng `ONLY` clause như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
   forumdb=>    select * from only      table_a ;
    pk |           tag           | parent
@@ -353,17 +534,52 @@ Có vẻ như `table_a` có hai record. Điều này xảy ra vì table này k�
   (1 row)
 ....
 
-. Hãy xem điều gì xảy ra nếu chúng ta `UPDATE` một số record; ví dụ, nếu thực thi câu lệnh sau:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM only table_a;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   pk |           tag           | parent
+
+
+  ----+-------------------+--------
+    1 | Operating Systems |            0
+  (1 row)
+....
+
+
+. Hãy xem điều gì xảy ra nếu chúng ta `UPDATE` một số row; ví dụ, hãy thực thi câu lệnh sau:
+
+[source,console,role="transcript"]
 ....
   forumdb=> update table_a set tag='BSD Unix' where pk=2;
   UPDATE 1
 ....
 
-Chúng ta đã thực hiện một update operation trên `table_a`, nhưng update này về mặt physical được thực hiện trên `table_b` nhờ table inheritance, như có thể thấy ở đây:
+.SQL
+[source,sql]
+....
+UPDATE table_a
+SET
+    tag = 'BSD Unix'
+WHERE pk = 2;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  UPDATE 1
+....
+
+
+Chúng ta đã thực hiện thao tác update trên `table_a`, nhưng nhờ table inheritance, thao tác này được thực hiện về mặt vật lý trên `table_b`, như có thể thấy dưới đây:
+
+[source,console,role="transcript"]
 ....
   forumdb=> select * from table_b;
    pk |     tag     | parent
@@ -374,18 +590,50 @@ Chúng ta đã thực hiện một update operation trên `table_a`, nhưng upda
   (1 row)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT *
+FROM table_b;
+....
+
+.Output
+[source,output]
+....
+   pk |     tag     | parent
+
+
+  ----+----------+--------
+    2 | BSD Unix |          0
+  (1 row)
+....
+
+
 [%start=9]
 . Điều tương tự cũng xảy ra nếu chúng ta sử dụng một `delete` statement như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
   forumdb=> delete from table_a where pk=2;
   DELETE 1
 ....
 
-Một lần nữa, delete operation được thực hiện trên `table_a` đã ảnh hưởng đến `table_b`; như có thể thấy ở đây, `table_a` sẽ có các record sau:
+.SQL
+[source,sql]
+....
+DELETE FROM table_a WHERE pk = 2;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+  DELETE 1
+....
+
+
+Một lần nữa, thao tác delete trên `table_a` cũng ảnh hưởng đến `table_b`. Như có thể thấy dưới đây, `table_a` sẽ có các row sau:
+
+[source,console,role="transcript"]
 ....
   forumdb=> select * from table_a;
    pk |           tag           | parent
@@ -396,9 +644,28 @@ Một lần nữa, delete operation được thực hiện trên `table_a` đã 
   (1 row)
 ....
 
-Và lúc này `table_b` sẽ không có record nào:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM table_a;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   pk |           tag           | parent
+
+
+  ----+-------------------+--------
+    1 | Operating Systems |             0
+  (1 row)
+....
+
+
+Lúc này, `table_b` không còn row nào:
+
+[source,console,role="transcript"]
 ....
   forumdb=>    select * from table_b;
    pk | tag | parent
@@ -408,23 +675,61 @@ Và lúc này `table_b` sẽ không có record nào:
   (0 rows)
 ....
 
-Trong PostgreSQL, inheritance propagate các operation được thực hiện trên parent table đến các child table.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM table_b;
+....
 
-== Dropping tables
+.Output
+[source,output]
+....
+   pk | tag | parent
 
-Để kết luận về inheritance, chúng ta cần đề cập đến cách xóa table. Nếu muốn xóa một child table, chẳng hạn drop `table_b`, chúng ta phải chạy statement sau:
 
-[source,text]
+  ----+-----+--------
+  (0 rows)
+....
+
+
+Trong PostgreSQL, inheritance lan truyền các thao tác được thực hiện trên parent table đến các child table.
+
+== Xóa table
+
+Để kết thúc phần inheritance, cần nói về cách xóa table. Nếu muốn xóa một child table, chẳng hạn bằng cách drop `table_b`, chúng ta phải chạy statement sau:
+
+[source,console,role="transcript"]
 ....
  forumdb=>     drop table table_b;
  DROP TABLE
 ....
 
-Nếu muốn drop một parent table cùng tất cả child table liên kết với nó, chúng ta phải chạy như sau:
+.SQL
+[source,sql]
+....
+DROP TABLE table_b;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ DROP TABLE
+....
+
+
+Nếu muốn drop một parent table cùng tất cả child table liên kết với nó, cần chạy như sau:
+
+[source,console,role="transcript"]
 ....
  forumdb=>     drop table table_a cascade;
 ....
 
-Inheritance đã và vẫn có thể được dùng để triển khai table partitioning, nhưng kể từ version 10, declarative partitioning đã trở thành phương pháp được ưu tiên. Chúng ta sẽ trình bày declarative partitioning trong section tiếp theo.
+.SQL
+[source,sql]
+....
+DROP TABLE table_a CASCADE;
+....
+
+
+Inheritance từng được dùng và vẫn có thể được dùng để triển khai table partitioning, nhưng kể từ version 10, declarative partitioning đã trở thành phương pháp được ưu tiên. Declarative partitioning sẽ được trình bày trong phần tiếp theo.

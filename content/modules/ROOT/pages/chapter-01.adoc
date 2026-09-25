@@ -1,79 +1,79 @@
 = 1. Giới thiệu về PostgreSQL
 
-PostgreSQL là một relational database open source nổi tiếng, và motto của dự án nêu rõ mục tiêu trở thành *the most advanced open-source database in the world*.
+PostgreSQL là một relational database open source nổi tiếng, với khẩu hiệu thể hiện rõ mục tiêu của dự án là trở thành *the most advanced open-source database in the world*.
 
-Những phẩm chất chính thu hút số lượng lớn user mới mỗi năm và khiến các user hiện tại tiếp tục nhiệt tình với PostgreSQL là tính ổn định vững chắc, khả năng scalability và tính an toàn, cùng với tất cả các tính năng mà một database management system cấp enterprise phải cung cấp.
+Những điểm mạnh chính giúp PostgreSQL thu hút đông đảo người dùng mới mỗi năm và tiếp tục được người dùng hiện tại tin dùng là tính ổn định, khả năng mở rộng và độ an toàn, cùng với toàn bộ tính năng mà một database management system cấp enterprise cần cung cấp.
 
-Mặc dù PostgreSQL là một relational database, ecosystem của nó đã phát triển theo thời gian, tạo ra một platform phong phú với các extension, tool và language được kết nối với nhau bởi các community trải rộng khắp thế giới.
+Dù PostgreSQL là một relational database, ecosystem của nó đã phát triển theo thời gian, tạo nên một platform phong phú gồm các extension, tool và ngôn ngữ được kết nối với nhau nhờ các cộng đồng trên khắp thế giới.
 
-PostgreSQL là một open-source project và được phát triển hoàn toàn trong thế giới open source. Điều đó có nghĩa là không có một thực thể duy nhất nào phụ trách project, và kết quả là PostgreSQL không phải là một commercial product. Nói cách khác, PostgreSQL thuộc về tất cả mọi người, và bất kỳ ai cũng có thể đóng góp cho nó. Nhờ một BSD-style license rất permissive, PostgreSQL có thể được sử dụng trong bất kỳ project hoặc scenario nào, dù open source hay closed source.
+PostgreSQL là một project open source, được phát triển hoàn toàn trong hệ sinh thái open source. Điều đó có nghĩa là không có một thực thể duy nhất nào chịu trách nhiệm về project này; vì vậy, PostgreSQL không phải là một sản phẩm thương mại. Nói cách khác, PostgreSQL thuộc về mọi người và bất kỳ ai cũng có thể đóng góp. Nhờ BSD-style license rất permissive, PostgreSQL có thể được dùng trong bất kỳ project hoặc scenario nào, dù là open source hay closed source.
 
-Tất nhiên, đóng góp cho một project có quy mô và độ phức tạp như vậy đòi hỏi kinh nghiệm về software development, database concept và dĩ nhiên là thái độ tích cực đối với open source cũng như các nỗ lực cộng tác. Bản chất open source có nghĩa là PostgreSQL sẽ tiếp tục tồn tại gần như mãi mãi mà không có nguy cơ một công ty duy nhất phá sản rồi kéo database này chìm theo.
+Dĩ nhiên, đóng góp cho một project có quy mô và độ phức tạp như vậy đòi hỏi kinh nghiệm về software development và database concepts, cùng với thái độ tích cực đối với open source cũng như tinh thần hợp tác. Bản chất open source đồng nghĩa với việc PostgreSQL gần như sẽ tồn tại mãi mãi, không có nguy cơ một công ty duy nhất phá sản rồi kéo database này chìm theo.
 
-Các developer chính thức của PostgreSQL thường được gọi là *PostgreSQL Global Development Group (PGDG)*. Đây là những developer, sau khi thảo luận và phối hợp, triển khai các tính năng chính và tạo ra các release mới. PGDG phát hành một production release mới mỗi năm một lần, thường vào quý cuối cùng của năm.
+Các developer chính thức của PostgreSQL thường được gọi là *PostgreSQL Global Development Group (PGDG)*. Đây là những developer sau khi thảo luận và phối hợp sẽ triển khai các feature chính, đồng thời tạo ra những release mới. PGDG phát hành một production release mới mỗi năm, thường vào quý cuối năm.
 
-Tại thời điểm viết sách, PostgreSQL 16 là production release mới nhất của database engine tuyệt vời này, và như thường lệ, các nỗ lực cho release tiếp theo (PostgreSQL 17) vẫn đang được tiến hành.
+Tại thời điểm viết sách, PostgreSQL 16 là production release mới nhất của database engine tuyệt vời này và, như thường lệ, các nỗ lực cho release tiếp theo (PostgreSQL 17) vẫn đang được tiến hành.
 
-Cuốn sách này tập trung vào cách bạn có thể khai thác tốt nhất PostgreSQL, bắt đầu từ những điều cơ bản (quản lý user, data table, index, v.v.) rồi tiến tới các tính năng thú vị và phức tạp nhất (chẳng hạn như replicate data để ngăn ngừa thảm họa). Chúng tôi sẽ tiếp cận theo hướng thực hành, với nhiều example, để giúp độc giả hiểu rõ hơn từng concept và tiếp thu kiến thức theo cách thú vị, nhanh chóng hơn. Khi kết thúc, bạn sẽ có thể quản trị đầy đủ một PostgreSQL cluster và, nhờ các resource được chỉ ra trong mỗi chapter, bạn sẽ có thể nghiên cứu thêm nhiều tính năng hơn nữa.
+Cuốn sách này tập trung vào cách khai thác PostgreSQL hiệu quả nhất, bắt đầu từ những điều cơ bản (quản lý user, table, index, v.v.) rồi tiến tới những feature thú vị và phức tạp nhất (chẳng hạn replicate data để phòng ngừa thảm họa). Chúng tôi tiếp cận theo hướng thực hành, với nhiều ví dụ, nhằm giúp độc giả hiểu rõ từng concept và tiếp thu kiến thức theo cách thú vị, nhanh hơn. Sau khi đọc xong, bạn sẽ có thể quản trị đầy đủ một PostgreSQL cluster và, nhờ các resource được đề cập trong từng chương, có thể tiếp tục tìm hiểu nhiều feature hơn nữa.
 
 [quote]
 ____
-*Cuốn sách này trình bày PostgreSQL 16, nhưng các concept được giải thích trong sách cũng có thể áp dụng cho các version mới hơn (cũng như các version cũ hơn nếu có cùng các feature).* Trên thực tế, dù một số tool có thể thay đổi trong các release tương lai (ví dụ: thêm hoặc bỏ một số option), các concept cơ bản được trình bày trong sách nhìn chung sẽ vẫn gần như giữ nguyên bất kể version PostgreSQL nào.
+*Cuốn sách này trình bày PostgreSQL 16, nhưng các concept được giải thích trong sách cũng có thể áp dụng cho những version mới hơn (cũng như những version cũ hơn nếu có cùng feature).* Trên thực tế, dù một số tool có thể thay đổi trong các release tương lai (chẳng hạn thêm hoặc bỏ một vài option), các concept cơ bản trong sách nhìn chung vẫn gần như không đổi, bất kể version PostgreSQL nào.
 
 ____
-Chapter này sẽ giới thiệu database open source tuyệt vời này, bắt đầu từ lịch sử và mục tiêu của project; bạn sẽ học các thuật ngữ PostgreSQL cơ bản, vốn rất quan trọng để giúp bạn tìm kiếm documentation và hiểu các error message chính khi cần. Cuối cùng, bạn sẽ thấy cách cài đặt PostgreSQL theo nhiều cách khác nhau, nhờ đó có được kiến thức cơ bản về cách cài đặt nó trên các platform và trong các context khác nhau.
+Chương này giới thiệu database open source tuyệt vời này, bắt đầu từ lịch sử và mục tiêu của project. Bạn sẽ học các thuật ngữ PostgreSQL cơ bản, vốn rất quan trọng khi tìm kiếm documentation và hiểu những error message chính lúc cần. Cuối cùng, bạn sẽ thấy cách install PostgreSQL theo nhiều cách khác nhau, qua đó nắm được những kiến thức cơ bản về việc cài đặt nó trên các platform và trong những ngữ cảnh khác nhau.
 
-Các chủ đề sau được trình bày trong chapter này:
+Các chủ đề sau được trình bày trong chương này:
 
-* PostgreSQL at a glance
-* Exploring PostgreSQL terminology
-* Installing PostgreSQL 16 or higher
+* Tổng quan về PostgreSQL
+* Tìm hiểu thuật ngữ PostgreSQL
+* Cài đặt PostgreSQL 16 trở lên
 
 == Yêu cầu kỹ thuật
 
-Bạn có thể tìm thấy code cho chapter này trong GitHub repository sau: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition.
+Bạn có thể tìm thấy code của chương này trong GitHub repository sau: https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition.
 
-== PostgreSQL at a glance
+== Tổng quan về PostgreSQL
 
-Là một relational database, PostgreSQL cung cấp rất nhiều feature, và khá khó để “làm PostgreSQL instance sợ hãi”.
+Là một relational database, PostgreSQL cung cấp rất nhiều feature, và khá khó để “dọa” một PostgreSQL instance.
 
-Trên thực tế, một instance duy nhất có thể chứa hơn 4 tỷ database riêng lẻ, mỗi database có total size không giới hạn và có capacity cho hơn 1 tỷ table, mỗi table chứa 32 TB data. Hơn nữa, nếu bạn lo rằng các giới hạn trên vẫn chưa đủ, hãy nhớ rằng một table duy nhất có thể có 1.600 column, mỗi column có kích thước 1 GB, cùng số lượng multi-column index không giới hạn (tối đa 32 column). Tóm lại, PostgreSQL có thể lưu trữ nhiều data hơn những gì bạn có thể hình dung!
+Trên thực tế, một instance duy nhất có thể chứa hơn 4 tỷ database riêng lẻ, mỗi database có total size không giới hạn và đủ capacity cho hơn 1 tỷ table, mỗi table có thể chứa 32 TB data. Hơn nữa, nếu lo rằng các giới hạn trên vẫn chưa đủ, hãy nhớ rằng một table duy nhất có thể có 1.600 column, mỗi column có kích thước 1 GB, và số lượng multi-column index không giới hạn (mỗi index tối đa 32 column). Tóm lại, PostgreSQL có thể lưu trữ nhiều data hơn những gì bạn có thể hình dung!
 
-Mặc dù PostgreSQL có thể xử lý lượng data khổng lồ như vậy, điều đó không có nghĩa là bạn nên dùng nó làm nơi đổ mọi thứ hoặc storage cho tất cả mọi loại dữ liệu: để đạt performance tốt với một số database lớn, bạn cần hiểu PostgreSQL và các feature của nó, từ đó có thể tổ chức và quản lý dataset của mình.
+Dù PostgreSQL có thể xử lý lượng data khổng lồ như vậy, điều đó không có nghĩa là bạn nên dùng nó làm nơi chứa mọi thứ hoặc kho lưu trữ cho mọi loại dữ liệu: để đạt performance tốt với một số database lớn, bạn cần hiểu PostgreSQL và các feature của nó, từ đó tổ chức và quản lý dataset của mình.
 
-PostgreSQL hoàn toàn *ACID-compliant* (xem box bên dưới) và có nền tảng rất vững chắc về data integrity và concurrency. PostgreSQL đi kèm một procedural language có tên `PL/PgSQL`, có thể dùng để viết các đoạn code có thể tái sử dụng, chẳng hạn như function và procedure; nó cũng hỗ trợ before và after trigger, view, materialized view, partitioned table, foreign data wrapper, multiple schema, generated column, v.v. Tất cả các concept này sẽ được giải thích trong những chapter tiếp theo.
-
-[quote]
-____
-*ACID* là acronym của một tập hợp các thuộc tính, dùng để chỉ rằng database engine cung cấp atomicity, consistency, isolation và durability. Atomicity có nghĩa là một database operation phức tạp được xử lý như một instruction duy nhất, ngay cả khi operation đó được cấu thành từ nhiều operation khác nhau. Consistency có nghĩa là data bên trong database luôn được duy trì nhất quán và không bị hỏng do các operation được thực hiện không đầy đủ. Isolation cho phép database xử lý concurrency theo “đúng cách”, tức là không làm data bị hỏng do các thay đổi xen kẽ. Cuối cùng, durability có nghĩa là database engine được cho là phải bảo vệ data mà nó chứa, kể cả trong trường hợp xảy ra lỗi software hoặc hardware, trong phạm vi có thể.
-
-____
-PostgreSQL có thể được mở rộng bằng các embedded language khác, chẳng hạn như Perl, Python, Java và thậm chí Bash! Và nếu bạn cho rằng database chưa cung cấp đủ feature, bạn có thể cắm thêm extension để có các behavior và enhancement khác nhau, chẳng hạn như Geospatial Information System (GIS), scheduled job, data type đặc biệt và các utility nói chung. Những utility và enhancement như vậy sẽ không được trình bày trong cuốn sách này, nhưng nhờ kiến thức mà sách cung cấp, bạn sẽ có thể khai thác online documentation của các utility đó để sử dụng chúng hiệu quả nhất.
-
-PostgreSQL chạy được trên gần như mọi operating system hiện có, bao gồm Linux, Unix, macOS X và Microsoft Windows, thậm chí có thể chạy trên commodity hardware như các board Raspberry Pi. Một số cloud computing provider cũng đưa PostgreSQL vào software catalog của họ.
-
-Nhờ cơ chế tuning phong phú, PostgreSQL có thể thích ứng rất tốt với hosting platform. Community chịu trách nhiệm duy trì database và documentation ở mức chất lượng rất cao; ngoài ra, các mailing list và IRC channel cũng phản hồi rất nhanh và là nguồn hữu ích để tìm giải pháp cho vấn đề cũng như ý tưởng.
-
-Theo kinh nghiệm của các tác giả, chưa từng có trường hợp nào PostgreSQL không thể thích ứng với một application scenario.
+PostgreSQL hoàn toàn *ACID-compliant* (xem box bên dưới) và có nền tảng rất vững chắc về data integrity và concurrency. PostgreSQL đi kèm một procedural language tên là `PL/PgSQL`, có thể dùng để viết các đoạn code tái sử dụng, chẳng hạn như function và procedure; nó cũng hỗ trợ before và after trigger, view, materialized view, partitioned table, foreign data wrapper, nhiều schema, generated column, v.v. Tất cả các concept này sẽ được giải thích trong những chương tiếp theo.
 
 [quote]
 ____
-*Project PostgreSQL* có một tập hợp mailing list rất phong phú và mở rộng, trải từ các chủ đề chung đến những chi tiết rất cụ thể. Tìm kiếm vấn đề và giải pháp trong mailing list archive là một thói quen tốt; hãy xem web page tại https://www.postgresql.org/list/ để hiểu rõ hơn.
+*ACID* là từ viết tắt chỉ một tập hợp các thuộc tính, cho biết database engine cung cấp atomicity, consistency, isolation và durability. Atomicity nghĩa là một thao tác phức tạp trên database được xử lý như một lệnh duy nhất, ngay cả khi thao tác đó gồm nhiều thao tác khác nhau. Consistency nghĩa là data trong database luôn được duy trì nhất quán và không bị hỏng do các thao tác chỉ được thực hiện một phần. Isolation cho phép database xử lý concurrency theo “đúng cách”, tức là không làm data bị hỏng do các thay đổi xen kẽ. Cuối cùng, durability nghĩa là database engine được kỳ vọng phải bảo vệ data mà nó chứa, kể cả khi xảy ra lỗi software hoặc hardware, trong phạm vi có thể.
+
+____
+PostgreSQL có thể được mở rộng bằng các ngôn ngữ embedded khác, chẳng hạn Perl, Python, Java và thậm chí Bash! Nếu cho rằng database vẫn chưa cung cấp đủ tính năng, bạn có thể cắm thêm extension để bổ sung các behavior và enhancement khác nhau, chẳng hạn Geospatial Information System (GIS), scheduled job, data type đặc biệt và các utility nói chung. Những utility và enhancement này không được trình bày trong cuốn sách, nhưng nhờ kiến thức mà sách cung cấp, bạn có thể khai thác documentation online của các utility đó để sử dụng chúng hiệu quả nhất.
+
+PostgreSQL chạy trên gần như mọi hệ điều hành hiện có, bao gồm Linux, Unix, macOS X và Microsoft Windows, thậm chí trên phần cứng phổ thông như các board Raspberry Pi. Một số cloud computing provider cũng đưa PostgreSQL vào software catalog của họ.
+
+Nhờ cơ chế tuning phong phú, PostgreSQL thích ứng rất tốt với các hosting platform. Cộng đồng chịu trách nhiệm duy trì database và documentation ở chất lượng rất cao; ngoài ra, các mailing list và IRC channel cũng phản hồi rất nhanh, là nguồn hữu ích để tìm giải pháp cho vấn đề cũng như tìm ý tưởng.
+
+Theo kinh nghiệm của các tác giả, chưa từng có kịch bản ứng dụng nào mà PostgreSQL không thể thích ứng.
+
+[quote]
+____
+*Dự án PostgreSQL* có một tập hợp mailing list rất phong phú và đa dạng, trải rộng từ các chủ đề chung đến những chi tiết rất cụ thể. Tìm kiếm vấn đề và giải pháp trong mailing list archive là một thói quen tốt; hãy xem trang web tại https://www.postgresql.org/list/ để hiểu rõ hơn.
 
 ____
 == Lược sử ngắn gọn của PostgreSQL
 
-PostgreSQL lấy tên từ ancestor của nó: Ingres.
+PostgreSQL lấy tên từ tiền thân của nó là Ingres.
 
-Ingres là một relational database do Professor Michael Stonebraker phát triển. Năm 1986, Professor Stonebraker bắt đầu một project hậu-Ingres nhằm phát triển các feature mới, thú vị trong lĩnh vực database và đặt tên project là POSTGRES (POST-Ingres). Project này hướng đến việc phát triển một object-relational database, trong đó “object” có nghĩa là user có khả năng mở rộng database bằng các object của riêng mình, chẳng hạn như data type, function, v.v.
+Ingres là một relational database do Giáo sư Michael Stonebraker phát triển. Năm 1986, Giáo sư Stonebraker bắt đầu một project hậu-Ingres nhằm phát triển những feature mới, thú vị trong lĩnh vực database và đặt tên project là POSTGRES (POST-Ingres). Project này hướng đến việc phát triển một object-relational database, trong đó “object” có nghĩa là user có khả năng mở rộng database bằng các object do mình tạo, chẳng hạn data type, function, v.v.
 
-Năm 1994, POSTGRES được phát hành với version 4.2 và MIT license, mở ra khả năng cộng tác với các developer khác trên toàn thế giới. Khi đó, POSTGRES sử dụng một query language nội bộ có tên QUEL. Hai sinh viên Berkeley, Andrew Yu và Jolly Chen, đã thay query language QUEL bằng SQL language đang rất mới mẻ và thú vị, và feature này sáng tạo đến mức project đã đổi tên thành Postgre95 để nhấn mạnh sự khác biệt so với các version trước đó khác.
+Năm 1994, POSTGRES được phát hành ở version 4.2 theo MIT license, mở ra khả năng cộng tác với các developer khác trên toàn thế giới. Khi đó, POSTGRES sử dụng một query language nội bộ tên QUEL. Hai sinh viên Berkeley, Andrew Yu và Jolly Chen, đã thay query language QUEL bằng SQL, khi ấy còn rất mới mẻ và thú vị; điểm mới này ấn tượng đến mức project được đổi tên thành Postgre95 để nhấn mạnh sự khác biệt so với các version trước đó.
 
-Cuối cùng, vào năm 1996, project có một public server để host code, và năm developer, trong đó có Marc G. Fournier, Tom Lane và Bruce Momjan, bắt đầu phát triển project mới mang thương hiệu PostgreSQL. Kể từ đó, project được duy trì tốt và luôn cập nhật.
+Cuối cùng, năm 1996, project có một public server để host code, và năm developer, trong đó có Marc G. Fournier, Tom Lane và Bruce Momjan, bắt đầu phát triển project mới mang thương hiệu PostgreSQL. Kể từ đó, project được duy trì tốt và luôn được cập nhật.
 
 Điều này cũng có nghĩa là PostgreSQL đã được phát triển gần 30 năm, một lần nữa nhấn mạnh tính vững chắc và cởi mở của chính project. Nếu tò mò, bạn cũng có thể lần theo source code đến commit đầu tiên trong thế giới open source:
 
-[source,bash]
+[source,console,role="transcript"]
 ....
    $ git log 'git rev-list --max-parents=0 HEAD'
    commit d31084e9d1118b25fd16580d9d8c2924b5740dff
@@ -84,180 +84,218 @@ Cuối cùng, vào năm 1996, project có một public server để host code, v
        Postgres95 1.01 Distribution - Virgin Sources
 ....
 
+.Command
+[source,bash]
+....
+git log 'git rev-list --max-parents=0 HEAD'
+....
+
+.Output
+[source,output]
+....
+   commit d31084e9d1118b25fd16580d9d8c2924b5740dff
+       Author: Marc G. Fournier <scrappy@hub.org>
+       Date:   Tue Jul 9 06:22:35 1996 +0000
+
+
+       Postgres95 1.01 Distribution - Virgin Sources
+....
+
+
 == Có gì mới trong PostgreSQL 16?
 
-PostgreSQL 16 được phát hành vào ngày 14 tháng 9 năm 2023. Bản phát hành này bao gồm một tập hợp phong phú các cải tiến, trong đó có:
+PostgreSQL 16 được phát hành ngày 14 tháng 9 năm 2023. Bản release này bao gồm một tập hợp phong phú các cải tiến, trong đó có:
 
-* Một số tối ưu hóa performance, từ việc allocation và management memory nội bộ đến behavior mặc định được parallelize nhiều hơn.
-* Một tập hợp permission được sửa đổi cho user và group, bao gồm các system group mới để cung cấp những capability cụ thể.
-* Cơ chế configuration được cải tiến, giúp dễ dàng đưa các file vào hơn và match user cũng như host bằng regular expression.
+* Một số tối ưu hóa performance, từ việc phân bổ và quản lý memory nội bộ đến việc mặc định song song hóa nhiều operation hơn.
+* Một tập hợp permission được sửa đổi cho user và group, bao gồm các system group mới nhằm cung cấp những capability cụ thể.
+* Cơ chế configuration được cải thiện, giúp thêm file dễ dàng hơn và match user cũng như host bằng regular expression.
 * Một tập hợp function JSON đầy đủ hơn.
-* Logical replication engine được cải tiến, cho phép decoding ngay cả trên standby server.
-* Một tập hợp utility column có thêm các option mới để fine-tune những gì administrator cần thực hiện.
+* Logical replication engine được cải thiện, cho phép decoding ngay cả trên standby server.
+* Một tập hợp utility dành cho column có thêm các option mới để administrator fine-tune những gì cần thực hiện.
 
-Cũng như các release khác, PostgreSQL 16 chứa một tập hợp thay đổi nhằm giúp cuộc sống của Database Administrator (DBA) dễ dàng hơn, chẳng hạn như loại bỏ các option xung đột và các SQL term cũng như type đã obsolete. Điều này nhấn mạnh rằng các developer PostgreSQL luôn quan tâm đến database và việc tuân thủ các SQL standard hiện hành.
+Cũng như các release khác, PostgreSQL 16 chứa một loạt thay đổi giúp cuộc sống của Database Administrator (DBA) dễ dàng hơn, chẳng hạn loại bỏ các option xung đột và những thuật ngữ SQL cũng như type đã lỗi thời. Điều này cho thấy các developer PostgreSQL luôn quan tâm đến database và việc tuân thủ các SQL standard hiện hành.
 
-== Chính sách release, version number và life cycle của PostgreSQL
+== Chính sách phát hành, số version và vòng đời của PostgreSQL
 
-Các developer PostgreSQL phát hành một major release mới mỗi năm một lần, thường vào khoảng tháng 10. Major release là một version ổn định, giới thiệu các feature mới và những incompatibility có thể có với các version trước. Trong suốt life cycle, một major release liên tục được cải thiện thông qua các minor release, thường là release sửa bug và bảo trì.
+Các developer PostgreSQL phát hành một major release mới mỗi năm, thường vào khoảng tháng 10. Major release là một version ổn định, giới thiệu các feature mới và có thể có những incompatibility với các version trước. Trong suốt vòng đời, một major release liên tục được cải thiện thông qua các minor release, thường là những release sửa bug và bảo trì.
 
-Version number của PostgreSQL xác định major release và minor release. Version number được ghi dưới dạng major.minor; vì vậy, chẳng hạn, 16.0 chỉ major release đầu tiên, 16, còn 16.1 chỉ minor release 1 của major release 16. Tóm lại, con số càng lớn thì version bạn đang quản lý càng mới.
+Số version của PostgreSQL xác định major release và minor release. Số version có dạng major.minor; vì vậy, chẳng hạn, 16.0 biểu thị major release đầu tiên, tức 16, còn 16.1 biểu thị minor release 1 của major release 16. Tóm lại, con số càng lớn thì version bạn đang quản lý càng mới.
 
-Các major version khác nhau của PostgreSQL không tương thích với nhau, trong khi các minor version khác nhau thì tương thích. Sự không tương thích này có nghĩa là gì? PostgreSQL lưu trữ data ở dạng binary, và format này có thể thay đổi giữa các major version. Điều đó có nghĩa là bạn có thể upgrade PostgreSQL giữa các minor version ngay trong lúc hệ thống đang chạy, nhưng có lẽ sẽ phải dump và restore nội dung database khi upgrade giữa các major version.
+Các major version khác nhau của PostgreSQL không tương thích với nhau, trong khi các minor version khác nhau thì tương thích. Sự không tương thích này có nghĩa là gì? PostgreSQL lưu data ở dạng binary và format này có thể thay đổi giữa các major version. Vì vậy, bạn có thể upgrade PostgreSQL giữa các minor version ngay khi hệ thống đang chạy, nhưng có lẽ phải dump rồi restore nội dung database khi upgrade giữa các major version.
 
-Khuyến nghị, cũng như với nhiều software khác, là chạy version PostgreSQL mới nhất mà bạn có thể sử dụng: các developer PostgreSQL dành rất nhiều công sức để cung cấp product không có bug, nhưng feature mới có thể đưa vào bug mới, và dù PostgreSQL có platform testing rất toàn diện, suy cho cùng đây vẫn là software, mà software thì có bug. Ngoài các bug nội bộ, các release mới còn bao gồm các bản sửa cho security exploit và các cải tiến performance, vì vậy duy trì PostgreSQL server đang chạy ở trạng thái up to date là một thói quen rất tốt.
+Khuyến nghị, cũng như với nhiều phần mềm khác, là chạy version PostgreSQL mới nhất mà bạn có thể sử dụng: các developer PostgreSQL dành rất nhiều công sức để cung cấp một product không có bug, nhưng việc thêm feature mới cũng có thể đưa vào bug mới. Dù PostgreSQL có platform testing rất toàn diện, suy cho cùng đây vẫn là software, mà software thì có bug. Ngoài các bug nội bộ, các release mới còn bao gồm các bản sửa cho security exploit và các cải tiến performance, vì vậy duy trì PostgreSQL server đang chạy ở trạng thái up to date là một thói quen rất tốt.
 
-Cuối cùng nhưng không kém phần quan trọng, không phải mọi version PostgreSQL đều tồn tại mãi mãi. PostgreSQL cung cấp support và upgrade trong năm năm sau khi một release mới được phát hành; sau khoảng thời gian này, một major release sẽ đạt End Of Life (EOL) và các developer PostgreSQL sẽ không còn duy trì nó nữa. Điều đó không có nghĩa là bạn không thể chạy một version PostgreSQL cổ; nó chỉ có nghĩa là version này sẽ không nhận được bất kỳ upgrade nào từ project chính thức và vì vậy sẽ out of date. Ví dụ, do PostgreSQL 16 được phát hành vào năm 2023, nó sẽ đạt EOL vào năm 2028. Hãy nhớ rằng chạy một release EOL không chỉ là chuyện không nhận được upgrade mới, security patch và bug fix; bạn sẽ phải tự xoay xở và sẽ không tìm được trợ giúp khi gặp sự cố.
+Cuối cùng nhưng không kém phần quan trọng, không phải version PostgreSQL nào cũng tồn tại mãi. PostgreSQL cung cấp support và upgrade trong năm năm sau khi một release mới được phát hành; sau khoảng thời gian này, một major release sẽ đạt End Of Life (EOL) và các developer PostgreSQL sẽ không còn maintain nó nữa. Điều đó không có nghĩa là bạn không thể chạy một version PostgreSQL cũ; chỉ là version này sẽ không nhận được bất kỳ upgrade nào từ project chính thức và vì vậy sẽ trở nên out of date. Ví dụ, do PostgreSQL 16 được phát hành vào năm 2023, nó sẽ đạt EOL vào năm 2028. Hãy nhớ rằng chạy một release EOL không chỉ có nghĩa là không nhận được upgrade mới, security patch và bug fix; bạn sẽ phải tự xoay xở và không tìm được trợ giúp khi gặp sự cố.
 
-Với điều đó, bây giờ chúng ta sẽ giới thiệu các thuật ngữ PostgreSQL chính, cũng như những concept hữu ích khác cần hiểu.
+Sau đây, chúng ta sẽ giới thiệu các thuật ngữ PostgreSQL chính, cũng như các khái niệm hữu ích khác cần nắm.
 
 == Tìm hiểu thuật ngữ PostgreSQL
 
-Để bạn hiểu PostgreSQL hoạt động như thế nào và theo dõi các example trong các chapter của cuốn sách, chúng ta cần giới thiệu các thuật ngữ được sử dụng bên trong PostgreSQL và cộng đồng người dùng của nó.
+Để hiểu cách PostgreSQL hoạt động và theo dõi các ví dụ trong những chương của cuốn sách, chúng ta cần giới thiệu các thuật ngữ được sử dụng bên trong PostgreSQL và trong cộng đồng người dùng của nó.
 
-PostgreSQL là một service, nghĩa là nó chạy như một daemon trên operating system; một PostgreSQL daemon đang chạy được gọi là instance. Một PostgreSQL instance thường được gọi là cluster vì một instance duy nhất có thể phục vụ và xử lý nhiều database. Mỗi database là một không gian độc lập, nơi user và application có thể lưu trữ data.
+PostgreSQL là một service, nghĩa là nó chạy như một daemon trên hệ điều hành; một PostgreSQL daemon đang chạy được gọi là instance. Một PostgreSQL instance thường được gọi là cluster vì một instance duy nhất có thể phục vụ và xử lý nhiều database. Mỗi database là một không gian độc lập, nơi user và application có thể lưu trữ data.
 
-Một database được các user được phép truy cập, nhưng các user đã kết nối với một database không thể vượt qua ranh giới database và tương tác với data nằm trong database khác, trừ khi họ cũng kết nối rõ ràng đến database đó.
+Một database có thể được truy cập bởi những user được cấp quyền, nhưng user đã kết nối vào một database không thể vượt qua ranh giới của database đó để tương tác với data nằm trong database khác, trừ khi họ cũng kết nối rõ ràng vào database kia.
 
-Một database có thể được tổ chức thành các namespace, gọi là schema. Schema là một tên gợi nhớ mà user có thể gán để tổ chức các database object, chẳng hạn như table, thành một collection có cấu trúc hơn. Schema không thể lồng nhau, vì vậy chúng tạo thành một flat namespace.
+Một database có thể được tổ chức thành các namespace gọi là schema. Schema là một tên gợi nhớ mà user có thể gán để tổ chức các database object, chẳng hạn table, thành một tập hợp có cấu trúc tốt hơn. Schema không thể lồng nhau, vì vậy chúng tạo thành một flat namespace.
 
-Database object được đại diện bởi mọi thứ mà user có thể tạo và quản lý bên trong database, chẳng hạn như table, function, trigger và data type. Mỗi object thuộc về đúng một schema duy nhất; nếu không được chỉ định, schema đó được đặt tên theo user tạo ra object.
+Database object là mọi thứ mà user có thể tạo và quản lý bên trong database, chẳng hạn table, function, trigger và data type. Mỗi object thuộc đúng một schema duy nhất; nếu không được chỉ định, schema đó được đặt tên theo user tạo ra object.
 
 [quote]
 ____
-Trong các PostgreSQL version trước 15, mọi object mới đều thuộc về schema `public` mặc định nếu không được chỉ định theo cách khác. Kể từ PostgreSQL 15, mỗi user được gán một personal schema và các object thuộc về schema đó, trừ khi một schema name khác được chỉ định rõ ràng.
+Trong các PostgreSQL version trước 15, mọi object mới mặc định thuộc schema `public` nếu không được chỉ định theo cách khác. Kể từ PostgreSQL 15, mỗi user được gán một personal schema và object thuộc về schema đó, trừ khi một schema name khác được chỉ định rõ ràng.
 
 ____
-User được định nghĩa ở cấp cluster-wide, nghĩa là chúng không gắn với một database cụ thể trong cluster. Một user có thể connect đến và quản lý bất kỳ database nào trong cluster mà họ được phép.
+User được định nghĩa ở phạm vi cluster-wide, nghĩa là không gắn với một database cụ thể nào trong cluster. Một user có thể connect đến và quản lý bất kỳ database nào trong cluster mà họ được phép truy cập.
 
-PostgreSQL chia user thành hai category chính:
+PostgreSQL chia user thành hai nhóm chính:
 
-* *Normal users:* Đây là những user có thể connect đến và xử lý database cũng như object tùy theo tập hợp privilege của họ.
-* *Superusers:* Những user này có thể làm bất kỳ điều gì với bất kỳ database object nào.
+* *Normal users:* Đây là những user có thể connect và làm việc với database cũng như object, tùy theo tập privilege của họ.
+* *Superusers:* Những user này có thể làm bất cứ điều gì với bất kỳ database object nào.
 
-PostgreSQL cho phép cấu hình bao nhiêu superuser tùy nhu cầu, và mọi superuser đều có chính xác cùng permission: họ có thể làm mọi thứ với mọi database và object, và đáng chú ý nhất là cũng có thể kiểm soát life cycle của cluster (chẳng hạn, họ có thể terminate connection của normal user, reload configuration, stop toàn bộ cluster, v.v.).
+PostgreSQL cho phép cấu hình số lượng superuser tùy nhu cầu, và mọi superuser đều có cùng một tập permission: họ có thể làm mọi thứ với mọi database và object; đáng chú ý nhất, họ cũng có thể kiểm soát life cycle của cluster (chẳng hạn terminate connection của normal user, reload configuration, stop toàn bộ cluster, v.v.).
 
-PostgreSQL cung cấp internal data, chẳng hạn như user, database, namespace, configuration và database runtime status, thông qua catalog: các table và view đặc biệt trình bày thông tin theo cách tương tác được bằng SQL. Nhiều catalog bị cắt giảm tùy theo user đang inspect chúng, ngoại trừ việc superuser thường nhìn thấy toàn bộ tập thông tin hiện có.
+PostgreSQL cung cấp internal data, chẳng hạn user, database, namespace, configuration và runtime status của database, thông qua catalog: các table và view đặc biệt trình bày thông tin theo cách có thể tương tác bằng SQL. Nhiều catalog được lọc tùy theo user đang inspect chúng, ngoại trừ trường hợp superuser thường nhìn thấy toàn bộ thông tin hiện có.
 
-PostgreSQL lưu trữ user data (ví dụ: table) và internal status của nó trên local filesystem.
-Đây là điểm quan trọng cần ghi nhớ: PostgreSQL dựa vào filesystem bên dưới để triển khai persistence, và do đó việc tuning filesystem là một task quan trọng để PostgreSQL hoạt động tốt. Cụ thể, PostgreSQL lưu trữ toàn bộ content của nó (user data và internal status) trong một thư mục filesystem duy nhất có tên là `PGDATA`. Thư mục `PGDATA` đại diện cho tập các database mà cluster đang phục vụ, vì vậy bạn có thể có một installation PostgreSQL duy nhất và chuyển nó sang các thư mục `PGDATA` khác nhau để cung cấp các content khác nhau. Như bạn sẽ thấy trong các section tiếp theo, thư mục `PGDATA` cần được initialize trước khi có thể sử dụng; initialization là việc tạo cấu trúc thư mục bên trong chính `PGDATA` và dĩ nhiên đây là operation chỉ thực hiện một lần.
+PostgreSQL lưu user data (ví dụ table) và internal status của nó trên local filesystem.
+Đây là điểm quan trọng cần nhớ: PostgreSQL dựa vào filesystem bên dưới để thực hiện cơ chế persistence, nên tuning filesystem là một task quan trọng để PostgreSQL hoạt động tốt. Cụ thể, PostgreSQL lưu toàn bộ nội dung của nó (user data và internal status) trong một thư mục filesystem duy nhất có tên `PGDATA`. Thư mục `PGDATA` đại diện cho tập database mà cluster đang phục vụ, vì vậy bạn có thể có một installation PostgreSQL duy nhất và chuyển nó sang các thư mục `PGDATA` khác nhau để phục vụ những nội dung khác nhau. Như sẽ thấy trong các phần tiếp theo, thư mục `PGDATA` phải được initialize trước khi sử dụng; initialization là việc tạo cấu trúc thư mục bên trong chính `PGDATA` và dĩ nhiên chỉ thực hiện một lần.
 
-Nội dung chi tiết của `PGDATA` sẽ được giải thích trong chapter tiếp theo, nhưng hiện tại, bạn chỉ cần nhớ rằng thư mục `PGDATA` là nơi PostgreSQL mong đợi tìm thấy các file dữ liệu và configuration. Cụ thể, thư mục `PGDATA` bao gồm ít nhất Write-Ahead Logs (WALs) và data storage. Nếu thiếu một trong hai phần này, cluster không thể đảm bảo data consistency và trong một số tình huống nghiêm trọng thậm chí còn không thể start.
+Nội dung chi tiết của `PGDATA` sẽ được giải thích trong chương tiếp theo, nhưng hiện tại, bạn chỉ cần nhớ rằng thư mục `PGDATA` là nơi PostgreSQL mong đợi tìm thấy các file dữ liệu và configuration. Cụ thể, thư mục `PGDATA` bao gồm ít nhất Write-Ahead Logs (WALs) và data storage. Nếu thiếu một trong hai phần này, cluster không thể đảm bảo data consistency, và trong một số tình huống nghiêm trọng thậm chí không thể start.
 
-WALs là một technology được nhiều database system sử dụng, và ý tưởng cơ bản về cách chúng hoạt động được chia sẻ với các technology khác như transactional filesystem (chẳng hạn ZFS, UFS với Soft Updates, v.v.). Ý tưởng là trước khi áp dụng bất kỳ thay đổi nào vào một chunk dữ liệu, một intent log sẽ được ghi persistent. Trong trường hợp này, nếu cluster bị crash, nó luôn có thể dựa vào intent log đã được ghi trước đó để hiểu operation nào đã hoàn tất và operation nào phải được recover (sẽ có thêm chi tiết về việc này trong các chapter sau). Lưu ý rằng với thuật ngữ “crash”, chúng tôi đề cập đến mọi disaster có thể xảy ra với cluster của bạn, bao gồm software bug, nhưng nhiều khả năng hơn là mất điện, hỏng hard disk, v.v. PostgreSQL cam kết cung cấp mức data consistency tốt nhất có thể, vì vậy nó nỗ lực rất nhiều để đảm bảo intent log (WAL) an toàn hết mức có thể.
+WAL là một công nghệ được nhiều database system sử dụng, và ý tưởng cơ bản về cách WAL hoạt động cũng xuất hiện trong các công nghệ khác như transactional filesystem (chẳng hạn ZFS, UFS với Soft Updates, v.v.). Ý tưởng là trước khi áp dụng bất kỳ thay đổi nào vào một chunk dữ liệu, một intent log sẽ được ghi xuống persistent storage. Nếu cluster bị crash, nó luôn có thể dựa vào intent log đã được ghi trước đó để xác định thao tác nào đã hoàn tất và thao tác nào cần được recover (sẽ có thêm chi tiết về việc này trong các chương sau). Lưu ý rằng với thuật ngữ “crash”, chúng tôi đề cập đến mọi sự cố có thể xảy ra với cluster, bao gồm software bug, nhưng nhiều khả năng hơn là mất điện, hỏng hard disk, v.v. PostgreSQL cam kết cung cấp mức data consistency tốt nhất có thể, vì vậy nó nỗ lực rất nhiều để đảm bảo intent log (WAL) an toàn hết mức có thể.
 
 Ở bên trong, PostgreSQL theo dõi cấu trúc của các table, index, function và mọi thứ cần thiết để quản lý cluster trong storage chuyên dụng của nó, gọi là catalog.
 
-SQL standard định nghĩa một information schema, tức một tập hợp các table dùng chung cho mọi standard database implementation, bao gồm PostgreSQL, mà DBA có thể dùng để kiểm tra internal status của chính database. Ví dụ, information schema định nghĩa một table tập hợp thông tin về tất cả user-defined table, nhờ đó có thể query information schema để xem một table cụ thể có tồn tại hay không. PostgreSQL catalog có thể được gọi là một “information schema on steroids”: catalog chính xác hơn nhiều và đặc thù PostgreSQL hơn information schema tổng quát, đồng thời DBA có thể trích xuất nhiều thông tin hơn về status của PostgreSQL từ catalog. Tất nhiên, PostgreSQL có hỗ trợ information schema, nhưng trong toàn bộ cuốn sách, bạn sẽ thấy các tham chiếu đến catalog vì chúng cung cấp thông tin chi tiết hơn nhiều.
+SQL standard định nghĩa một information schema, tức một tập các table dùng chung cho mọi standard database implementation, bao gồm PostgreSQL, để DBA có thể kiểm tra internal status của database. Ví dụ, information schema định nghĩa một table chứa thông tin về tất cả các user-defined table, nhờ đó có thể query information schema để xem một table cụ thể có tồn tại hay không. PostgreSQL catalog có thể được gọi là một “information schema on steroids”: catalog chính xác hơn nhiều và đặc thù PostgreSQL hơn information schema tổng quát; đồng thời DBA có thể trích xuất nhiều thông tin hơn về status của PostgreSQL từ catalog. Dĩ nhiên, PostgreSQL hỗ trợ information schema, nhưng trong suốt cuốn sách, bạn sẽ thấy các tham chiếu đến catalog vì chúng cung cấp thông tin chi tiết hơn nhiều.
 
-Khi cluster được start, PostgreSQL khởi chạy một process duy nhất gọi là `postmaster`. Mục tiêu của `postmaster` là bootstrap instance, spawn các process cần thiết để quản lý database activity, sau đó chờ các incoming connection. Một user connection, thường được thực hiện qua TCP/IP connection, yêu cầu `postmaster` fork một process khác có tên là backend process; đến lượt nó, process này chịu trách nhiệm phục vụ đúng một connection.
+Khi cluster được start, PostgreSQL khởi chạy một process duy nhất gọi là `postmaster`. Mục tiêu của `postmaster` là bootstrap instance, spawn các process cần thiết để quản lý database activity, rồi chờ incoming connection. Một connection của user, thường được thiết lập qua TCP/IP connection, yêu cầu `postmaster` fork một process khác gọi là backend process; process này chịu trách nhiệm phục vụ đúng một connection.
 
-Điều này có nghĩa là mỗi khi một connection mới đến cluster được mở, cluster sẽ phản ứng bằng cách khởi chạy một backend process mới để phục vụ connection đó cho đến khi connection kết thúc và process sau đó bị destroy. `postmaster` thường cũng start một số utility process chịu trách nhiệm giữ cho PostgreSQL hoạt động tốt trong khi đang chạy; các process này sẽ được thảo luận ở phần sau của chapter này và chapter tiếp theo.
+Điều đó có nghĩa là mỗi khi mở một connection mới tới cluster, cluster sẽ phản ứng bằng cách khởi chạy một backend process mới để phục vụ connection đó cho đến khi connection kết thúc, rồi process bị hủy. `postmaster` thường cũng start một số utility process chịu trách nhiệm giữ PostgreSQL hoạt động tốt trong lúc chạy; các process này sẽ được thảo luận ở phần sau của chương này và chương tiếp theo.
 
-Tóm lại, PostgreSQL cung cấp các executable có thể được install ở bất kỳ đâu bạn muốn trên system và có thể serve một cluster duy nhất. Đến lượt mình, cluster phục vụ dữ liệu từ một thư mục `PGDATA` duy nhất, thư mục này chứa, cùng với các thành phần khác, user data, internal status của cluster, catalog và WALs. Mỗi khi một client connect đến server, process `postmaster` fork một backend process mới, process này chịu trách nhiệm phục vụ connection.
+Tóm lại, PostgreSQL cung cấp các executable có thể được install ở bất kỳ đâu bạn muốn trên hệ thống và có thể phục vụ một cluster duy nhất. Cluster này phục vụ dữ liệu từ một thư mục `PGDATA` duy nhất; thư mục này chứa, cùng với các thành phần khác, user data, internal status của cluster, catalog và WALs. Mỗi khi một client connect đến server, process `postmaster` fork một backend process mới để phục vụ connection.
 
-Từ các concept đã giải thích ở trên, sau đây là phần recap nhanh về những thuật ngữ phức tạp nhất được sử dụng trong PostgreSQL:
+Dựa trên những concept đã giải thích ở trên, sau đây là phần tóm tắt nhanh về các thuật ngữ phức tạp nhất được sử dụng trong PostgreSQL:
 
 * *Cluster:* toàn bộ PostgreSQL service.
-* *Postmaster:* process đầu tiên mà cluster execute; process này chịu trách nhiệm theo dõi activity của toàn bộ cluster. `postmaster` spawn một backend process mỗi khi một connection được thiết lập.
+* *Postmaster:* process đầu tiên được cluster khởi chạy; process này chịu trách nhiệm theo dõi activity của toàn bộ cluster. `postmaster` spawn một backend process mỗi khi một connection được thiết lập.
 * *Database:* một data container biệt lập mà user (hoặc application) có thể connect vào. Một cluster có thể xử lý nhiều database. Một database có thể bao gồm nhiều object khác nhau, như schema (namespace), table, trigger và các object khác mà bạn sẽ gặp trong quá trình đọc sách.
-* *PGDATA:* thư mục trên persistent storage được dành riêng hoàn toàn cho PostgreSQL và dữ liệu của nó. PostgreSQL lưu trữ dữ liệu bên trong thư mục này.
-* *WALs:* intent log của các thay đổi trong database, được dùng để recover dữ liệu sau một critical crash.
+* *PGDATA:* thư mục trên persistent storage được dành riêng hoàn toàn cho PostgreSQL và dữ liệu của nó. PostgreSQL lưu dữ liệu bên trong thư mục này.
+* *WALs:* intent log của các thay đổi trong database, được dùng để recover data sau một crash nghiêm trọng.
 
-Sau khi đã thảo luận về terminology cơ bản liên quan đến PostgreSQL, đã đến lúc install nó trên machine của bạn.
+Sau khi đã thảo luận về các thuật ngữ cơ bản liên quan đến PostgreSQL, đã đến lúc install nó trên máy của bạn.
 
 == Cài đặt PostgreSQL
 
-PostgreSQL có thể chạy trên nhiều operating system, đáng chú ý nhất là Unix và các Unix-like system, bao gồm Linux, cũng như Microsoft Windows 11 hoặc cao hơn. Cho đến nay, platform được support nhiều nhất vẫn là Linux vì phần lớn PostgreSQL developer làm việc trên platform này, và do đó đây là platform có nhiều use case được test nhất. Tuy nhiên, việc deploy trên các platform được support khác sẽ không gây ra vấn đề nào và không đặt data của bạn vào bất kỳ rủi ro nào.
+PostgreSQL có thể chạy trên nhiều hệ điều hành, đáng chú ý nhất là Unix và các hệ thống Unix-like, bao gồm Linux, cũng như Microsoft Windows 11 trở lên. Cho đến nay, platform được support nhiều nhất vẫn là Linux vì phần lớn developer PostgreSQL làm việc trên platform này, do đó đây là platform có nhiều use case được test nhất. Tuy nhiên, deploy trên các platform được support khác không gây ra vấn đề nào và không đặt data của bạn vào bất kỳ rủi ro nào.
 
-Section này tập trung vào việc install PostgreSQL 16, vì đây là stable version mới nhất hiện có trên toàn thế giới. Tuy nhiên, bạn cũng sẽ học cách build version PostgreSQL của riêng mình, và đây có thể là cách để bạn install các version khác của PostgreSQL trong tương lai.
+Phần này tập trung vào việc install PostgreSQL 16 vì đây là version ổn định mới nhất hiện có trên toàn thế giới. Tuy nhiên, bạn cũng sẽ học cách build version PostgreSQL của riêng mình; đây có thể là cách để install các version khác của PostgreSQL trong tương lai.
 
-Trước khi install PostgreSQL, bạn cần chọn, hoặc ít nhất là đánh giá, cách install nó. Có hai cách chính để đưa PostgreSQL vào trạng thái running:
+Trước khi install PostgreSQL, bạn cần chọn, hoặc ít nhất đánh giá, cách install nó. Có hai cách chính để đưa PostgreSQL vào trạng thái hoạt động:
 
 * Compile từ source
 * Sử dụng binary package
 
-Binary package được PostgreSQL community hoặc operating system cung cấp, và việc sử dụng chúng có ưu điểm là giúp bạn có một PostgreSQL installation thuận lợi.
+Binary package do cộng đồng PostgreSQL hoặc hệ điều hành cung cấp; ưu điểm của việc sử dụng chúng là giúp bạn có một bản cài đặt PostgreSQL thuận tiện.
 
-Hơn nữa, binary package không yêu cầu compilation toolchain và do đó dễ áp dụng hơn nhiều. Cuối cùng, binary package tuân theo các convention của operating system mà nó được build cho (ví dụ, convention về vị trí đặt configuration file), và operating system cũng có thể quản lý việc upgrade. Vì binary package cần được vendor build sẵn, chúng có thể không phản ánh release version mới nhất. Ví dụ, khi PGDG cung cấp một minor update mới, operating system cần vài ngày để đưa binary package chứa các upgrade đó ra cho tất cả platform được support.
+Hơn nữa, binary package không yêu cầu compilation toolchain nên dễ áp dụng hơn nhiều. Cuối cùng, binary package tuân theo các quy ước của hệ điều hành mà nó được build cho (ví dụ quy ước về vị trí đặt configuration file), và hệ điều hành cũng có thể quản lý việc upgrade. Vì binary package cần được vendor build sẵn nên có thể không phản ánh release mới nhất. Ví dụ, khi PGDG cung cấp một minor update mới, hệ điều hành cần vài ngày để đưa binary package chứa update đó ra cho mọi platform được support.
 
-Mặt khác, việc install từ source yêu cầu compilation toolchain, cũng như tốn nhiều thời gian và CPU hơn để build các PostgreSQL executable. Bạn có toàn quyền kiểm soát những component nào sẽ có trong final product và có thể trim, optimize instance cho performance rất cao cũng như giảm resource consumption xuống mức tối thiểu. Tuy nhiên, về lâu dài, bạn sẽ chịu trách nhiệm maintenance installation và upgrade nó theo cách tương tự.
+Mặt khác, install từ source yêu cầu compilation toolchain, tốn nhiều thời gian hơn và dùng nhiều CPU hơn để build các PostgreSQL executable. Bạn có toàn quyền kiểm soát component nào sẽ có trong final product, có thể trim và optimize instance để đạt performance rất cao cũng như giảm resource consumption xuống mức tối thiểu. Tuy nhiên, về lâu dài, bạn sẽ chịu trách nhiệm maintenance installation và upgrade nó theo cách tương tự.
 
-=== Cài đặt gì
+=== Cài đặt những gì
 
-PostgreSQL được chia thành một số component để install:
+PostgreSQL được chia thành một số component cần cài đặt:
 
-* PostgreSQL server là phần có thể serve database cho application và user, đồng thời bắt buộc phải có để lưu trữ data.
-* PostgreSQL client là library và client tool dùng để connect đến database server. Nó không bắt buộc nếu bạn không cần connect đến database trên chính machine đó, nhưng bắt buộc phải có trên client machine.
-* PostgreSQL contrib package là một tập hợp các extension và utility phổ biến có thể nâng cao trải nghiệm PostgreSQL của bạn. Package bổ sung này do PGDG phát triển nên được tích hợp tốt và ổn định.
-* PostgreSQL docs là documentation (ví dụ, man page) liên quan đến server và client.
-* PostgreSQL PL/Perl, PL/Python và PL/Tcl là ba component cho phép sử dụng các programming language tương ứng là Perl, Python và Tcl trực tiếp bên trong PostgreSQL server.
+* PostgreSQL server là phần có thể phục vụ database cho application và user, đồng thời bắt buộc để lưu data.
+* PostgreSQL client là library và client tool dùng để connect đến database server. Nó không bắt buộc nếu bạn không cần connect đến database trên chính máy đó, nhưng bắt buộc trên máy client.
+* PostgreSQL contrib package là một tập hợp các extension và utility phổ biến có thể nâng cao trải nghiệm PostgreSQL. Package bổ sung này do PGDG phát triển nên được tích hợp tốt và ổn định.
+* PostgreSQL docs là documentation (ví dụ các man page) liên quan đến server và client.
+* PostgreSQL PL/Perl, PL/Python và PL/Tcl là ba component cho phép sử dụng các ngôn ngữ lập trình tương ứng là Perl, Python và Tcl trực tiếp bên trong PostgreSQL server.
 
-Set component được khuyến nghị là server, client và contrib modules; các module này sẽ được sử dụng xuyên suốt cuốn sách. Bạn có thể tự quyết định có install các component khác hay không, nhưng cuốn sách này sẽ không trình bày chi tiết từng component.
+Bộ component được khuyến nghị gồm server, client và contrib modules; các module này sẽ được sử dụng xuyên suốt cuốn sách. Bạn có thể tự quyết định có install các component khác hay không, nhưng cuốn sách này sẽ không trình bày chi tiết từng component.
 
 === Cài đặt PostgreSQL từ binary package
 
-Để hiểu rõ hơn các concept được giải thích trong cuốn sách này, chúng tôi khuyến nghị độc giả tự thử các code example; do đó, bạn sẽ cần? một PostgreSQL instance có sẵn. Mặc dù lựa chọn tốt nhất để có một PostgreSQL instance đầy đủ trong tầm tay là install nó trên virtual machine hoặc physical computer, chúng tôi cũng cung cấp một tập Docker image dưới dạng các PostgreSQL instance containerized để chạy và thử nghiệm. Vì vậy, bạn có thể chọn thực hiện full installation hoặc thiết lập Docker nhanh để có một PostgreSQL machine sẵn sàng. Tuy nhiên, mọi DBA đều cần có khả năng install PostgreSQL trên nhiều system, vì vậy section này nhằm chỉ cho bạn cách thực hiện một installation hoàn chỉnh từ đầu trên một số Unix-like operating system.
+Để hiểu rõ hơn các concept được giải thích trong cuốn sách này, chúng tôi khuyến nghị độc giả tự thử các ví dụ code; do đó, bạn sẽ cần một PostgreSQL instance sẵn sàng. Mặc dù cách tốt nhất để có một PostgreSQL instance đầy đủ trong tầm tay là install nó trên virtual machine hoặc physical computer, chúng tôi cũng cung cấp một tập Docker image để chạy và thử nghiệm các PostgreSQL instance containerized. Vì vậy, bạn có thể chọn full installation hoặc thiết lập Docker nhanh để có một máy sẵn sàng chạy PostgreSQL. Tuy nhiên, mọi DBA đều cần có khả năng install PostgreSQL trên nhiều hệ thống, nên phần này hướng dẫn cách thực hiện một installation hoàn chỉnh từ đầu trên một số hệ thống Unix-like.
 
-Trong các section sau, bạn sẽ thấy cách install PostgreSQL trên một số Linux và Unix operating system phổ biến, cụ thể là:
+Trong các phần sau, bạn sẽ thấy cách install PostgreSQL trên một số hệ điều hành Linux và Unix phổ biến, cụ thể là:
 
-* Linux Docker containers
-* GNU/Linux Debian, Ubuntu và derivative
+* Docker container trên Linux
+* GNU/Linux Debian, Ubuntu và các derivative
 * Fedora Linux (điều này cũng áp dụng cho Red Hat Enterprise Linux và các distribution tương thích, như Rocky Linux)
 * FreeBSD
 
-Không thể cung cấp instruction chi tiết cho mọi operating system hiện có, nhưng các concept được trình bày trong những section sau sẽ hữu ích bất kể platform nào.
+Không thể cung cấp hướng dẫn chi tiết cho mọi hệ điều hành hiện có, nhưng các concept được trình bày trong những phần sau sẽ hữu ích bất kể platform nào.
 
-Trước khi đi vào phần installation thực tế, cần lưu ý rằng binary package có thể thuộc một trong hai loại: loại do operating system vendor cung cấp và loại do PGDG cung cấp. Thông thường, trên các system dựa trên Linux, bạn nên sử dụng binary package do PGDG cung cấp vì đây là source có thẩm quyền nhất đối với PostgreSQL. Trên thực tế, package do operating system vendor cung cấp có xu hướng nhanh chóng trở nên out of date, nghĩa là chúng thường chậm hơn latest version hiện có trên toàn cầu vài version. Mặt khác, trên các BSD platform như FreeBSD, OpenBSD và NetBSD, các operating system porter làm rất tốt việc giữ cho package do chính operating system cung cấp luôn up to date, vì vậy bạn có thể sử dụng operating system package một cách an toàn và dễ dàng.
+Trước khi đi vào phần installation thực tế, cần lưu ý rằng binary package có thể thuộc một trong hai loại: loại do nhà cung cấp hệ điều hành cung cấp và loại do PGDG cung cấp. Thông thường, trên các hệ thống dựa trên Linux, bạn nên sử dụng binary package do PGDG cung cấp vì đây là source có thẩm quyền nhất đối với PostgreSQL. Trên thực tế, package do nhà cung cấp hệ điều hành cung cấp có xu hướng nhanh chóng trở nên out of date, nghĩa là chúng thường chậm hơn latest version hiện có trên toàn cầu vài version. Mặt khác, trên các BSD platform như FreeBSD, OpenBSD và NetBSD, các porter của hệ điều hành làm rất tốt việc giữ cho package do chính hệ điều hành cung cấp luôn up to date, vì vậy bạn có thể sử dụng package của hệ điều hành một cách an toàn và dễ dàng.
 
-Một điều quan trọng cần lưu ý là các operating system khác nhau lưu file ở những vị trí khác nhau: thông thường, tất cả configuration file được đặt ngay trong `PGDATA`, nhưng package của một số operating system phân tán configuration file dưới thư mục `/etc`. Một số operating system cũng đặt executable trong các path cụ thể, tách biệt theo PostgreSQL version, trong khi các system khác đặt tất cả executable trong cùng một path.
+Một điều quan trọng khác cần lưu ý là các hệ điều hành khác nhau lưu file ở những vị trí khác nhau: thông thường, tất cả configuration file được đặt ngay trong `PGDATA`, nhưng package của một số hệ điều hành phân tán chúng dưới thư mục `/etc`. Một số hệ điều hành cũng đặt executable trong các path cụ thể, tách biệt theo PostgreSQL version, trong khi các hệ thống khác đặt tất cả executable trong cùng một path.
 
-Bạn cần tìm hiểu với package provider của operating system xem từng file hoặc directory được đặt ở đâu để có thể configure và sử dụng PostgreSQL.
+Bạn cần hỏi package provider của hệ điều hành xem từng file hoặc thư mục được đặt ở đâu để có thể configure và sử dụng PostgreSQL.
 
 ==== Sử dụng Docker image của cuốn sách
 
 Docker là một container cho phép bạn chạy một tập process biệt lập như thể chúng là một phần của một micro virtual machine. PGDG cung cấp một Docker image mà bạn có thể dùng để chạy một cluster containerized.
 
-Giải thích về Docker technology nằm ngoài phạm vi của cuốn sách này, và để bạn có thể nhanh chóng, dễ dàng thử nghiệm với PostgreSQL, chúng tôi đã cung cấp một tập Docker image dựa trên PostgreSQL image, được customize để bạn thử nghiệm các concept được giải thích trong cuốn sách. Bạn có thể dùng các image nói trên làm điểm khởi đầu cho project của riêng mình, dù các image này không nhằm sử dụng trong production environment. Các image nằm trong directory `docker_images` của code repository của cuốn sách (https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition/).
+Giải thích về công nghệ Docker nằm ngoài phạm vi của cuốn sách này. Để bạn có thể nhanh chóng, dễ dàng thử nghiệm với PostgreSQL, chúng tôi đã cung cấp một tập Docker image dựa trên PostgreSQL image, được tùy chỉnh để bạn thử nghiệm các concept được giải thích trong sách. Bạn có thể dùng các image này làm điểm khởi đầu cho dự án riêng, dù chúng không nhằm sử dụng trong production environment. Các image nằm trong thư mục `docker_images` của code repository của cuốn sách (https://github.com/PacktPublishing/Learn-PostgreSQL-Second-Edition/).
 
-Chúng tôi tách từng Docker image theo chapter mà image đó phục vụ. Có một image catch-all dùng tên `standalone`, có thể được dùng làm base chung và sẽ được sử dụng trong những chapter đầu tiên. Các chapter khác, chẳng hạn chapter về replication, yêu cầu image riêng để chạy.
+Chúng tôi tách từng Docker image theo chương mà image đó phục vụ. Có một image catch-all tên `standalone`, có thể dùng làm base chung và sẽ được sử dụng trong những chương đầu tiên. Các chương khác, chẳng hạn chương về replication, cần image riêng để chạy.
 
-Để start base image `standalone`, bạn chỉ cần execute shell script `run-pg-docker.sh` như sau:
+Để start base image `standalone`, bạn chỉ cần chạy shell script `run-pg-docker.sh` như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sh run-pg-docker.sh
 …
 postgres@learn_postgresql:~$
 ....
 
-Script sẽ yêu cầu bạn nhập password; user của bạn bắt buộc phải có sudo capability để connect Docker network và port. Tất cả container sẽ khởi chạy một GNU Bash session với operating system user `postgres`.
+.Command
+[source,bash]
+....
+sh run-pg-docker.sh
+....
 
-Lần đầu mỗi container được start, quá trình này sẽ mất một khoảng thời gian vì nó cần pull PostgreSQL image từ network, install các package cần thiết và configure image. Cuối cùng, system sẽ đưa bạn đến Bash prompt; lúc này bạn đã đăng nhập qua container với user `postgres` và có thể bắt đầu tương tác với system theo các example trong cuốn sách.
+.Output
+[source,output]
+....
+…
+....
 
-Trong mỗi container, thư mục `PGDATA` được đặt là `/postgres/16/data`.
 
-Sau khi bạn thoát khỏi shell của container, container sẽ stop và sẽ không còn process nào liên quan đến PostgreSQL active.
+Script sẽ yêu cầu bạn nhập password; user của bạn bắt buộc phải có quyền sudo để connect tới Docker network và các port. Tất cả container sẽ khởi chạy một GNU Bash session với user hệ điều hành `postgres`.
 
-Để start một image riêng cho từng chapter, bạn có thể dùng cùng script và chỉ định folder của chapter làm argument, ví dụ:
+Lần đầu mỗi container được start, quá trình này sẽ mất một khoảng thời gian vì cần pull PostgreSQL image từ network, install các package cần thiết và configure image. Cuối cùng, hệ thống sẽ đưa bạn đến Bash prompt; lúc đó bạn đã đăng nhập vào container bằng user `postgres` và có thể bắt đầu tương tác với hệ thống theo các ví dụ trong cuốn sách.
 
-[source,text]
+Trong mỗi container, thư mục `PGDATA` được đặt thành `/postgres/16/data`.
+
+Sau khi thoát khỏi shell của container, container sẽ stop và không còn process nào liên quan đến PostgreSQL đang hoạt động.
+
+Để start một image riêng cho từng chương, bạn có thể dùng cùng script và chỉ định folder của chương làm argument, chẳng hạn:
+
+[source,console,role="transcript"]
 ....
 $ sh run-pg-docker.sh chapter_12_extensions
 ....
 
-Mỗi container sẽ start với một PostgreSQL instance được pre-populate, nhờ đó bạn có thể dễ dàng làm theo các code example trong từng chapter.
+.Command
+[source,bash]
+....
+sh run-pg-docker.sh chapter_12_extensions
+....
+
+
+Mỗi container sẽ start với một PostgreSQL instance được pre-populate, nhờ đó bạn có thể dễ dàng làm theo các ví dụ code trong từng chương.
 
 [NOTE]
 ====
-Có thể có một số khác biệt giữa output bạn thấy trong các code example và output nhận được khi execute cùng command trong Docker container. Ví dụ, các giá trị được generate tự động và số lượng tuple có thể khác nhau, cũng như timestamp và date. Hơn nữa, mỗi Docker container sẽ lưu data trong một disk directory riêng, do đó nếu bạn thao tác với content của PostgreSQL instance containerized, lần tiếp theo bạn start container, các thay đổi của bạn sẽ vẫn được persist.
+Có thể có một số khác biệt giữa output bạn thấy trong các ví dụ code và output nhận được khi chạy cùng command trong Docker container. Ví dụ, các giá trị được generate tự động và số lượng tuple có thể khác nhau, cũng như timestamp và date. Hơn nữa, mỗi Docker container lưu data trong một thư mục riêng trên disk; do đó, nếu bạn thao tác với nội dung của PostgreSQL instance containerized, các thay đổi của bạn vẫn được lưu lại khi bạn start container lần tiếp theo.
 
 ====
-==== Cài đặt PostgreSQL trên GNU/Linux Debian, Ubuntu và derivative
+==== Cài đặt PostgreSQL trên GNU/Linux Debian, Ubuntu và các derivative
 
-PGDG cung cấp binary package cho Debian và các derivative của nó, bao gồm họ operating system Ubuntu. Để sử dụng PGDG repository, trước tiên bạn cần install source và signature của repository:
+PGDG cung cấp binary package cho Debian và các derivative của nó, bao gồm Ubuntu. Để sử dụng PGDG repository, trước tiên bạn cần install source và signature của repository:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 
@@ -267,57 +305,114 @@ sudo apt-key add -
 $ sudo apt-get update
 ....
 
-Điều này đảm bảo repository source cho operating system của bạn được up to date để bạn có thể install PostgreSQL package:
+.Command
+[source,bash]
+....
+sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc |
+sudo apt-get update
+....
 
-[source,text]
+.Output
+[source,output]
+....
+sudo apt-key add -
+....
+
+
+Điều này đảm bảo repository source cho hệ điều hành của bạn được up to date để bạn có thể install PostgreSQL package:
+
+[source,console,role="transcript"]
 ....
 $ sudo apt-get -y install postgresql
 ....
 
-Debian và Ubuntu cung cấp command riêng để control cluster, `pg_ctlcluster(1)`. Lý do là trên operating system Debian/Ubuntu, mỗi PostgreSQL version được install trong directory riêng với các configuration file riêng, nhờ đó có thể chạy đồng thời các version khác nhau và quản lý chúng thông qua operating system. Ví dụ, configuration file nằm dưới directory `/etc/postgresql/16/main`, còn data directory mặc định được đặt tại `/var/lib/postgresql/16/main`.
+.Command
+[source,bash]
+....
+sudo apt-get -y install postgresql
+....
+
+
+Debian và Ubuntu cung cấp command riêng để control cluster, `pg_ctlcluster(1)`. Lý do là trên hệ điều hành Debian/Ubuntu, mỗi PostgreSQL version được install trong directory riêng với các configuration file riêng, nhờ đó có thể chạy đồng thời nhiều version và quản lý chúng thông qua hệ điều hành. Ví dụ, configuration file nằm dưới directory `/etc/postgresql/16/main`, còn data directory mặc định được đặt tại `/var/lib/postgresql/16/main`.
 
 Nếu muốn enable PostgreSQL khi boot, bạn cần chạy command sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo update-rc.d postgresql enable
 ....
 
+.Command
+[source,bash]
+....
+sudo update-rc.d postgresql enable
+....
+
+
 Để start cluster, bạn có thể sử dụng command `service(1)` như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo service postgresql start
 ....
+
+.Command
+[source,bash]
+....
+sudo service postgresql start
+....
+
 
 Như vậy, bạn đã install PostgreSQL trên GNU/Linux Debian, Ubuntu và các derivative.
 
 ==== Cài đặt PostgreSQL trên Fedora Linux
 
-PostgreSQL package cho Fedora Linux do PostgreSQL community cung cấp. Để cho phép `dnf(8)` tìm PostgreSQL package, bạn cần install PGDG repository, sau đó tiếp tục installation dưới dạng distribution package:
+PostgreSQL package cho Fedora Linux do cộng đồng PostgreSQL cung cấp. Để `dnf(8)` tìm thấy PostgreSQL package, bạn cần install PGDG repository, sau đó tiếp tục installation dưới dạng distribution package:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/F-38-x86_64/pgdg-fedora-repo-latest.noarch.rpm
 ....
 
-Danh sách repository có sẵn có thể được lấy từ official website của PostgreSQL, tại download page (xem section References).
+.Command
+[source,bash]
+....
+sudo dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/F-38-x86_64/pgdg-fedora-repo-latest.noarch.rpm
+....
 
-Package được đặt tên với postfix là version number. Bạn có thể install PostgreSQL package bằng command sau:
 
-[source,text]
+Danh sách repository có sẵn có thể lấy từ website chính thức của PostgreSQL, tại trang tải xuống (xem phần Tài liệu tham khảo).
+
+Tên package có hậu tố là version number. Bạn có thể install PostgreSQL package bằng command sau:
+
+[source,console,role="transcript"]
 ....
 $ sudo dnf install -y postgresql16-server postgresql16
 ....
 
-Sau đó, bạn cần configure system, chỉ định directory `PGDATA` và enable option start service khi boot. Để chỉ định directory `PGDATA`, bạn cần dùng `systemd(1)` để edit overriding configuration file cho service `postgresql-16`:
+.Command
+[source,bash]
+....
+sudo dnf install -y postgresql16-server postgresql16
+....
 
-[source,text]
+
+Sau đó, bạn cần cấu hình hệ thống, chỉ định directory `PGDATA` và bật tùy chọn để start service khi boot. Để chỉ định directory `PGDATA`, bạn cần dùng `systemd(1)` để edit overriding configuration file cho service `postgresql-16`:
+
+[source,console,role="transcript"]
 ....
 $ sudo systemctl edit postgresql-16
 ....
 
-Command trước đó sẽ mở text editor mặc định với một file rỗng; do đó, bạn có thể set biến `PGDATA` như sau rồi save và exit editor để áp dụng thay đổi:
+.Command
+[source,bash]
+....
+sudo systemctl edit postgresql-16
+....
+
+
+Command trước đó sẽ mở text editor mặc định với một file rỗng; do đó, bạn có thể set biến `PGDATA` như sau rồi lưu và thoát khỏi editor để áp dụng thay đổi:
 
 [source,text]
 ....
@@ -325,42 +420,72 @@ Command trước đó sẽ mở text editor mặc định với một file rỗn
 Environment=PGDATA=/postgres/16/data
 ....
 
-Cuối cùng, đã đến lúc initialize database directory; việc này có thể thực hiện bằng một installation command cụ thể của Fedora có tên `postgresql-16-setup`, như sau:
+Cuối cùng, đã đến lúc initialize database directory; việc này có thể thực hiện bằng command cài đặt cụ thể của Fedora có tên `postgresql-16-setup`, như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo /usr/pgsql-16/bin/postgresql-16-setup initdb
 ....
 
-Để enable PostgreSQL start khi boot và launch server ngay lập tức, bạn có thể execute các command sau:
+.Command
+[source,bash]
+....
+sudo /usr/pgsql-16/bin/postgresql-16-setup initdb
+....
 
-[source,text]
+
+Để bật PostgreSQL tự khởi động khi boot và launch server ngay lập tức, bạn có thể chạy các command sau:
+
+[source,console,role="transcript"]
 ....
 $ sudo systemctl enable postgresql-16
 
 $ sudo systemctl start postgresql-16.service
 ....
 
-Nếu Fedora installation của bạn có command `service(8)`, bạn cũng có thể start service bằng command sau:
+.Command
+[source,bash]
+....
+sudo systemctl enable postgresql-16
+sudo systemctl start postgresql-16.service
+....
 
-[source,text]
+
+Nếu bản cài đặt Fedora của bạn có command `service(8)`, bạn cũng có thể start service bằng command sau:
+
+[source,console,role="transcript"]
 ....
 $ sudo service postgresql-16 start
 ....
 
+.Command
+[source,bash]
+....
+sudo service postgresql-16 start
+....
+
+
 ==== Cài đặt PostgreSQL trên FreeBSD
 
-PostgreSQL có sẵn trên FreeBSD thông qua ports và package. Nhờ command `pkg(1)`, việc install PostgreSQL rất dễ dàng. Trước hết, hãy update package list và search các PostgreSQL package được đặt tên với major version làm postfix:
+PostgreSQL có sẵn trên FreeBSD thông qua ports và package. Nhờ command `pkg(1)`, việc install PostgreSQL rất dễ dàng. Trước hết, hãy update package list và search các PostgreSQL package có major version làm hậu tố:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ pkg update
 $ pkg search postgresql16
 ....
 
-Sau đó bạn có thể install package bằng cách execute `pkg(1)` và chỉ định tập package cần dùng. Tất nhiên, installation phải được execute bởi user có administrative privilege, như sau:
+.Command
+[source,bash]
+....
+pkg update
+pkg search postgresql16
+....
 
-[source,text]
+
+Sau đó bạn có thể install package bằng cách chạy `pkg(1)` và chỉ định tập package cần dùng. Tất nhiên, installation phải do user có administrative privilege thực hiện, như sau:
+
+[source,console,role="transcript"]
 ....
    $ sudo pkg install     postgresql16-server-16.0         \
                              postgresql16-client-16.0         \
@@ -368,11 +493,26 @@ Sau đó bạn có thể install package bằng cách execute `pkg(1)` và chỉ
                              postgresql16-docs-16.0
 ....
 
-Để start cluster, bạn cần initialize directory dùng để serve database và enable server startup khi machine boot. Các parameter tối thiểu cần set là `postgresql_enable` và `postgresql_data`.
+.Command
+[source,bash]
+....
+sudo pkg install     postgresql16-server-16.0         \
+....
+
+.Output
+[source,output]
+....
+                             postgresql16-client-16.0         \
+                             postgresql16-contrib-16.0 \
+                             postgresql16-docs-16.0
+....
+
+
+Để start cluster, bạn cần initialize directory dùng để phục vụ database và bật server startup khi máy khởi động. Các parameter tối thiểu cần set là `postgresql_enable` và `postgresql_data`.
 
 Ví dụ, để edit file `/etc/rc.conf` (với tư cách administrative user), hãy thêm các option như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 # to enable PostgreSQL at boot time
 postgresql_enable="YES"
@@ -381,45 +521,103 @@ postgresql_enable="YES"
 postgresql_data="/postgres/16/data"
 ....
 
+.Command
+[source,bash]
+....
+to enable PostgreSQL at boot time
+PGDATA to use
+....
+
+.Output
+[source,output]
+....
+postgresql_enable="YES"
+
+postgresql_data="/postgres/16/data"
+....
+
+
 Bây giờ bạn có thể initialize data directory bằng command sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo /usr/local/etc/rc.d/postgresql initdb
 ....
 
+.Command
+[source,bash]
+....
+sudo /usr/local/etc/rc.d/postgresql initdb
+....
+
+
 Giờ mọi thứ đã sẵn sàng, bạn có thể start PostgreSQL instance bằng command sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo service postgresql start
 ....
 
+.Command
+[source,bash]
+....
+sudo service postgresql start
+....
+
+
 === Cài đặt PostgreSQL từ source
 
-Việc install PostgreSQL từ source yêu cầu download một tarball, tức một compressed package chứa toàn bộ source code file, rồi bắt đầu compilation. Thông thường, quá trình này mất vài phút, tùy thuộc vào power của machine và I/O bandwidth. Để compile PostgreSQL từ source, bạn sẽ cần nhiều tool và library khác nhau, chủ yếu là một C compiler tương thích với standard C99 (hoặc cao hơn). Thông thường, bạn đã có sẵn các tool này trên Linux hoặc Unix system; nếu không, hãy tham khảo documentation của operating system để biết cách install chúng.
+Việc install PostgreSQL từ source yêu cầu download một tarball, tức một compressed package chứa toàn bộ các file source code, rồi bắt đầu compilation. Thông thường, quá trình này mất vài phút, tùy thuộc vào năng lực của máy và I/O bandwidth. Để compile PostgreSQL từ source, bạn sẽ cần nhiều tool và library khác nhau, chủ yếu là một C compiler tương thích với standard C99 (hoặc cao hơn). Thông thường, hệ thống Linux hoặc Unix đã có sẵn các tool này; nếu không, hãy tham khảo tài liệu của hệ điều hành để biết cách install chúng.
 
-Sau khi đã install tất cả dependency, hãy làm theo các step dưới đây để compile và install PostgreSQL:
+Sau khi đã install tất cả dependency, hãy làm theo các bước dưới đây để compile và install PostgreSQL:
 
-. Step đầu tiên là download PostgreSQL tarball tương ứng với version bạn muốn install và xác minh rằng nó chính xác. Ví dụ, để download version 16.0, bạn có thể làm như sau:
+. Bước đầu tiên là download PostgreSQL tarball tương ứng với version bạn muốn install và xác minh tính chính xác của nó. Ví dụ, để download version 16.0, bạn có thể làm như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    $ wget https://ftp.postgresql.org/pub/source/v16.0/postgresql-16.0.tar.bz2
    ...
    $ wget https://ftp.postgresql.org/pub/source/v16.0/postgresql-16.0.tar.bz2.md5
 ....
 
-. Trước khi bắt đầu compilation, hãy kiểm tra rằng tarball đã download còn nguyên vẹn:
+.Command
+[source,bash]
+....
+wget https://ftp.postgresql.org/pub/source/v16.0/postgresql-16.0.tar.bz2
+wget https://ftp.postgresql.org/pub/source/v16.0/postgresql-16.0.tar.bz2.md5
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   ...
+....
+
+
+. Trước khi bắt đầu compilation, hãy kiểm tra tarball đã download còn nguyên vẹn:
+
+[source,console,role="transcript"]
 ....
    $ md5sum --check postgresql-16.0.tar.bz2.md5
    postgresql-16.0.tar.bz2: OK
 ....
-. Khi đã chắc chắn tarball đã tải xuống không bị hỏng, bạn có thể giải nén nội dung và bắt đầu compilation (hãy lưu ý rằng archive sau khi giải nén sẽ chiếm khoảng 200 MB dung lượng đĩa, còn compilation sẽ cần thêm một phần dung lượng):
 
+.Command
 [source,bash]
+....
+md5sum --check postgresql-16.0.tar.bz2.md5
+....
+
+.Output
+[source,output]
+....
+   postgresql-16.0.tar.bz2: OK
+....
+
+
+. Khi đã chắc chắn tarball tải xuống không bị hỏng, bạn có thể giải nén nội dung và bắt đầu compilation (hãy lưu ý rằng archive sau khi giải nén sẽ chiếm khoảng 200 MB dung lượng đĩa, còn compilation sẽ cần thêm một phần dung lượng):
+
+[source,console,role="transcript"]
 ....
 $ tar xjvf postgresql-16.0.tar.bz2
 $ cd postgresql-16.0
@@ -427,12 +625,22 @@ $ ./configure --prefix=/usr/local
 $ make && sudo make install
 ....
 
+.Command
+[source,bash]
+....
+tar xjvf postgresql-16.0.tar.bz2
+cd postgresql-16.0
+./configure --prefix=/usr/local
+make && sudo make install
+....
+
+
 Nếu muốn hoặc cần service file của `systemd(1)`, hãy thêm option `--with-systemd` vào dòng `configure`.
 
 [%start=4]
-. Sau khi database được cài đặt, bạn cần tạo một user để chạy database, thường có tên là `postgres`, và initialize database directory:
+. Sau khi database được install, bạn cần tạo một user để chạy database, thường có tên là `postgres`, và initialize database directory:
 
-[source,bash]
+[source,console,role="transcript"]
 ....
 $ sudo useradd postgres
 $ sudo mkdir -p /postgres/16/data
@@ -440,66 +648,107 @@ $ sudo chown -R postgres:postgres /postgres/16
 $ /usr/local/bin/initdb -D /postgres/16/data
 ....
 
+.Command
+[source,bash]
+....
+sudo useradd postgres
+sudo mkdir -p /postgres/16/data
+sudo chown -R postgres:postgres /postgres/16
+/usr/local/bin/initdb -D /postgres/16/data
+....
+
+
 == Cài đặt PostgreSQL qua pgenv
 
-`pgenv` là một tool nhỏ và tiện dụng, cho phép bạn download và quản lý nhiều instance PostgreSQL với các version khác nhau trên cùng một machine. Ý tưởng phía sau `pgenv` là giúp bạn khám phá các version PostgreSQL khác nhau, chẳng hạn để test application với các major version khác nhau. `pgenv` không nhằm trở thành một tool cấp enterprise để quản lý các instance đang chạy production; thay vào đó, đây là tool giúp developer và DBA experiment với các version PostgreSQL khác nhau và dễ dàng kiểm soát chúng.
+`pgenv` là một tool nhỏ, tiện dụng, cho phép bạn download và quản lý nhiều PostgreSQL instance với các version khác nhau trên cùng một máy. Ý tưởng phía sau `pgenv` là giúp bạn khám phá các version PostgreSQL khác nhau, chẳng hạn để test application với các major version khác nhau. `pgenv` không nhằm trở thành một tool cấp enterprise để quản lý các instance đang chạy production; thay vào đó, đây là tool giúp developer và DBA experiment với các version PostgreSQL khác nhau và dễ dàng kiểm soát chúng.
 
-Dĩ nhiên, vì là một tool bên ngoài, `pgenv` phải được cài đặt trước khi sử dụng. Tuy nhiên, việc cài đặt rất đơn giản vì application chỉ gồm một Bash script.
+Dĩ nhiên, vì là một tool bên ngoài, `pgenv` phải được cài đặt trước khi sử dụng. Tuy nhiên, việc này rất đơn giản vì application chỉ gồm một Bash script.
 
 Cách nhanh nhất để cài đặt `pgenv` là clone GitHub repository và đặt biến môi trường `PATH` trỏ đến executable directory, như sau:
 
-[source,bash]
+[source,console,role="transcript"]
 ....
 $ git clone https://github.com/theory/pgenv
 
 $ export PATH=$PATH:./pgenv/bin
 ....
 
-Giờ đây, command `pgenv` đã sẵn sàng để bạn sử dụng; bạn có thể chạy command này để nhận help prompt và xem các command khả dụng.
+.Command
+[source,bash]
+....
+git clone https://github.com/theory/pgenv
+export PATH=$PATH:./pgenv/bin
+....
 
-Ý tưởng phía sau `pgenv` khá đơn giản: đây là một tool tự động hóa những việc “nhàm chán”, tức là download, compile, install và start/stop một cluster. Để `pgenv` quản lý một instance cụ thể, bạn phải “use” instance đó. Khi bạn use một instance, `pgenv` sẽ phát hiện instance đã được initialized hay chưa; nếu chưa, nó sẽ tự thực hiện việc initialization cho bạn.
+
+Giờ đây, command `pgenv` đã sẵn sàng để bạn sử dụng; bạn có thể chạy command này để xem thông tin trợ giúp và các command khả dụng.
+
+Ý tưởng phía sau `pgenv` khá đơn giản: đây là một tool tự động hóa những việc “nhàm chán” như download, compile, install và start/stop một cluster. Để `pgenv` quản lý một instance cụ thể, bạn phải “use” instance đó. Khi bạn use một instance, `pgenv` sẽ kiểm tra instance đã được initialized hay chưa; nếu chưa, nó sẽ tự thực hiện việc initialization cho bạn.
 
 Để install version 16.0 và 15.1 của PostgreSQL, bạn chỉ cần chạy các command sau:
 
-[source,bash]
+[source,console,role="transcript"]
 ....
 $ pgenv build 16.0
 
 $ pgenv build 15.1
 ....
 
-Các command trên sẽ download và compile hai version PostgreSQL. Thời gian cần để hoàn tất các operation phụ thuộc vào năng lực và tốc độ của machine bạn đang chạy. Sau đó, bạn có thể quyết định instance nào sẽ start bằng command `use`:
-
+.Command
 [source,bash]
+....
+pgenv build 16.0
+pgenv build 15.1
+....
+
+
+Các command trên sẽ download và compile hai version PostgreSQL. Thời gian cần để hoàn tất các thao tác phụ thuộc vào năng lực và tốc độ của máy bạn đang chạy. Sau đó, bạn có thể quyết định instance nào sẽ start bằng command `use`:
+
+[source,console,role="transcript"]
 ....
 $ pgenv use 16.0
 ....
+
+.Command
+[source,bash]
+....
+pgenv use 16.0
+....
+
 
 `pgenv` đủ thông minh để kiểm tra xem instance bạn đang start đã được initialized hay chưa; nếu chưa, nó sẽ initialize instance đó cho bạn (chỉ trong lần đầu tiên).
 
 Nếu cần stop và thay đổi version PostgreSQL sẽ sử dụng, bạn có thể chạy command `stop`, sau đó chạy command `use` với version mục tiêu. Chẳng hạn, để stop instance 16.0 đang chạy và start instance 15.1, bạn có thể dùng:
 
-[source,bash]
+[source,console,role="transcript"]
 ....
 $ pgenv stop
 
 $ pgenv use 15.1
 ....
 
-Tool `pgenv` còn cung cấp nhiều command khác để lấy thông tin về các version PostgreSQL đã được install, những gì đang execute (nếu có), v.v.
+.Command
+[source,bash]
+....
+pgenv stop
+pgenv use 15.1
+....
 
-Nếu bạn đang tìm một cách nhanh để test và chạy các version PostgreSQL khác nhau trên cùng một machine, `pgenv` là một tool hữu ích.
+
+Tool `pgenv` còn cung cấp nhiều command khác để lấy thông tin về các version PostgreSQL đã được install, những gì đang chạy (nếu có), v.v.
+
+Nếu bạn đang tìm một cách nhanh để test và chạy các version PostgreSQL khác nhau trên cùng một máy, `pgenv` là một tool hữu ích.
 
 == Tóm tắt
 
-Chương này đã giới thiệu PostgreSQL, project và các feature chính của nó. Bạn đã tìm hiểu terminology của PostgreSQL, cũng như cách install một cluster trên các operating system Unix-like, bao gồm trong container, và cách install cluster từ nhiều source khác nhau.
+Chương này đã giới thiệu PostgreSQL, project và các feature chính của nó. Bạn đã tìm hiểu thuật ngữ PostgreSQL, cũng như cách install một cluster trên các hệ điều hành Unix-like, kể cả trong container, và cách install cluster từ nhiều nguồn khác nhau.
 
-Sau khi đã install PostgreSQL và tìm hiểu terminology của nó, bạn có thể chuyển sang các chương tiếp theo, nơi bạn sẽ học cách sử dụng, connect và lưu trữ data trong một database.
+Sau khi install PostgreSQL và tìm hiểu thuật ngữ của nó, bạn có thể chuyển sang các chương tiếp theo, nơi bạn sẽ học cách sử dụng, connect và lưu trữ data trong một database.
 
 == Tài liệu tham khảo
 
-* Release notes PostgreSQL: https://www.postgresql.org/docs/16/release-16.html
-* Tài liệu upgrading: https://www.postgresql.org/docs/current/upgrading.html
+* Release notes của PostgreSQL: https://www.postgresql.org/docs/16/release-16.html
+* Tài liệu upgrade: https://www.postgresql.org/docs/current/upgrading.html
 * Chính sách version PostgreSQL: https://www.postgresql.org/support/versioning/
 * Tài liệu chính thức về initdb của PostgreSQL: https://www.postgresql.org/docs/current/app-initdb.html
 * Tài liệu chính thức về pg_ctl của PostgreSQL: https://www.postgresql.org/docs/current/app-pg-ctl.html
@@ -507,6 +756,6 @@ Sau khi đã install PostgreSQL và tìm hiểu terminology của nó, bạn có
 
 == Tìm hiểu thêm trên Discord
 
-Để tham gia Discord community dành cho cuốn sách này, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các bản release mới, hãy làm theo QR code bên dưới:
+Để tham gia cộng đồng Discord của cuốn sách này, nơi bạn có thể chia sẻ feedback, đặt câu hỏi cho tác giả và tìm hiểu về các release mới, hãy quét QR code bên dưới:
 
 https://discord.gg/jYWCjF6Tku

@@ -1,10 +1,10 @@
 = Savepoint
 
-Một transaction là một block công việc phải thành công hoặc thất bại toàn bộ. Savepoint là cách chia một transaction thành các block nhỏ hơn có thể được rollback độc lập với nhau. Nhờ savepoint, bạn có thể chia một transaction lớn (một transaction có nhiều statement) thành các chunk nhỏ hơn, cho phép một subset của transaction lớn thất bại mà không làm toàn bộ transaction thất bại. PostgreSQL không xử lý transaction nesting, nên bạn không thể phát hành một tập statement `BEGIN` hoặc `COMMIT`/`ROLLBACK` lồng nhau. Tuy nhiên, savepoint cho phép PostgreSQL mô phỏng việc nesting của các transaction block.
+Một transaction là một khối công việc phải thành công hoặc thất bại toàn bộ. Savepoint cho phép chia một transaction thành các khối nhỏ hơn có thể rollback độc lập. Nhờ savepoint, bạn có thể chia một transaction lớn (chứa nhiều statement) thành các phần nhỏ hơn, để một phần của transaction đó thất bại mà không khiến toàn bộ transaction thất bại. PostgreSQL không hỗ trợ transaction nesting, nên bạn không thể phát hành một nhóm statement `BEGIN` hoặc `COMMIT`/`ROLLBACK` lồng nhau. Tuy nhiên, savepoint cho phép PostgreSQL mô phỏng việc lồng các transaction block.
 
-Savepoint được đánh dấu bằng một mnemonic name, có thể dùng name đó để commit hoặc rollback. Name phải unique trong transaction; nếu bạn sử dụng lặp đi lặp lại cùng một name, các savepoint trước đó có cùng name sẽ bị loại bỏ. Hãy xem một ví dụ:
+Savepoint được đánh dấu bằng một tên dễ nhớ; bạn có thể dùng tên đó để commit hoặc rollback. Tên phải là duy nhất trong transaction; nếu lặp lại cùng một tên, các savepoint trước đó có cùng tên sẽ bị loại bỏ. Hãy xem một ví dụ:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> BEGIN;
    BEGIN
@@ -18,7 +18,33 @@ Savepoint được đánh dấu bằng một mnemonic name, có thể dùng name
    INSERT 0 1
    forumdb=> ROLLBACK TO SAVEPOINT other_tags;
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+BEGIN;
+INSERT INTO tags (tag)
+VALUES ('Eclipse IDE');
+SAVEPOINT other_tags;
+INSERT INTO tags (tag)
+VALUES ('Netbeans IDE');
+INSERT INTO tags (tag)
+VALUES ('Comma IDE');
+ROLLBACK TO SAVEPOINT other_tags;
+....
+
+.Output
+[source,output]
+....
+   BEGIN
+   INSERT 0 1
+   SAVEPOINT
+   INSERT 0 1
+   INSERT 0 1
+....
+
+
+[source,console,role="transcript"]
 ....
 ROLLBACK
 forumdb=> INSERT INTO tags( tag ) VALUES ( 'IntelliJIdea IDE' );
@@ -35,11 +61,37 @@ forumdb=> SELECT tag FROM tags WHERE tag like '%IDE';
 (2 rows)
 ....
 
-Trong transaction trước đó, statement đầu tiên không thuộc về bất kỳ savepoint nào và do đó tuân theo vòng đời của chính explicit transaction. Sau khi savepoint `other_tags` được tạo, tất cả statement tiếp theo tuân theo vòng đời của chính savepoint; vì vậy, khi `ROLLBACK TO SAVEPOINT` được phát hành, các statement bên trong savepoint sẽ bị loại bỏ. Sau đó, các statement khác thuộc về explicit transaction và do đó tuân theo vòng đời của chính transaction. Kết quả cuối cùng là mọi thứ được thực thi bên ngoài savepoint đều được lưu trong table.
+.SQL
+[source,sql]
+....
+ROLLBACK
+INSERT INTO tags (tag) VALUES ('IntelliJIdea IDE');
+COMMIT;
+SELECT tag
+FROM tags
+WHERE tag like '%IDE';
+....
 
-Sau khi đã định nghĩa một savepoint, bạn cũng có thể đổi ý và release nó, để các statement bên trong savepoint tuân theo cùng vòng đời với main transaction. Đây là một ví dụ:
+.Output
+[source,output]
+....
+INSERT 0 1
+COMMIT
 
-[source,text]
+
+         tag
+------------------
+   Eclipse IDE
+   IntelliJIdea IDE
+(2 rows)
+....
+
+
+Trong transaction trước, statement đầu tiên không thuộc savepoint nào nên tuân theo vòng đời của explicit transaction. Sau khi savepoint `other_tags` được tạo, mọi statement tiếp theo tuân theo vòng đời của savepoint đó; vì vậy, khi phát hành `ROLLBACK TO SAVEPOINT`, các statement trong savepoint sẽ bị loại bỏ. Các statement sau đó thuộc về explicit transaction, nên tuân theo vòng đời của transaction đó. Kết quả cuối cùng là mọi thứ được thực thi bên ngoài savepoint đều được lưu trong table.
+
+Sau khi đã định nghĩa một savepoint, bạn cũng có thể đổi ý và release savepoint đó để các statement trong savepoint tuân theo cùng vòng đời với transaction chính. Đây là một ví dụ:
+
+[source,console,role="transcript"]
 ....
    forumdb=> BEGIN;
    BEGIN
@@ -65,11 +117,49 @@ Sau khi đã định nghĩa một savepoint, bạn cũng có thể đổi ý và
    (3 rows)
 ....
 
-Khi `RELEASE SAVEPOINT` được phát hành, savepoint giống như đã biến mất, và do đó hai statement `INSERT` tuân theo vòng đời của main transaction. Nói cách khác, giống như savepoint chưa từng được định nghĩa.
+.SQL
+[source,sql]
+....
+BEGIN;
+SAVEPOINT editors;
+INSERT INTO tags (tag)
+VALUES ('Emacs Editor');
+INSERT INTO tags (tag)
+VALUES ('Vi Editor');
+RELEASE SAVEPOINT editors;
+INSERT INTO tags (tag)
+VALUES ('Atom Editor');
+COMMIT;
+SELECT tag
+FROM tags
+WHERE tag LIKE '%Editor';
+....
 
-Trong một transaction, bạn có thể có nhiều savepoint, nhưng một khi rollback một savepoint, bạn sẽ rollback tất cả savepoint theo sau nó:
+.Output
+[source,output]
+....
+   BEGIN
+   SAVEPOINT
+   INSERT 0 1
+   INSERT 0 1
+   RELEASE
+   INSERT 0 1
+   COMMIT
 
-[source,text]
+             tag
+   --------------
+     Emacs Editor
+     Vi Editor
+     Atom Editor
+   (3 rows)
+....
+
+
+Khi phát hành `RELEASE SAVEPOINT`, savepoint gần như biến mất, nên hai statement `INSERT` tuân theo vòng đời của transaction chính. Nói cách khác, kết quả giống như savepoint chưa từng được định nghĩa.
+
+Trong một transaction, bạn có thể có nhiều savepoint, nhưng khi rollback về một savepoint, tất cả savepoint được tạo sau nó cũng sẽ bị rollback:
+
+[source,console,role="transcript"]
 ....
    forumdb=> BEGIN;
    BEGIN
@@ -93,8 +183,43 @@ Trong một transaction, bạn có thể có nhiều savepoint, nhưng một khi
    (0 rows)
 ....
 
-Như bạn có thể thấy, ngay cả khi một transaction đã phát hành `COMMIT`, mọi thứ được thực hiện sau savepoint `perl`, là savepoint mà transaction đã rollback về, cũng đã được rollback.
+.SQL
+[source,sql]
+....
+BEGIN;
+SAVEPOINT perl;
+INSERT INTO tags (tag)
+VALUES ('Rakudo Compiler');
+SAVEPOINT gcc;
+INSERT INTO tags (tag)
+VALUES ('Gnu C Compiler');
+ROLLBACK TO SAVEPOINT perl;
+COMMIT;
+SELECT tag
+FROM tags
+WHERE tag LIKE '%Compiler';
+....
 
-Nói cách khác, rollback về một savepoint có nghĩa là rollback mọi thứ được thực hiện sau khi savepoint đó được khai báo.
+.Output
+[source,output]
+....
+   BEGIN
+   SAVEPOINT
+   INSERT 0 1
+   SAVEPOINT
+   INSERT 0 1
+   ROLLBACK
+   COMMIT
 
-Transaction có thể dẫn đến một tình huống trong đó cluster không thể tiếp tục xử lý. Những tình huống này được gọi là deadlock và sẽ được mô tả trong phần tiếp theo.
+
+     tag
+   -----
+   (0 rows)
+....
+
+
+Như bạn có thể thấy, ngay cả khi transaction đã thực thi `COMMIT`, mọi thứ được thực hiện sau savepoint `perl` cũng đã bị rollback; perl là savepoint mà transaction đã rollback về.
+
+Nói cách khác, rollback về một savepoint nghĩa là rollback mọi thứ được thực hiện sau khi savepoint đó được tạo.
+
+Transaction có thể dẫn đến một tình huống mà cluster không thể tiếp tục xử lý. Những tình huống này được gọi là deadlock và sẽ được mô tả trong phần tiếp theo.

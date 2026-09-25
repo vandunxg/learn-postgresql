@@ -1,14 +1,14 @@
-= Sử dụng các statement window function cơ bản
+= Sử dụng window function trong các statement cơ bản
 
-Như đã thấy trong chapter trước, các aggregate function hoạt động theo cách sau:
+Như đã thấy trong chương trước, các aggregate function hoạt động như sau:
 
-image::chapter-06-figure-6-1-000.jpg[Hình 6.1: Aggregation bằng GROUP BY tiêu chuẩn]
+image::chapter-06-figure-6-1-000.jpg[Hình 6.1: Aggregation với GROUP BY thông thường]
 
-*Hình 6.1: Aggregation bằng GROUP BY tiêu chuẩn*
+*Hình 6.1: Aggregation với GROUP BY thông thường*
 
-Dữ liệu trước tiên được sort rồi aggregate; sau đó dữ liệu được flatten thông qua aggregation. Đây là điều xảy ra khi chúng ta thực thi statement sau, sau khi kết nối tới database `forumdb` bằng user `forum`:
+Dữ liệu trước tiên được sắp xếp và aggregate, sau đó được thu gọn qua quá trình aggregation. Đây là điều xảy ra khi chúng ta thực thi statement sau khi kết nối tới database `forumdb` bằng user `forum`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select category,count(*) from posts group by category order by
 category;
@@ -19,9 +19,31 @@ category;
 (2 rows)
 ....
 
-Ngoài ra, chúng ta có thể chọn sử dụng window function bằng cách thực thi statement sau:
+.SQL
+[source,sql]
+....
+SELECT
+    category,
+    count(*)
+FROM posts
+GROUP BY category
+ORDER BY category;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ category | count
+----------+-------
+        1 |     2
+        3 |     1
+(2 rows)
+....
+
+
+Ngoài ra, chúng ta có thể sử dụng window function bằng cách thực thi statement sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select category, count(*) over (partition by category) from
 posts order by category;
@@ -33,19 +55,41 @@ posts order by category;
 (3 rows)
 ....
 
-Window function tạo aggregate mà không flatten dữ liệu thành một row duy nhất. Tuy nhiên, chúng replicate aggregate cho tất cả row mà các group function tham chiếu đến. Behavior của PostgreSQL được mô tả trong diagram sau:
+.SQL
+[source,sql]
+....
+SELECT
+    category,
+    count(*) OVER (PARTITION BY category)
+FROM posts
+ORDER BY category;
+....
 
-image::chapter-06-figure-6-2-000.jpg[Hình 6.2: Aggregation bằng window function]
+.Output
+[source,output]
+....
+ category | count
+----------+-------
+        1 |       2
+        1 |       2
+        3 |       1
+(3 rows)
+....
 
-*Hình 6.2: Aggregation bằng window function*
 
-Đó là lý do keyword `distinct` phải được thêm vào query trước đó nếu chúng ta muốn nhận được cùng result như khi dùng query `GROUP BY` kinh điển.
+Window function tạo aggregate nhưng không thu gọn dữ liệu thành một row duy nhất. Thay vào đó, cùng một giá trị aggregate được lặp lại trên mọi row mà group function tham chiếu tới. Cách PostgreSQL xử lý trường hợp này được minh họa trong sơ đồ sau:
 
-== Sử dụng function PARTITION BY và clause WINDOW
+image::chapter-06-figure-6-2-000.jpg[Hình 6.2: Aggregation với window function]
 
-Bây giờ hãy chạy một số query cơ bản sử dụng window function. Giả sử chúng ta muốn sử dụng hai clause `over`. Ví dụ, nếu trên một column chúng ta muốn đếm các row liên quan đến category, còn trên một column khác muốn đếm tổng số column, thì chúng ta phải chạy statement sau:
+*Hình 6.2: Aggregation với window function*
 
-[source,text]
+Đó là lý do phải thêm từ khóa `distinct` vào query trước nếu muốn nhận được cùng kết quả như khi dùng query `GROUP BY` thông thường.
+
+== Sử dụng các clause PARTITION BY và WINDOW
+
+Bây giờ hãy chạy một số query cơ bản sử dụng window function. Giả sử chúng ta muốn sử dụng hai `over` clause. Ví dụ, nếu muốn đếm các row thuộc từng category ở một column và đếm tổng số row ở một column khác, chúng ta phải chạy statement sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select category, count(*) over (partition by category),count(*)
 over () from posts order by category;
@@ -53,16 +97,37 @@ over () from posts order by category;
 ----------+-------+-------
         1 |       2 |       3
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+SELECT
+    category,
+    count(*) OVER (PARTITION BY category),
+    count(*) OVER ()
+FROM posts
+ORDER BY category;
+....
+
+.Output
+[source,output]
+....
+ category | count | count
+----------+-------+-------
+        1 |       2 |       3
+....
+
+
+[source,output]
 ....
 1 |       2 |       3
 3 |       1 |       3
 (3 rows)
 ....
 
-Hoặc nếu muốn loại bỏ tất cả row trùng lặp, chúng ta sẽ phải chạy câu lệnh sau:
+Nếu muốn loại bỏ mọi row trùng lặp, chúng ta phải chạy statement sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select distinct category, count(*) over (partition by
 category),count(*) over ()
@@ -75,13 +140,35 @@ order by category;
 (2 rows)
 ....
 
-Trong query trước, window function đầu tiên aggregate dữ liệu bằng field `category`, còn window function thứ hai aggregate dữ liệu của toàn bộ table.
+.SQL
+[source,sql]
+....
+SELECT
+    DISTINCT category,
+    count(*) OVER (PARTITION BY category),
+    count(*) OVER ()
+FROM posts
+ORDER BY category;
+....
 
-Với window function, có thể aggregate dữ liệu trong các field khác nhau trong cùng một query.
+.Output
+[source,output]
+....
+ category | count | count
+----------+-------+-------
+        1 |       2 |       3
+        3 |       1 |       3
+(2 rows)
+....
 
-Như đã thấy ở đây, chúng ta có thể định nghĩa window frame trực tiếp ở query level, nhưng cũng có thể định nghĩa một alias cho window frame. Ví dụ, query trước trở thành:
 
-[source,text]
+Trong query trước, window function đầu tiên aggregate dữ liệu theo column `category`, còn window function thứ hai aggregate dữ liệu trên toàn bộ table.
+
+Với window function, chúng ta có thể aggregate dữ liệu trên các column khác nhau trong cùng một query.
+
+Như đã thấy, chúng ta có thể định nghĩa window frame trực tiếp trong query hoặc định nghĩa một alias cho window frame. Khi đó, query trước trở thành:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select distinct category, count(*) over w1 ,count(*) over W2
 from posts
@@ -94,15 +181,37 @@ order by category;
 (2 rows)
 ....
 
-Việc sử dụng alias được gọi là `WINDOW` clause. `WINDOW` clause rất hữu ích khi chúng ta có nhiều aggregate.
+.SQL
+[source,sql]
+....
+SELECT
+    DISTINCT category,
+    count(*) OVER w1,
+    count(*) OVER W2
+FROM posts WINDOW w1 AS (PARTITION BY category), W2 AS ()
+ORDER BY category;
+....
+
+.Output
+[source,output]
+....
+ category | count | count
+----------+-------+-------
+        1 |       2 |       3
+        3 |       1 |       3
+(2 rows)
+....
+
+
+Cách sử dụng alias này được gọi là `WINDOW` clause. `WINDOW` clause đặc biệt hữu ích khi có nhiều aggregate.
 
 == Giới thiệu một số function hữu ích
 
-Window function có thể sử dụng tất cả aggregate function mà chúng ta đã tìm hiểu trong chapter trước. Ngoài ra, window function còn giới thiệu các aggregate function mới.
+Window function có thể sử dụng tất cả aggregate function đã tìm hiểu trong chương trước. Ngoài ra, window function còn cung cấp một số aggregate function mới.
 
-Trước khi xem xét một số function đó, hãy giới thiệu một function đặc biệt là `generate_series`. `generate_series` chỉ đơn giản tạo ra một numerical series, ví dụ:
+Trước khi xem xét các function đó, hãy bắt đầu với một function đặc biệt là `generate_series`. `generate_series` chỉ đơn giản tạo ra một dãy số, ví dụ:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from generate_series(1,5);
  generate_series
@@ -115,13 +224,34 @@ forumdb=> select * from generate_series(1,5);
 (5 rows)
 ....
 
-Trong các ví dụ sau, chúng ta sẽ sử dụng function này cho nhiều use case khác nhau.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM generate_series(1, 5);
+....
+
+.Output
+[source,output]
+....
+ generate_series
+-----------------
+                 1
+                 2
+                 3
+                 4
+                 5
+(5 rows)
+....
+
+
+Trong các ví dụ sau, chúng ta sẽ sử dụng function này trong nhiều trường hợp khác nhau.
 
 == Function `ROW_NUMBER`
 
 Bây giờ hãy xem function `ROW_NUMBER()`. Function `ROW_NUMBER()` gán một số tăng dần cho mỗi row trong partition:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select category, row_number() over w from posts WINDOW w as
 (partition by category) order by category;
@@ -133,15 +263,37 @@ forumdb=> select category, row_number() over w from posts WINDOW w as
 (3 rows)
 ....
 
-Trong query trước, chúng ta đã sử dụng `PARTITION BY` clause để chia window thành các subset dựa trên các value trong column `category`. Như có thể thấy, chúng ta có hai category value: `1` và `3`. Điều đó có nghĩa là chúng ta có hai window, và bên trong mỗi window, function `ROW_NUMBER()` gán các number như đã định nghĩa trước đó.
+.SQL
+[source,sql]
+....
+SELECT
+    category,
+    row_number() OVER w
+FROM posts WINDOW w AS (PARTITION BY category)
+ORDER BY category;
+....
+
+.Output
+[source,output]
+....
+ category | row_number
+----------+------------
+        1 |            1
+        1 |            2
+        3 |            1
+(3 rows)
+....
+
+
+Trong query trước, chúng ta sử dụng clause `PARTITION BY` để chia window thành các tập con dựa trên giá trị trong column `category`. Như có thể thấy, category có hai giá trị: `1` và `3`. Điều đó nghĩa là có hai window; bên trong mỗi window, function `ROW_NUMBER()` gán số thứ tự như đã mô tả ở trên.
 
 == `ORDER BY` clause
 
-`ORDER BY` clause sort các value bên trong window. Chúng ta cũng có thể sử dụng option `NULLS FIRST` hoặc `NULLS LAST` để đặt null value ở đầu hoặc cuối thứ tự sort. Ví dụ, chúng ta có thể thực hiện một window function query không có `ORDER BY` clause, như trong snippet sau, nhưng phải chú ý đến loại function đang sử dụng và mục tiêu của chúng ta.
+`ORDER BY` clause sắp xếp các giá trị bên trong window. Chúng ta cũng có thể sử dụng tùy chọn `NULLS FIRST` hoặc `NULLS LAST` để đặt giá trị null ở đầu hoặc cuối thứ tự sắp xếp. Ví dụ, chúng ta có thể thực thi một query dùng window function nhưng không có `ORDER BY` clause, như trong đoạn trích sau; tuy nhiên, cần chú ý đến loại function đang sử dụng và mục tiêu của query.
 
-Nếu sử dụng aggregate function không phụ thuộc vào sort order, chẳng hạn function `COUNT`, chúng ta có thể tránh sort dữ liệu; nếu không, nên sort dữ liệu bên trong partition để tránh nguy cơ nhận được các kết quả khác nhau mỗi lần query được chạy:
+Nếu sử dụng aggregate function không phụ thuộc vào thứ tự sắp xếp, chẳng hạn function `COUNT`, chúng ta có thể không cần sắp xếp dữ liệu. Nếu không, nên sắp xếp dữ liệu bên trong partition để tránh nhận được kết quả khác nhau mỗi lần chạy query:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select category,row_number() over w,title
 from posts WINDOW w as (partition by category order by title) order by
@@ -154,13 +306,36 @@ category;
 (3 rows)
 ....
 
-Như có thể thấy, bên trong partition, dữ liệu được sort theo field `title`.
+.SQL
+[source,sql]
+....
+SELECT
+    category,
+    row_number() OVER w,
+    title
+FROM posts WINDOW w AS (PARTITION BY category ORDER BY title)
+ORDER BY category;
+....
+
+.Output
+[source,output]
+....
+ category | row_number |                  title
+----------+------------+------------------------------
+        1 |            1 | Indexing Mysql
+        1 |            2 | Indexing PostgreSQL
+        3 |            1 | A view of      Data types in C++
+(3 rows)
+....
+
+
+Như có thể thấy, dữ liệu bên trong partition được sắp xếp theo column `title`.
 
 == `FIRST_VALUE`
 
-Function `FIRST_VALUE` trả về value đầu tiên trong partition, ví dụ:
+Function `FIRST_VALUE` trả về giá trị đầu tiên trong partition, như trong ví dụ sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \x
 Expanded display is on.
@@ -186,11 +361,40 @@ title         | A view of     Data types in C++
 first_value | A view of       Data types in C++
 ....
 
+.SQL
+[source,sql]
+....
+\x SELECT category, row_number() OVER w, title, first_value(title) OVER w FROM posts WINDOW w AS (PARTITION BY category ORDER BY category) ORDER BY category;
+....
+
+.Output
+[source,output]
+....
+Expanded display is on.
+
+
+-[ RECORD 1 ]-----------------------------
+category      | 1
+row_number    | 1
+title         | Indexing PostgreSQL
+first_value | Indexing PostgreSQL
+-[ RECORD 2 ]-----------------------------
+category      | 1
+row_number    | 2
+title         | Indexing Mysql
+first_value | Indexing PostgreSQL
+-[ RECORD 3 ]-----------------------------
+category      | 3
+title         | A view of     Data types in C++
+first_value | A view of       Data types in C++
+....
+
+
 == `LAST_VALUE`
 
-Function `LAST_VALUE` trả về value cuối cùng trong partition, ví dụ:
+Function `LAST_VALUE` trả về giá trị cuối cùng trong partition, như trong ví dụ sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select category,row_number() over w,title,last_value(title) over
 w
@@ -213,13 +417,46 @@ title        | A view of    Data types in C++
 last_value | A view of      Data types in C++
 ....
 
-Điều quan trọng là luôn sử dụng `ORDER BY` clause khi dùng function `first_value()` hoặc `last_value()` để tránh kết quả không chính xác, như đã đề cập trước đó.
+.SQL
+[source,sql]
+....
+SELECT
+    category,
+    row_number() OVER w,
+    title,
+    last_value(title) OVER w
+FROM posts WINDOW w AS (PARTITION BY category ORDER BY category)
+ORDER BY category;
+....
+
+.Output
+[source,output]
+....
+-[ RECORD 1 ]----------------------------
+category     | 1
+row_number | 1
+title        | Indexing PostgreSQL
+last_value | Indexing Mysql
+-[ RECORD 2 ]----------------------------
+category     | 1
+row_number | 2
+title        | Indexing Mysql
+last_value | Indexing Mysql
+-[ RECORD 3 ]----------------------------
+category     | 3
+row_number | 1
+title        | A view of    Data types in C++
+last_value | A view of      Data types in C++
+....
+
+
+Điều quan trọng là luôn sử dụng `ORDER BY` clause khi dùng function `first_value()` hoặc `last_value()` để tránh nhận kết quả không chính xác, như đã đề cập ở trên.
 
 == `RANK`
 
-Function `RANK` xếp hạng row hiện tại trong partition và có khoảng cách giữa các hạng. Nếu không chỉ định clause `PARTITION BY`, function không biết cách liên hệ tuple hiện tại, nên function liên hệ với chính nó, như thấy ở đây:
+Function `RANK` xếp hạng row hiện tại trong partition và để lại khoảng cách giữa các hạng. Nếu không chỉ định clause `PARTITION BY`, function không có tiêu chí để liên hệ tuple hiện tại với các tuple khác, nên mỗi tuple chỉ được liên hệ với chính nó, như trong ví dụ sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,author,rank() over () from posts ;
  pk |               title                | author | rank
@@ -230,9 +467,32 @@ forumdb=> select pk,title,author,rank() over () from posts ;
 (3 rows)
 ....
 
-Nếu thêm `ORDER BY` clause, function sẽ xếp hạng theo thứ tự được chỉ định. Ví dụ, author có id `1` bắt đầu từ record 1, còn author có id `2` bắt đầu từ record 3, như trong ví dụ sau:
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    author,
+    rank() OVER ()
+FROM posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |               title                | author | rank
+----+------------------------------+--------+------
+  5 | Indexing PostgreSQL                |        1 |     1
+  6 | Indexing Mysql                     |        1 |     1
+  7 | A view of   Data types in C++ |           2 |     1
+(3 rows)
+....
+
+
+Nếu thêm `ORDER BY` clause, function sẽ xếp hạng theo thứ tự được chỉ định. Ví dụ, author có id `1` xuất hiện ở row 1, còn author có id `2` xuất hiện ở row 3, như trong ví dụ sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,author,rank() over (order by author) from posts
 ;
@@ -244,9 +504,32 @@ forumdb=> select pk,title,author,rank() over (order by author) from posts
 (3 rows)
 ....
 
-Nếu thêm clause `PARTITION BY`, cơ chế hoạt động vẫn như vậy; điểm khác biệt duy nhất là việc xếp hạng được tính bên trong partition chứ không phải trên toàn bộ table như trong ví dụ trước:
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    author,
+    rank() OVER (ORDER BY author)
+FROM posts;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |             title                | author | rank
+----+------------------------------+--------+------
+  5 | Indexing PostgreSQL              |        1 |     1
+  6 | Indexing Mysql                   |        1 |     1
+  7 | A view of   Data types in C++ |           2 |     3
+(3 rows)
+....
+
+
+Nếu thêm clause `PARTITION BY`, cơ chế hoạt động vẫn như vậy; điểm khác biệt duy nhất là việc xếp hạng được tính trong partition thay vì trên toàn bộ table như ở ví dụ trước:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,author,rank() over (partition by author order by
 author) from posts ;
@@ -259,11 +542,34 @@ author) from posts ;
 (3 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    author,
+    rank() OVER (PARTITION BY author ORDER BY author)
+FROM posts;
+....
+
+.Output
+[source,output]
+....
+ pk |             title                | author | rank
+----+------------------------------+--------+------
+  5 | Indexing PostgreSQL              |        1 |     1
+  6 | Indexing Mysql                   |        1 |     1
+  7 | A view of   Data types in C++ |           2 |     1
+(3 rows)
+....
+
+
 == `DENSE_RANK`
 
-Function `DENSE_RANK` tương tự function `RANK`. Điểm khác biệt là function `DENSE_RANK` xếp hạng row hiện tại trong partition mà không có khoảng cách:
+Function `DENSE_RANK` tương tự function `RANK`. Điểm khác biệt là `DENSE_RANK` xếp hạng row hiện tại trong partition mà không để lại khoảng cách giữa các hạng:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,title,author,dense_rank() over (order by author) from
 posts order by category;
@@ -275,11 +581,35 @@ posts order by category;
 (3 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    title,
+    author,
+    dense_rank() OVER (ORDER BY author)
+FROM posts
+ORDER BY category;
+....
+
+.Output
+[source,output]
+....
+ pk |             title                | author | dense_rank
+----+------------------------------+--------+------------
+  5 | Indexing PostgreSQL              |        1 |             1
+  6 | Indexing Mysql                   |        1 |             1
+  7 | A view of       Data types in C++ |            2 |            2
+(3 rows)
+....
+
+
 == Function `LAG` và `LEAD`
 
-Trong section này, chúng ta sẽ trình bày cách function `LAG` và `LEAD` hoạt động. Trước hết, chúng ta sẽ thiết lập environment và tạo một sequence number như đã làm trước đó:
+Trong phần này, chúng ta sẽ trình bày cách các function `LAG` và `LEAD` hoạt động. Trước hết, chúng ta sẽ thiết lập môi trường và tạo một dãy số như đã làm trước đó:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=>      select x from generate_series(1,5) as x;
  x
@@ -292,16 +622,37 @@ forumdb=>      select x from generate_series(1,5) as x;
 (5 rows)
 ....
 
-Đây là điểm bắt đầu cho ví dụ này. Official documentation (https://www.postgresql.org/docs/current/functions-window.html) định nghĩa function `LAG` như sau:
+.SQL
+[source,sql]
+....
+SELECT x
+FROM generate_series(1, 5) AS x;
+....
+
+.Output
+[source,output]
+....
+ x
+---
+ 1
+ 2
+ 3
+ 4
+ 5
+(5 rows)
+....
+
+
+Đây là điểm bắt đầu của ví dụ này. Tài liệu chính thức (https://www.postgresql.org/docs/current/functions-window.html) định nghĩa function `LAG` như sau:
 
 [quote]
 ____
-Function `LAG` trả về một value được đánh giá tại row nằm trước row hiện tại một khoảng bằng offset trong partition; nếu không có row như vậy, function thay vào đó trả về default (default phải có cùng type với value). Cả offset và default đều được đánh giá theo row hiện tại. Nếu bị bỏ qua, offset mặc định là `1` và default là null.
+Function `LAG` trả về giá trị được đánh giá tại row nằm trước row hiện tại một khoảng bằng offset trong partition; nếu không có row như vậy, function sẽ trả về default (default phải có cùng data type với giá trị). Cả offset và default đều được đánh giá theo row hiện tại. Nếu không được chỉ định, offset mặc định là `1` và default là null.
 
 ____
-Bây giờ hãy viết statement sau:
+Tiếp theo, hãy viết statement sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select x,lag(x) over w from (select generate_series(1,5) as x) V
 WINDOW w as (order by x) ;
@@ -315,9 +666,32 @@ WINDOW w as (order by x) ;
 (5 rows)
 ....
 
-Như có thể thấy, function `lag` trả về một result set với offset value bằng `1`. Nếu đưa vào một offset parameter, function `lag` sẽ trả về một result set với offset bằng số mà chúng ta truyền vào, như trong ví dụ tiếp theo:
+.SQL
+[source,sql]
+....
+SELECT
+    x,
+    lag(x) OVER w
+FROM (SELECT generate_series(1, 5) AS x) V WINDOW w AS (ORDER BY x);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ x | lag
+---+-----
+ 1 |
+ 2 |     1
+ 3 |     2
+ 4 |     3
+ 5 |     4
+(5 rows)
+....
+
+
+Như có thể thấy, function `lag` trả về một result set với offset là `1`. Nếu truyền tham số offset, function `lag` sẽ trả về một result set với offset bằng giá trị được truyền vào, như trong ví dụ tiếp theo:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select x,lag(x,2) over w from (select generate_series(1,5) as x)
 V WINDOW w as (order by x) ;
@@ -331,16 +705,39 @@ V WINDOW w as (order by x) ;
 (5 rows)
 ....
 
-Function `lead` là phần đối lập với function `lag`, như được mô tả trong official documentation:
+.SQL
+[source,sql]
+....
+SELECT
+    x,
+    lag(x, 2) OVER w
+FROM (SELECT generate_series(1, 5) AS x) V WINDOW w AS (ORDER BY x);
+....
+
+.Output
+[source,output]
+....
+ x | lag
+---+-----
+ 1 |
+ 2 |
+ 3 |     1
+ 4 |     2
+ 5 |     3
+(5 rows)
+....
+
+
+Function `lead` hoạt động ngược với function `lag`, như được mô tả trong tài liệu chính thức:
 
 [quote]
 ____
-“Function `LEAD` trả về value được đánh giá tại row nằm sau row hiện tại một khoảng bằng offset trong partition; nếu không có row như vậy, function thay vào đó trả về default (default phải có cùng type với value đã nêu). Cả offset và default đều được đánh giá theo row hiện tại. Nếu bị bỏ qua, offset mặc định là `1` và default trở thành null.”
+“Function `LEAD` trả về giá trị được đánh giá tại row nằm sau row hiện tại một khoảng bằng offset trong partition; nếu không có row như vậy, function sẽ trả về default (default phải có cùng data type với giá trị đã nêu). Cả offset và default đều được đánh giá theo row hiện tại. Nếu không được chỉ định, offset mặc định là `1` và default là null.”
 
 ____
-Dưới đây là một vài ví dụ cho thấy cách function này hoạt động. Trong ví dụ đầu tiên, chúng ta sẽ sử dụng function `lead` không có parameter:
+Dưới đây là một vài ví dụ cho thấy function này hoạt động như thế nào. Trong ví dụ đầu tiên, chúng ta sử dụng function `lead` không có tham số:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# select x,lead(x) over w from (select generate_series(1,5) as x)
 V WINDOW w as (order by x) ;
@@ -354,11 +751,34 @@ V WINDOW w as (order by x) ;
 (5 rows)
 ....
 
-Như có thể thấy trong function `lead`, offset được tính từ các row bên dưới.
+.SQL
+[source,sql]
+....
+SELECT
+    x,
+    lead(x) OVER w
+FROM (SELECT generate_series(1, 5) AS x) V WINDOW w AS (ORDER BY x);
+....
 
-Bây giờ hãy xem một ví dụ sử dụng function `lead` với offset parameter:
+.Output
+[source,output]
+....
+ x | lead
+---+------
+ 1 | 2
+ 2 | 3
+ 3 | 4
+ 4 | 5
+ 5 |
+(5 rows)
+....
 
-[source,text]
+
+Như có thể thấy, trong function `lead`, offset được tính theo các row phía sau.
+
+Bây giờ hãy xem ví dụ sử dụng function `lead` với tham số offset:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select x,lead(x,2) over w from (select generate_series(1,5) as
 x) V WINDOW w as (order by x) ;
@@ -372,18 +792,41 @@ x) V WINDOW w as (order by x) ;
 (5 rows)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT
+    x,
+    lead(x, 2) OVER w
+FROM (SELECT generate_series(1, 5) AS x) V WINDOW w AS (ORDER BY x);
+....
+
+.Output
+[source,output]
+....
+ x | lead
+---+------
+ 1 |     3
+ 2 |     4
+ 3 |     5
+ 4 |
+ 5 |
+(5 rows)
+....
+
+
 == Function `CUME_DIST`
 
-Function `CUME_DIST` tính cumulative distribution của một value trong partition. Function này được mô tả trong official documentation như sau:
+Function `CUME_DIST` tính phân phối tích lũy của một giá trị trong partition. Tài liệu chính thức mô tả function này như sau:
 
 [quote]
 ____
-“Function `CUME_DIST` tính fraction của các row trong partition có giá trị nhỏ hơn hoặc bằng giá trị của row hiện tại và các peer của nó.”
+“Function `CUME_DIST` tính tỷ lệ các row trong partition có giá trị nhỏ hơn hoặc bằng giá trị của row hiện tại và các peer của row đó.”
 
 ____
 Hãy xem một ví dụ:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select x,cume_dist() over w from (select generate_series(1,5) as
 x) V WINDOW w as (order by x) ;
@@ -397,17 +840,40 @@ x) V WINDOW w as (order by x) ;
 (5 rows)
 ....
 
-Vì function được định nghĩa về mặt toán học, function `cume_dist` không bao giờ có value lớn hơn value hiện tại của field.
+.SQL
+[source,sql]
+....
+SELECT
+    x,
+    cume_dist() OVER w
+FROM (SELECT generate_series(1, 5) AS x) V WINDOW w AS (ORDER BY x);
+....
+
+.Output
+[source,output]
+....
+ x | cume_dist
+---+-----------
+ 1 |         0.2
+ 2 |         0.4
+ 3 |         0.6
+ 4 |         0.8
+ 5 |           1
+(5 rows)
+....
+
+
+Vì function này được định nghĩa về mặt toán học, `cume_dist` không bao giờ có giá trị lớn hơn giá trị hiện tại trong column.
 
 == Function `NTILE`
 
-PostgreSQL `NTILE` function group các row được sort trong partition. Bắt đầu từ `1` cho đến parameter value được truyền vào function `NTILE`, mỗi group được gán một bucket number.
+Function `NTILE` của PostgreSQL chia các row đã được sắp xếp trong partition thành các nhóm. Mỗi nhóm được gán một số bucket từ `1` đến giá trị tham số truyền vào function `NTILE`.
 
-Parameter truyền vào function `NTILE` xác định chúng ta muốn bucket gồm bao nhiêu record.
+Tham số truyền vào function `NTILE` xác định số bucket mà chúng ta muốn tạo.
 
-Bây giờ hãy xem một ví dụ về cách nó hoạt động bằng cách thử chia result set thành hai bucket:
+Bây giờ hãy xem cách function này hoạt động bằng cách chia result set thành hai bucket:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select x,ntile(2) over w from (select generate_series(1,6) as x)
 V WINDOW w as (order by x) ;
@@ -422,9 +888,33 @@ V WINDOW w as (order by x) ;
 (6 rows)
 ....
 
-Nếu muốn chia result set thành ba bucket, chúng ta sẽ chạy statement sau:
+.SQL
+[source,sql]
+....
+SELECT
+    x,
+    ntile(2) OVER w
+FROM (SELECT generate_series(1, 6) AS x) V WINDOW w AS (ORDER BY x);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ x | ntile
+---+-------
+ 1 |       1
+ 2 |       1
+ 3 |       1
+ 4 |       2
+ 5 |       2
+ 6 |       2
+(6 rows)
+....
+
+
+Nếu muốn chia result set thành ba bucket, chúng ta chạy statement sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select x,ntile(3) over w from (select generate_series(1,6) as x)
 V WINDOW w as (order by x) ;
@@ -439,8 +929,32 @@ V WINDOW w as (order by x) ;
 (6 rows)
 ....
 
-Function `NTILE()` nhận một integer và cố chia window thành một số bucket cân bằng, chỉ rõ mỗi row thuộc về bucket nào.
+.SQL
+[source,sql]
+....
+SELECT
+    x,
+    ntile(3) OVER w
+FROM (SELECT generate_series(1, 6) AS x) V WINDOW w AS (ORDER BY x);
+....
 
-Trong section này, chúng ta đã giới thiệu một số feature cho phép thực hiện data mining cơ bản. Ví dụ, có thể dùng `lag` và `lead` để so sánh các row khác nhau trong một table, từ đó so sánh salary của các employee khác nhau hoặc so sánh các collection từ những ngày khác nhau.
+.Output
+[source,output]
+....
+ x | ntile
+---+-------
+ 1 |       1
+ 2 |       1
+ 3 |       2
+ 4 |       2
+ 5 |       3
+ 6 |       3
+(6 rows)
+....
 
-Trong section tiếp theo, chúng ta sẽ đi vào chi tiết hơn và tìm hiểu thêm một số feature nâng cao của window function.
+
+Function `NTILE()` nhận một integer và cố gắng chia window thành các bucket có kích thước cân bằng nhất có thể, đồng thời cho biết mỗi row thuộc về bucket nào.
+
+Trong phần này, chúng ta đã giới thiệu một số tính năng cho phép thực hiện data mining cơ bản. Ví dụ, có thể dùng `lag` và `lead` để so sánh các row khác nhau trong một table, từ đó so sánh mức lương của các nhân viên khác nhau hoặc các tập dữ liệu ở những ngày khác nhau.
+
+Trong phần tiếp theo, chúng ta sẽ đi sâu hơn và tìm hiểu thêm một số tính năng nâng cao của window function.

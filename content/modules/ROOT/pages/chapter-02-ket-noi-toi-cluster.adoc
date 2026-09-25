@@ -1,24 +1,24 @@
-= Kết nối tới cluster
+= Kết nối với cluster
 
-Khi PostgreSQL đang chạy, nó chờ các incoming database connection để phục vụ; ngay khi có một connection đến, PostgreSQL phục vụ connection đó bằng cách connect client tới database phù hợp. Điều này có nghĩa là để tương tác với cluster, bạn cần connect tới cluster. Tuy nhiên, bạn không connect tới toàn bộ cluster; thay vào đó, bạn yêu cầu PostgreSQL tương tác với một trong các database mà cluster đang phục vụ. Do đó, khi connect tới cluster, bạn cần connect tới một database cụ thể. Điều này cũng có nghĩa là cluster phải có ít nhất một database ngay từ đầu vòng đời của nó.
+Khi PostgreSQL đang chạy, nó chờ các database connection đến và phục vụ chúng. Ngay khi nhận được một connection, PostgreSQL kết nối client đó với database phù hợp. Nói cách khác, để tương tác với cluster, bạn cần kết nối đến cluster. Tuy nhiên, bạn không kết nối với toàn bộ cluster; thay vào đó, bạn yêu cầu PostgreSQL tương tác với một trong các database mà cluster đang phục vụ. Vì vậy, khi kết nối đến cluster, bạn cần kết nối đến một database cụ thể. Điều này cũng có nghĩa là cluster phải có ít nhất một database ngay từ khi được khởi tạo.
 
-Khi khởi tạo cluster bằng command `initdb`, PostgreSQL xây dựng filesystem layout của thư mục `PGDATA` và xây dựng hai template database có tên `template0` và `template1`. Các template database được dùng làm điểm bắt đầu để clone những database mới khác, sau đó các database này có thể được user thông thường dùng để connect. Trong một PostgreSQL cluster mới cài đặt, bạn thường có một database `postgres`, được dùng để database administrator user `postgres` connect và tương tác với cluster.
+Khi khởi tạo cluster bằng command `initdb`, PostgreSQL tạo filesystem layout cho thư mục `PGDATA` và tạo hai template database có tên `template0` và `template1`. Các template database được dùng làm điểm khởi đầu để clone những database mới; sau đó, user thông thường có thể kết nối đến các database mới này. Trong một PostgreSQL cluster mới cài đặt, thường có database `postgres` để database administrator, tức user `postgres`, kết nối và tương tác với cluster.
 
-Để connect tới một trong các database, dù là template database hay user-defined database, bạn cần một client để thực hiện connection. PostgreSQL đi kèm `psql`, một command-line client cho phép bạn connect, tương tác với và administer database cũng như chính cluster.
+Để kết nối đến một database, dù là template database hay user-defined database, bạn cần một client để mở connection. PostgreSQL đi kèm `psql`, một command-line client cho phép bạn kết nối, tương tác với và quản trị database cũng như chính cluster.
 
-Các client khác cũng tồn tại, nhưng sẽ không được thảo luận trong sách này. Bạn có thể tự do chọn client mình thích nhất, vì mọi command, query và example được trình bày trong sách đều chạy không có ngoại lệ trên mọi client tương thích.
+Ngoài ra còn có các client khác, nhưng sách này không thảo luận về chúng. Bạn có thể tự do chọn client mình thích, vì mọi command, query và ví dụ trong sách đều chạy được trên mọi client tương thích, không có ngoại lệ.
 
-Trong khi việc connect tương tác tới cluster là một task quan trọng đối với database administrator, các developer thường cần application riêng của họ connect tới cluster. Để làm được điều này, application cần một thứ gọi là connection string, một URI chỉ ra mọi parameter cần thiết để connect tới database.
+Việc kết nối và tương tác với cluster là một nhiệm vụ quan trọng đối với database administrator, nhưng developer thường cần ứng dụng kết nối đến cluster. Để làm vậy, ứng dụng cần một chuỗi gọi là connection string, một URI chỉ ra tất cả parameter cần thiết để kết nối đến database.
 
-Phần này sẽ giải thích toàn bộ concept nói trên, bắt đầu từ template database, sau đó trình bày cách sử dụng cơ bản của `psql` và connection string.
+Phần này giải thích toàn bộ các khái niệm trên, bắt đầu với các template database, sau đó trình bày cách sử dụng cơ bản `psql` và connection string.
 
 == Các template database
 
-Database `template1` là database đầu tiên được tạo khi system được initialize, sau đó nó được clone thành `template0`. Điều này có nghĩa là, ít nhất là ban đầu, hai database này giống hệt nhau; mục đích của `template0` là làm bản copy an toàn để rebuild trong trường hợp nó vô tình bị hỏng hoặc bị xóa.
+Database `template1` là database đầu tiên được tạo khi hệ thống được khởi tạo, sau đó được clone thành `template0`. Vì vậy, ít nhất ban đầu, hai database này giống hệt nhau; `template0` đóng vai trò là bản sao an toàn để tạo lại database ban đầu trong trường hợp database đó vô tình bị hỏng hoặc bị xóa.
 
-Bạn có thể inspect các database khả dụng bằng command `psql -l`. Trên một installation mới cài đặt, bạn sẽ nhận được ba database sau:
+Bạn có thể kiểm tra các database hiện có bằng command `psql -l`. Trên một hệ thống mới cài đặt, bạn sẽ thấy ba database sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ psql -l                                      List of databases
   Name    | Owner         | Encoding |   Collate         |     Ctype       | ICU Locale |
@@ -42,41 +42,73 @@ libc            | =c/postgres                 +
                   +
 ....
 
+.Command
+[source,bash]
+....
+psql -l
+....
+
+.Output
+[source,output]
+....
+List of databases
+  Name    | Owner         | Encoding |   Collate         |     Ctype       | ICU Locale |
+Locale Provider |        Access privileges
+-----------+----------+----------+-------------+-------------+------------
++-----------------+-----------------------
+postgres     | postgres | UTF8         | it_IT.UTF-8 | it_IT.UTF-8 |                         |
+libc               |
+ template0 | postgres | UTF8             | it_IT.UTF-8 | it_IT.UTF-8 |
+| libc            | =c/postgres                  +
+         |          |                 |                 |                 |
+         | postgres=CTc/postgres
+template1 | postgres | UTF8            | it_IT.UTF-8 | it_IT.UTF-8 |                         |
+libc            | =c/postgres                 +
+         |          |                 |                 |                 |
+         | postgres=CTc/postgres
+(3 rows)
+
+
+
+                  +
+....
+
+
 [quote]
 ____
-Trong Docker image, bạn cũng sẽ thấy database `forumdb`, database này đã được tự động tạo để bạn tương tác với các example khác.
+Trong Docker image, bạn cũng sẽ thấy database `forumdb`; database này được tự động tạo để bạn tương tác với các ví dụ khác.
 
 ____
-Điều thú vị cần lưu ý là bên cạnh hai template database còn có database thứ ba được tạo trong quá trình installation: database `postgres`. Database đó thuộc về user `postgres`, theo mặc định là database administrator duy nhất được tạo trong quá trình initialization. Database này là một *common space* được dùng cho các connection thay vì các template database.
+Điểm đáng chú ý là ngoài hai template database, còn có database thứ ba được tạo trong quá trình cài đặt: database `postgres`. Database này thuộc về user `postgres`; theo mặc định, user này là database administrator duy nhất được tạo trong quá trình khởi tạo. Đây là một *nơi dùng chung* cho các connection, thay vì dùng các template database.
 
-Tên *template* cho thấy mục đích thực sự của hai database này: khi bạn tạo một database mới, PostgreSQL clone một template database làm *common base*. Điều này hơi giống việc tạo user home directory trên Unix system: system clone một *skeleton directory* và gán bản copy mới cho user. PostgreSQL cũng làm tương tự: nó clone `template1` và gán database mới được tạo cho user đã yêu cầu việc đó.
+Tên *template* cho thấy mục đích thực sự của hai database này: khi tạo database mới, PostgreSQL clone một template database làm *cơ sở chung*. Cách này hơi giống việc tạo home directory cho user trên Unix: hệ thống clone một *thư mục khung* rồi gán bản sao mới cho user. PostgreSQL cũng làm tương tự: nó clone `template1` rồi gán database mới tạo cho user đã yêu cầu.
 
-Điều này cũng có nghĩa là bất kỳ object nào bạn đặt vào `template1`, bạn sẽ tìm thấy chính object đó trong các database mới được tạo. Điều này có thể rất hữu ích để cung cấp một *common base database* và tạo ra tất cả database khác với cùng một tập attribute và object.
+Điều này cũng có nghĩa là mọi object bạn đặt vào `template1` sẽ xuất hiện trong các database mới được tạo. Đây có thể là một cách hữu ích để cung cấp một *database cơ sở dùng chung* và khởi tạo các database khác với cùng một tập attribute và object.
 
-Tuy nhiên, bạn không bị buộc phải dùng `template1` làm base template; thực tế, bạn có thể tạo các database riêng và dùng chúng làm template cho các database khác. Dù vậy, hãy nhớ rằng theo mặc định (đặc biệt là trên một system mới được initialize), database `template1` là database được clone cho những database đầu tiên bạn sẽ tạo.
+Tuy nhiên, bạn không bắt buộc phải dùng `template1` làm template cơ sở; bạn có thể tạo các database riêng và dùng chúng làm template cho các database khác. Dù vậy, hãy nhớ rằng theo mặc định (đặc biệt trên một hệ thống mới được khởi tạo), `template1` là database được clone khi bạn tạo những database đầu tiên.
 
-Một khác biệt khác giữa `template1` và `template0`, ngoài việc database trước là mặc định cho các database mới, là bạn không thể connect tới database sau. Mục đích là ngăn việc vô tình làm hỏng `template0` (safety copy).
+Bên cạnh việc `template1` là database mặc định cho các database mới, template1 còn khác template0 ở chỗ bạn không thể kết nối đến `template0`. Mục đích là ngăn việc vô tình làm hỏng `template0` (bản sao an toàn).
 
-Điều quan trọng cần lưu ý là cluster (và mọi user-defined database) vẫn có thể hoạt động ngay cả khi không có template database; các database `template1` và `template0` không phải là thành phần nền tảng cần thiết để các database khác chạy. Tuy nhiên, nếu mất các template, bạn sẽ phải dùng một database khác làm template mỗi khi thực hiện một action cần template, chẳng hạn như tạo một database mới.
+Cần lưu ý rằng cluster (và mọi user-defined database) vẫn có thể hoạt động ngay cả khi không có template database; `template1` và `template0` không phải là thành phần thiết yếu để các database khác chạy. Tuy nhiên, nếu mất các template, bạn sẽ phải dùng một database khác làm template mỗi khi thực hiện một thao tác cần template, chẳng hạn như tạo database mới.
 
 [quote]
 ____
-Template database không được dành cho interactive connection, và bạn không nên connect tới các template database trừ khi cần customize chúng. PostgreSQL sẽ dùng template như một *skeleton* cho database khác nếu có connection đang active tới template đó.
+Template database không dành cho các connection tương tác, và bạn không nên kết nối đến các template database trừ khi cần tùy chỉnh chúng. PostgreSQL sẽ dùng template làm một *khung sườn* cho database khác nếu có connection đang hoạt động đến template đó.
 
 ____
-== Command-line client `psql`
+== Client dòng lệnh `psql`
 
-Command `psql` là command-line interface đi kèm mọi installation của PostgreSQL. Dù chắc chắn bạn có thể dùng graphical user interface để connect và tương tác với database, hiểu biết cơ bản về `psql` là bắt buộc để administer PostgreSQL cluster. Thực tế, một version `psql` cụ thể được đi kèm với mỗi release PostgreSQL; do đó, đây là client up-to-date nhất sử dụng cùng ngôn ngữ (tức protocol) với cluster. Hơn nữa, client này nhẹ và hữu ích ngay cả trong các tình huống khẩn cấp khi không có GUI.
+Command `psql` là command-line interface đi kèm với mọi bản cài đặt PostgreSQL. Dù bạn hoàn toàn có thể dùng graphical user interface để kết nối và tương tác với database, hiểu biết cơ bản về `psql` là điều bắt buộc để quản trị PostgreSQL cluster. Thực tế, mỗi release PostgreSQL đều đi kèm một version cụ thể của `psql`; vì vậy, đây là client mới nhất và sử dụng cùng ngôn ngữ (tức protocol) với cluster. Hơn nữa, client này nhẹ và hữu ích ngay cả trong các tình huống khẩn cấp khi không có GUI.
 
-`psql` chấp nhận một số option để connect tới database, chủ yếu gồm:
+`psql` chấp nhận một số option để kết nối đến database, chủ yếu gồm:
 
 * `-d`: Tên database
-* `-U`: Username
+* `-U`: Tên user
 * `-h`: Host (một địa chỉ IPv4 hoặc IPv6, hoặc một hostname)
 
-Nếu không chỉ định option nào, `psql` giả định user của operating system đang cố connect tới database có cùng tên, và database user có tên trùng với operating system user trên local connection. Xét connection sau:
+Nếu không chỉ định option nào, `psql` giả định rằng user của operating system đang cố kết nối đến database có cùng tên và database user trong local connection có tên trùng với operating system user. Xét connection sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ id
 uid=999(postgres) gid=999(postgres) groups=999(postgres),101(ssl-cert)
@@ -88,9 +120,26 @@ Type "help" for help.
 postgres=#
 ....
 
-Điều này có nghĩa là operating system user hiện tại (`postgres`) đã yêu cầu `psql` connect tới database có tên `postgres` thông qua PostgreSQL user có tên `postgres` trên local machine. Có thể yêu cầu connection một cách tường minh như sau:
+.Command
+[source,bash]
+....
+id
+psql
+....
 
-[source,text]
+.Output
+[source,output]
+....
+uid=999(postgres) gid=999(postgres) groups=999(postgres),101(ssl-cert)
+
+psql (16.0)
+Type "help" for help.
+....
+
+
+Điều này có nghĩa là operating system user hiện tại (`postgres`) đã yêu cầu `psql` kết nối đến database có tên `postgres` bằng PostgreSQL user có tên `postgres` trên máy hiện tại. Bạn có thể chỉ định connection một cách tường minh như sau:
+
+[source,console,role="transcript"]
 ....
 $ psql -U postgres -d postgres
 psql (16.0)
@@ -99,11 +148,25 @@ Type "help" for help.
 postgres=#
 ....
 
-Điểm đầu tiên cần lưu ý là sau khi connection được thiết lập, command prompt thay đổi: `psql` báo database mà user đã connect tới (`postgres`) và một dấu hiệu cho biết user là superuser (`#`). Nếu user không phải database administrator, prompt sẽ kết thúc bằng dấu `>`.
+.Command
+[source,bash]
+....
+psql -U postgres -d postgres
+....
 
-Nếu cần connect tới một database có tên khác với operating system username của bạn, bạn cần chỉ định database đó:
+.Output
+[source,output]
+....
+psql (16.0)
+Type "help" for help.
+....
 
-[source,text]
+
+Điểm đầu tiên cần lưu ý là sau khi connection được thiết lập, command prompt sẽ thay đổi: `psql` hiển thị database mà user đã kết nối đến (`postgres`) và một ký hiệu cho biết user là superuser (`#`). Nếu user không phải database administrator, prompt sẽ kết thúc bằng dấu `>`.
+
+Nếu cần kết nối đến một database có tên khác với tên của operating system user, bạn cần chỉ định database đó:
+
+[source,console,role="transcript"]
 ....
 $ psql -d template1
 psql (16.0)
@@ -112,9 +175,23 @@ Type "help" for help.
 template1=#
 ....
 
-Tương tự, nếu cần connect tới một database không tương ứng với operating system username, bằng một PostgreSQL user khác với operating system username, bạn phải truyền tường minh cả hai parameter cho `psql`:
+.Command
+[source,bash]
+....
+psql -d template1
+....
 
-[source,text]
+.Output
+[source,output]
+....
+psql (16.0)
+Type "help" for help.
+....
+
+
+Tương tự, nếu cần kết nối đến một database có tên khác với tên của operating system user và dùng một PostgreSQL user khác với user đó, bạn phải truyền tường minh cả hai parameter cho `psql`:
+
+[source,console,role="transcript"]
 ....
 $ id
 uid=999(postgres) gid=999(postgres) groups=999(postgres),101(ssl-cert)
@@ -126,11 +203,28 @@ Type "help" for help.
 template1=>
 ....
 
-Như bạn có thể thấy từ ví dụ trước, operating system user `postgres` đã connect tới database `template1` bằng PostgreSQL user `luca`. Vì user sau không phải system administrator, command prompt kết thúc bằng dấu `>`.
+.Command
+[source,bash]
+....
+id
+psql -d template1 -U luca
+....
 
-Để thoát khỏi `psql` và đóng connection tới database, bạn phải nhập `\q` hoặc `quit` rồi nhấn Enter (bạn cũng có thể nhấn `CTRL + D` để thoát trên mọi máy Unix và Linux):
+.Output
+[source,output]
+....
+uid=999(postgres) gid=999(postgres) groups=999(postgres),101(ssl-cert)
 
-[source,text]
+psql (16.0)
+Type "help" for help.
+....
+
+
+Như bạn có thể thấy trong ví dụ trên, operating system user `postgres` đã kết nối đến database `template1` bằng PostgreSQL user `luca`. Vì user này không phải system administrator, command prompt kết thúc bằng dấu `>`.
+
+Để thoát khỏi `psql` và đóng connection đến database, bạn phải nhập `\q` hoặc `quit` rồi nhấn Enter (bạn cũng có thể nhấn `CTRL + D` để thoát trên mọi máy Unix và Linux):
+
+[source,console,role="transcript"]
 ....
 $ psql -d template1 -U luca
 psql (16.0)
@@ -140,11 +234,31 @@ template1=> \q
 $
 ....
 
-== Nhập SQL statement qua psql
+.Command
+[source,bash]
+....
+psql -d template1 -U luca
+....
 
-Sau khi connect tới một database qua `psql`, bạn có thể issue bất kỳ statement nào mình muốn. Statement phải kết thúc bằng dấu chấm phẩy, cho biết lần nhấn Enter tiếp theo sẽ execute statement. Sau đây là một ví dụ trong đó phím Enter được đánh dấu:
+.SQL
+[source,sql]
+....
+\q
+....
 
-[source,text]
+.Output
+[source,output]
+....
+psql (16.0)
+Type "help" for help.
+....
+
+
+== Nhập SQL statement bằng psql
+
+Sau khi kết nối đến một database qua `psql`, bạn có thể nhập bất kỳ statement nào bạn muốn. Statement phải kết thúc bằng dấu chấm phẩy; khi nhấn Enter lần tiếp theo, statement sẽ được thực thi. Sau đây là một ví dụ trong đó phím Enter được đánh dấu:
+
+[source,console,role="transcript"]
 ....
 $ psql -d template1 -U luca
 psql (16.0)
@@ -158,11 +272,38 @@ template1=> SELECT current_time; <ENTER>
 (1 row)
 ....
 
-SQL là ngôn ngữ case-insensitive, vì vậy bạn có thể nhập statement bằng uppercase, lowercase hoặc kết hợp cả hai. Quy tắc tương tự áp dụng cho column name, vì chúng cũng case-insensitive. Nếu cần identifier với case cụ thể, bạn phải đặt chúng trong double quote.
+.Command
+[source,bash]
+....
+psql -d template1 -U luca
+....
 
-Một cách khác để execute statement là issue command `\g`, một lần nữa theo sau bởi `<ENTER>`. Cách này hữu ích khi connect thông qua terminal emulator có các phím đã được remap:
+.SQL
+[source,sql]
+....
+SELECT current_time;
+<ENTER>
+....
 
-[source,text]
+.Output
+[source,output]
+....
+psql (16.0)
+Type "help" for help.
+
+    current_time
+--------------------
+06:04:57.435155-05
+
+(1 row)
+....
+
+
+SQL là ngôn ngữ không phân biệt chữ hoa chữ thường, vì vậy bạn có thể nhập statement bằng chữ hoa, chữ thường hoặc kết hợp cả hai. Quy tắc tương tự áp dụng cho tên column, vì tên column cũng không phân biệt chữ hoa chữ thường. Nếu cần identifier có cách viết hoa/chữ thường cụ thể, bạn phải đặt chúng trong double quote.
+
+Một cách khác để thực thi statement là gõ command `\g`, rồi nhấn `<ENTER>`. Cách này hữu ích khi kết nối thông qua terminal emulator có các phím đã được remap:
+
+[source,console,role="transcript"]
 ....
 template1=> SELECT current_time \g <ENTER>
  current_time
@@ -172,9 +313,26 @@ template1=> SELECT current_time \g <ENTER>
 (1 row)
 ....
 
-Cho đến khi bạn kết thúc statement bằng dấu chấm phẩy hoặc `\g`, `psql` sẽ giữ content bạn đang nhập trong query buffer, vì vậy bạn cũng có thể edit nhiều dòng text như sau:
+.SQL
+[source,sql]
+....
+SELECT current_time \g <ENTER>
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ current_time
+--------------------
+06:07:03.328744-05
+
+(1 row)
+....
+
+
+Cho đến khi bạn kết thúc statement bằng dấu chấm phẩy hoặc `\g`, `psql` sẽ giữ nội dung bạn đang nhập trong query buffer, vì vậy bạn có thể chỉnh sửa query trên nhiều dòng như sau:
+
+[source,console,role="transcript"]
 ....
 template1=> SELECT
 template1-> current_time
@@ -186,13 +344,30 @@ template1-> ;
 (1 row)
 ....
 
-Hãy lưu ý command prompt của `psql` đã thay đổi trên các dòng sau dòng đầu tiên: sự khác biệt này nhắc bạn rằng bạn đang edit một multi-line statement và `psql` vẫn chưa tìm thấy statement terminator (dấu chấm phẩy hoặc `\g`).
+.SQL
+[source,sql]
+....
+SELECT current_time;
+....
 
-Một feature hữu ích của `psql` query buffer là khả năng edit content của query buffer trong một external editor. Nếu issue command `\e`, editor bạn yêu thích sẽ hiện ra cùng content của query được edit gần nhất. Sau đó, bạn có thể edit và refine SQL statement tùy ý; khi thoát editor, `psql` sẽ đọc nội dung bạn đã tạo và execute nó. Editor được sử dụng được chọn bằng operating system environment variable `EDITOR`.
+.Output
+[source,output]
+....
+ current_time
+--------------------
+06:07:28.908215-05
 
-Cũng có thể execute tất cả statement trong một file hoặc edit một file trước khi execute nó. Ví dụ, giả sử file `test.sql` có content sau:
+(1 row)
+....
 
-[source,text]
+
+Lưu ý rằng command prompt của `psql` thay đổi ở các dòng sau dòng đầu tiên: sự khác biệt này cho biết bạn đang chỉnh sửa một statement nhiều dòng và `psql` vẫn chưa tìm thấy dấu kết thúc statement (dấu chấm phẩy hoặc `\g`).
+
+Một tính năng hữu ích của query buffer trong `psql` là khả năng chỉnh sửa nội dung query buffer bằng một external editor. Nếu gõ command `\e`, editor bạn yêu thích sẽ mở ra và hiển thị query được chỉnh sửa gần nhất. Sau đó, bạn có thể chỉnh sửa và tinh chỉnh SQL statement tùy ý; khi thoát khỏi editor, `psql` sẽ đọc nội dung bạn tạo và thực thi nó. Editor được chọn bằng biến môi trường `EDITOR` của hệ điều hành.
+
+Bạn cũng có thể thực thi tất cả statement trong một file hoặc chỉnh sửa file trước khi thực thi. Ví dụ, giả sử file `test.sql` có nội dung sau:
+
+[source,console,role="transcript"]
 ....
 $ cat test.sql
 
@@ -201,9 +376,24 @@ SELECT current_time;
 SELECT current_role;
 ....
 
-File có ba SQL statement rất đơn giản. Để execute toàn bộ file cùng một lúc, bạn có thể dùng special command `\i` theo sau bởi tên file:
+.Command
+[source,bash]
+....
+cat test.sql
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SELECT current_database();
+SELECT current_time;
+SELECT current_role;
+....
+
+
+File này có ba SQL statement rất đơn giản. Để thực thi toàn bộ file cùng lúc, bạn có thể dùng command đặc biệt `\i` rồi chỉ định tên file:
+
+[source,console,role="transcript"]
 ....
 template1=> \i test.sql
  current_database
@@ -224,14 +414,42 @@ template1=> \i test.sql
 (1 row)
 ....
 
-Như bạn có thể thấy, client đã execute lần lượt từng statement trong file. Nếu cần edit file mà không rời khỏi `psql`, bạn có thể issue `\e test.sql` để mở editor yêu thích, thực hiện thay đổi rồi quay lại `psql` connection.
-SQL không phân biệt chữ hoa/chữ thường và không phân biệt khoảng trắng: bạn có thể viết SQL toàn bộ bằng chữ hoa hoặc chữ thường, với bao nhiêu khoảng trắng ngang và dọc tùy ý. Trong cuốn sách này, SQL keyword sẽ được viết bằng chữ hoa và các statement sẽ được format để dễ đọc.
+.SQL
+[source,sql]
+....
+\i test.sql
+....
 
-== Sơ lược các command của `psql`
+.Output
+[source,output]
+....
+ current_database
+------------------
+ template1
 
-Mọi command dành riêng cho `psql` đều bắt đầu bằng ký tự backslash (`\`). Bạn có thể xem một phần trợ giúp về SQL statement và PostgreSQL command thông qua command đặc biệt `\h`, sau đó chỉ định statement cụ thể mà bạn muốn xem trợ giúp:
+(1 row)
 
-[source,text]
+    current_time
+--------------------
+06:08:43.077305-05
+
+(1 row)
+
+ current_role
+--------------
+ luca
+(1 row)
+....
+
+
+Như bạn có thể thấy, client đã thực thi lần lượt từng statement trong file. Nếu cần chỉnh sửa file mà không rời khỏi `psql`, bạn có thể gõ `\e test.sql` để mở editor yêu thích, thực hiện thay đổi rồi quay lại phiên làm việc trong `psql`.
+SQL không phân biệt chữ hoa/chữ thường và cũng không phân biệt khoảng trắng: bạn có thể viết SQL hoàn toàn bằng chữ hoa hoặc chữ thường, với số lượng khoảng trắng ngang và dọc tùy ý. Trong cuốn sách này, SQL keyword sẽ được viết bằng chữ hoa và các statement sẽ được định dạng để dễ đọc.
+
+== Tổng quan về các command của `psql`
+
+Mọi command dành riêng cho `psql` đều bắt đầu bằng ký tự backslash (`\`). Bạn có thể xem một phần trợ giúp về SQL statement và PostgreSQL command bằng command đặc biệt `\h`, sau đó chỉ định statement cụ thể mà bạn muốn xem trợ giúp:
+
+[source,console,role="transcript"]
 ....
      template1=> \h SELECT
      Command:        SELECT
@@ -244,11 +462,31 @@ Mọi command dành riêng cho `psql` đều bắt đầu bằng ký tự backsl
      URL: https://www.postgresql.org/docs/16/sql-select.html
 ....
 
-Nội dung help hiển thị được rút gọn vì lý do không gian. Bạn có thể tìm thấy phần mô tả chi tiết hơn nhiều và các ví dụ sử dụng trong tài liệu online. Vì lý do này, ở cuối màn hình help có một link dẫn tới tài liệu online.
+.SQL
+[source,sql]
+....
+\h SELECT
+....
 
-Nếu cần trợ giúp về các command của `psql`, bạn có thể phát hành command `\?`:
+.Output
+[source,output]
+....
+     Command:        SELECT
+     Description: retrieve rows from a table or view
+     Syntax:
+     [ WITH [ RECURSIVE ] with_query [, ...] ]
+     SELECT [ ALL | DISTINCT [ ON ( expression [, ...] ) ] ]
+           [ * | expression [ [ AS ] output_name ] [, ...] ]
+     ...
+     URL: https://www.postgresql.org/docs/16/sql-select.html
+....
 
-[source,text]
+
+Nội dung trợ giúp hiển thị được rút gọn do giới hạn về không gian. Bạn có thể tìm thấy phần mô tả chi tiết hơn nhiều cùng các ví dụ sử dụng trong tài liệu trực tuyến. Vì vậy, cuối màn hình trợ giúp có một liên kết dẫn đến tài liệu trực tuyến.
+
+Nếu cần trợ giúp về các command của `psql`, bạn có thể gõ command `\?`:
+
+[source,console,role="transcript"]
 ....
      template1=> \?
      General
@@ -261,15 +499,35 @@ Nếu cần trợ giúp về các command của `psql`, bạn có thể phát h�
      ...
 ....
 
-Ngoài ra còn có nhiều command introspection, chẳng hạn `\d` để liệt kê tất cả table do user định nghĩa. Về bản chất, các command đặc biệt này là cách thực thi query đối với system catalog của PostgreSQL; đến lượt mình, các catalog này là registry về tất cả object tồn tại trong một database. Các command introspection sẽ được trình bày ở phần sau của cuốn sách và hữu ích như những shortcut để nắm được các object nào đang được định nghĩa trong database hiện tại.
+.SQL
+[source,sql]
+....
+\?
+....
 
-Nhiều tính năng của `psql` sẽ được trình bày chi tiết dần trong cuốn sách, nhưng bạn nên dành thời gian làm quen với command-line client rất hiệu quả và giàu tính năng này.
+.Output
+[source,output]
+....
+     General
+       \copyright                   show PostgreSQL usage and distribution terms
+       \crosstabview [COLUMNS] execute query and display results in crosstab
+       \errverbose                  show most recent error message at maximum
+     verbosity
+       \g [FILE] or ;               execute query (and send results to file or |pipe)
+       \gdesc                       describe result of query, without executing it
+     ...
+....
 
-== Giới thiệu connection string
 
-Trong phần trước, bạn đã học cách chỉ định các tùy chọn connection cơ bản, chẳng hạn `-d` và `-U`, lần lượt dành cho database và user. `psql` cũng chấp nhận một connection string của LibPQ.
+Ngoài ra còn có nhiều command introspection, chẳng hạn `\d` để liệt kê tất cả table do user định nghĩa. Về bản chất, các command đặc biệt này thực thi query trên system catalog của PostgreSQL; các catalog này, đến lượt chúng, là registry chứa mọi object tồn tại trong một database. Các command introspection sẽ được trình bày ở phần sau của sách và hữu ích như những shortcut để xác định các object đang được định nghĩa trong database hiện tại.
 
-LibPQ là library nền tảng mà mọi application đều có thể dùng để kết nối tới một PostgreSQL cluster; chẳng hạn, nó được các client C và C++ cũng như các connector non-native sử dụng.
+Nhiều tính năng của `psql` sẽ được trình bày chi tiết dần trong sách, nhưng bạn nên dành thời gian làm quen với command-line client hiệu quả và giàu tính năng này.
+
+== Giới thiệu về connection string
+
+Trong phần trước, bạn đã học cách chỉ định các tùy chọn connection cơ bản, chẳng hạn `-d` và `-U`, lần lượt dùng cho database và user. `psql` cũng chấp nhận connection string của LibPQ.
+
+LibPQ là library nền tảng mà mọi ứng dụng đều có thể dùng để kết nối đến một PostgreSQL cluster; chẳng hạn, nó được các client C và C++ cũng như các connector non-native sử dụng.
 
 Một connection string trong LibPQ là một URI gồm nhiều phần:
 
@@ -278,29 +536,49 @@ Một connection string trong LibPQ là một URI gồm nhiều phần:
    postgresql://username@host:port/database
 ....
 
-Ở đây, ta có:
+Các thành phần gồm:
 
-* `postgresql` là fixed string chỉ protocol mà URI tham chiếu tới.
-* `username` là PostgreSQL username sẽ được dùng khi kết nối tới database.
-* `host` là hostname (hoặc IP address) cần kết nối tới.
+* `postgresql` là chuỗi cố định xác định protocol được URI sử dụng.
+* `username` là tên PostgreSQL user được dùng để kết nối đến database.
+* `host` là hostname (hoặc IP address) mà bạn cần kết nối đến.
 * `port` là TCP/IP port mà server đang listen (mặc định là 5432).
-* `database` là tên database mà bạn muốn kết nối tới.
+* `database` là tên database mà bạn muốn kết nối đến.
 
-Các phần username, port và database có thể được bỏ qua nếu chúng được đặt theo default (username giống với username của operating system).
+Có thể bỏ qua các phần username, port và database nếu muốn dùng giá trị mặc định (username trùng với tên user của operating system).
 
-Các connection sau tương đương nhau:
+Các connection sau đây tương đương nhau:
 
-[source,bash]
+[source,console,role="transcript"]
 ....
    $ psql -d template1 -U luca -h localhost
 ....
 
+.Command
 [source,bash]
+....
+psql -d template1 -U luca -h localhost
+....
+
+
+[source,console,role="transcript"]
 ....
    $ psql postgresql://luca@localhost/template1
 ....
 
+.Command
 [source,bash]
 ....
+psql postgresql://luca@localhost/template1
+....
+
+
+[source,console,role="transcript"]
+....
    $ psql postgresql://luca@localhost:5432/template1
+....
+
+.Command
+[source,bash]
+....
+psql postgresql://luca@localhost:5432/template1
 ....

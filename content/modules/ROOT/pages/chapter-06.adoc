@@ -1,15 +1,15 @@
 = 6. Window Functions
 
-Trong chapter trước, chúng ta đã nói về aggregate. Trong chapter này, chúng ta sẽ thảo luận sâu hơn về một cách khác để tạo aggregate: window function. Tài liệu chính thức (https://www.postgresql.org/docs/current/tutorial-window.html) mô tả window function như sau:
+Trong chương trước, chúng ta đã tìm hiểu về aggregate. Trong chương này, chúng ta sẽ tìm hiểu sâu hơn về một cách khác để tạo aggregate: window function. Tài liệu chính thức (https://www.postgresql.org/docs/current/tutorial-window.html) mô tả window function như sau:
 
 [quote]
 ____
-Window function thực hiện một phép tính trên một tập các row của table có liên quan với row hiện tại theo một cách nào đó. Điều này tương tự loại phép tính có thể thực hiện bằng aggregate function. Tuy nhiên, window function không khiến các row được nhóm lại thành một output row duy nhất như các lời gọi aggregate không phải window function. Thay vào đó, các row vẫn giữ identity riêng của chúng. Ở hậu trường, window function có thể truy cập không chỉ row hiện tại của query result.
+Window function thực hiện một phép tính trên một tập row trong table có mối liên hệ nào đó với row hiện tại. Đây là kiểu tính toán tương tự phép tính được thực hiện bằng aggregate function. Tuy nhiên, khác với các lời gọi aggregate không sử dụng window function, window function không nhóm các row thành một output row duy nhất. Thay vào đó, mỗi row vẫn giữ được tính riêng biệt. Ngoài row hiện tại trong kết quả query, window function còn có thể truy cập các row khác.
 
 ____
-Trong chapter này, chúng ta sẽ nói về window function, chúng là gì và có thể sử dụng chúng như thế nào để cải thiện performance của query.
+Trong chương này, chúng ta sẽ tìm hiểu window function là gì và cách sử dụng chúng để cải thiện hiệu năng của query.
 
-Các chủ đề sau sẽ được đề cập trong chapter này:
+Các chủ đề sau sẽ được đề cập trong chương này:
 
-* Sử dụng các statement window function cơ bản
-* Sử dụng các statement window function nâng cao
+* Sử dụng window function trong các statement cơ bản
+* Sử dụng window function trong các statement nâng cao

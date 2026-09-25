@@ -1,12 +1,12 @@
 = Deadlocks
 
-Deadlock là một event xảy ra khi các transaction khác nhau phụ thuộc lẫn nhau theo cách vòng tròn. Ở một mức độ nào đó, deadlock là event bình thường trong một môi trường database concurrent và không phải là điều administrator cần lo lắng, trừ khi chúng xảy ra cực kỳ thường xuyên, nghĩa là có lỗi dependency trong application và transaction.
+Deadlock xảy ra khi các transaction phụ thuộc lẫn nhau theo một vòng tròn. Ở một mức độ nhất định, deadlock là hiện tượng bình thường trong môi trường database có các transaction chạy đồng thời; administrator không cần lo lắng trừ khi deadlock xảy ra cực kỳ thường xuyên. Khi đó, đây có thể là dấu hiệu có lỗi dependency trong application hoặc transaction.
 
-Khi deadlock xảy ra, không còn lựa chọn nào khác ngoài việc terminate các transaction đang bị lock. PostgreSQL có một deadlock detection engine rất mạnh thực hiện chính xác công việc này: tìm các transaction bị đình trệ và, trong trường hợp có deadlock, terminate chúng (tạo ra một `ROLLBACK`).
+Khi deadlock xảy ra, không còn lựa chọn nào khác ngoài việc chấm dứt các transaction đang bị lock. PostgreSQL có một cơ chế phát hiện deadlock rất mạnh để thực hiện chính xác việc này: tìm các transaction bị đình trệ và, trong trường hợp có deadlock, chấm dứt chúng (tạo ra một `ROLLBACK`).
 
-Để tạo ra một deadlock, hãy hình dung hai transaction concurrent áp dụng các thay đổi lên chính những tuple đó theo cách xung đột. Ví dụ, transaction thứ nhất có thể làm như sau:
+Để tạo ra một deadlock, hãy hình dung hai transaction chạy đồng thời cùng áp dụng các thay đổi lên những tuple giống nhau theo cách xung đột. Ví dụ, transaction thứ nhất có thể thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    -- session 1
    forumdb=> BEGIN;
@@ -23,9 +23,35 @@ Khi deadlock xảy ra, không còn lựa chọn nào khác ngoài việc termina
    UPDATE 1
 ....
 
+.SQL
+[source,sql]
+....
+-- session 1
+BEGIN;
+SELECT txid_current();
+UPDATE tags
+SET
+    tag = 'Perl 5'
+WHERE tag = 'perl';
+....
+
+.Output
+[source,output]
+....
+   BEGIN
+      txid_current
+   --------------
+              4875
+   (1 row)
+
+
+   UPDATE 1
+....
+
+
 Trong lúc đó, transaction còn lại thực hiện như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    -- session 2
    forumdb=> BEGIN;
@@ -43,9 +69,36 @@ Trong lúc đó, transaction còn lại thực hiện như sau:
    UPDATE 1
 ....
 
-Cho đến lúc này, cả hai transaction đều đã update một tuple mà không xung đột với nhau. Bây giờ, hãy hình dung transaction thứ nhất cố sửa tuple mà transaction kia đã thay đổi; như chúng ta đã thấy trong các example trước, transaction sẽ tiếp tục bị lock và chờ acquire lock trên tuple:
+.SQL
+[source,sql]
+....
+-- session 2
+BEGIN;
+SELECT txid_current();
+UPDATE tags
+SET
+    tag = 'Java and Groovy'
+WHERE tag = 'java';
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   BEGIN
+
+     txid_current
+   --------------
+              4876
+   (1 row)
+
+
+   UPDATE 1
+....
+
+
+Đến lúc này, cả hai transaction đều đã cập nhật một tuple mà không xung đột với nhau. Bây giờ, hãy hình dung transaction thứ nhất cố cập nhật tuple mà transaction kia đã thay đổi; như đã thấy trong các ví dụ trước, transaction sẽ bị lock và chờ acquire lock trên tuple:
+
+[source,console,role="transcript"]
 ....
    -- session 1
    forumdb=> UPDATE tags SET tag = 'The Java Language'
@@ -53,9 +106,24 @@ Cho đến lúc này, cả hai transaction đều đã update một tuple mà kh
    -- locked
 ....
 
-Mặt khác, nếu transaction thứ hai cố sửa một tuple đã được transaction thứ nhất chạm tới, nó sẽ bị lock và chờ acquire lock:
+.SQL
+[source,sql]
+....
+-- session 1
+UPDATE tags SET tag = 'The Java Language'
+    WHERE tag = 'java';
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   -- locked
+....
+
+
+Ngược lại, nếu transaction thứ hai cố cập nhật một tuple mà transaction thứ nhất đã chạm tới, transaction thứ hai sẽ bị lock và chờ acquire lock:
+
+[source,console,role="transcript"]
 ....
    -- session 2
    forumdb=> UPDATE tags SET tag = 'Perl and Raku'
@@ -69,13 +137,34 @@ Mặt khác, nếu transaction thứ hai cố sửa một tuple đã được tr
    CONTEXT:     while updating tuple (0,1) in relation "tags"
 ....
 
-Tuy nhiên, lần này PostgreSQL nhận ra rằng hai transaction không thể tự giải quyết vấn đề vì chúng đang chờ một circular dependency, và do đó quyết định kill transaction thứ hai để transaction thứ nhất có cơ hội hoàn tất. Như bạn có thể thấy từ error message, PostgreSQL biết transaction 4875 đang chờ một lock do transaction 4876 giữ và ngược lại; vì vậy, để tiếp tục, không có giải pháp nào khác ngoài việc kill một trong hai transaction.
+.SQL
+[source,sql]
+....
+-- session 2
+UPDATE tags SET tag = 'Perl and Raku'
+    WHERE tag = 'perl';
+....
 
-Vì là event tự nhiên trong một transactional system concurrent, deadlock là điều bạn phải xử lý, và application của bạn phải sẵn sàng replay một transaction trong trường hợp chúng bị buộc phải `ROLLBACK` bởi deadlock detection.
+.Output
+[source,output]
+....
+   ERROR:     deadlock detected
+   DETAIL: Process 78918 waits for ShareLock on transaction 4875; blocked by
+   process 80105.
+   Process 80105 waits for ShareLock on transaction 4876; blocked by process
+   78918.
+   HINT:     See server log for query details.
+   CONTEXT:     while updating tuple (0,1) in relation "tags"
+....
 
-Deadlock detection là một process phức tạp và tốn nhiều resource; vì vậy, PostgreSQL thực hiện nó theo lịch. Cụ thể, configuration parameter `deadlock_timeout` biểu thị tần suất PostgreSQL nên tìm kiếm dependency giữa các transaction đang bị đình trệ. Mặc định, giá trị này được đặt là 1 second và được biểu diễn bằng milliseconds:
 
-[source,text]
+Tuy nhiên, lần này PostgreSQL nhận ra rằng hai transaction không thể tự giải quyết vấn đề vì chúng đang chờ một dependency vòng tròn, nên quyết định chấm dứt transaction thứ hai để transaction thứ nhất có cơ hội hoàn tất. Như bạn có thể thấy từ thông báo lỗi, PostgreSQL biết transaction 4875 đang chờ một lock do transaction 4876 giữ, và ngược lại; vì vậy, để tiếp tục, không còn cách nào khác ngoài việc chấm dứt một trong hai transaction.
+
+Vì deadlock là hiện tượng tự nhiên trong một hệ thống có các transaction chạy đồng thời, bạn phải xử lý tình huống này; application của bạn phải sẵn sàng replay một transaction nếu cơ chế phát hiện deadlock buộc transaction đó phải `ROLLBACK`.
+
+Deadlock detection là một quy trình phức tạp và tốn nhiều tài nguyên; vì vậy, PostgreSQL thực hiện việc này theo lịch. Cụ thể, configuration parameter `deadlock_timeout` cho biết tần suất PostgreSQL nên tìm kiếm dependency giữa các transaction đang bị đình trệ. Mặc định, giá trị này được đặt là 1 giây và tính bằng millisecond:
+
+[source,console,role="transcript"]
 ....
    forumdb=> SELECT name, setting, unit
                 FROM pg_settings
@@ -93,6 +182,34 @@ Deadlock detection là một process phức tạp và tốn nhiều resource; v�
    (1 row)
 ....
 
-Giảm giá trị này thường là một ý tưởng tồi: application và transaction của bạn sẽ fail sớm hơn (nếu ở trong deadlock condition), nhưng cluster sẽ bị buộc phải tiêu tốn thêm resource cho việc phân tích dependency.
+.SQL
+[source,sql]
+....
+SELECT
+    name,
+    setting,
+    unit
+FROM pg_settings
+WHERE name like '%deadlock%';
+SHOW deadlock_timeout;
+....
 
-Trong phần tiếp theo, bạn sẽ tìm hiểu cách PostgreSQL bảo đảm data được làm persistent trên storage, ngay cả khi cluster bị crash.
+.Output
+[source,output]
+....
+          name          | setting | unit
+   ------------------+---------+------
+   deadlock_timeout | 1000           | ms
+   (1 row)
+
+
+   deadlock_timeout
+   ------------------
+   1s
+   (1 row)
+....
+
+
+Thường không nên giảm giá trị này: application và transaction của bạn có thể thất bại sớm hơn (nếu đang deadlock), nhưng cluster sẽ bị buộc phải tiêu tốn thêm tài nguyên để phân tích dependency.
+
+Trong phần tiếp theo, bạn sẽ tìm hiểu cách PostgreSQL bảo đảm dữ liệu được lưu bền vững trên storage, ngay cả khi cluster bị crash.

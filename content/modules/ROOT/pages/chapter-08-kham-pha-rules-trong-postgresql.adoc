@@ -1,32 +1,32 @@
-= Khám phá rules trong PostgreSQL
+= Khám phá rule trong PostgreSQL
 
-Như đã đề cập trước đó, rules là các event handler đơn giản. Ở user level, có thể quản lý tất cả event thực hiện write operation, như sau:
+Như đã đề cập trước đó, rule là các event handler đơn giản. Ở cấp độ user, có thể quản lý mọi event thực hiện thao tác ghi như sau:
 
 * `INSERT`
 * `DELETE`
 * `UPDATE`
 
-Concept nền tảng phía sau rules là modify flow của một event. Nếu có một event, khi một số condition xảy ra, chúng ta có thể làm những việc sau:
+Ý tưởng cốt lõi của rule là thay đổi luồng xử lý của một event. Khi event xảy ra và thỏa mãn một số điều kiện, chúng ta có thể thực hiện những việc sau:
 
-* Không làm gì rồi undo action của event đó.
-* Trigger một event khác thay cho event mặc định.
-* Trigger một event khác cùng với event mặc định.
+* Không làm gì và hủy thao tác của event đó.
+* Kích hoạt một event khác thay cho event mặc định.
+* Kích hoạt một event khác cùng với event mặc định.
 
-Vì vậy, với một write operation, chẳng hạn operation `INSERT`, chúng ta có thể thực hiện một trong ba action sau:
+Vì vậy, với một thao tác ghi như `INSERT`, chúng ta có thể thực hiện một trong ba hành động sau:
 
-* Cancel operation.
-* Thực hiện một operation khác thay cho `INSERT`.
-* Execute `INSERT` và thực hiện một operation khác trong cùng transaction.
+* Hủy thao tác.
+* Thực hiện một thao tác khác thay cho `INSERT`.
+* Thực thi `INSERT` và thực hiện một thao tác khác trong cùng transaction.
 
 == Tìm hiểu các biến OLD và NEW
 
-Trước khi bắt đầu làm việc với rules rồi đến triggers, chúng ta cần hiểu concept về các variable `OLD` và `NEW`.
+Trước khi làm việc với rule rồi đến trigger, chúng ta cần hiểu khái niệm về các biến `OLD` và `NEW`.
 
-Các variable `OLD` và `NEW` biểu diễn state của row trong table trước hoặc sau event. Các value `OLD` và `NEW` là cursor biểu diễn toàn bộ record. Để hiểu rõ hơn, hãy xét một operation `UPDATE`; trong trường hợp này, variable `OLD` chứa value của record đã có trong table, còn variable `NEW` chứa value mà record của table sẽ có sau operation `UPDATE`.
+Các biến `OLD` và `NEW` biểu diễn trạng thái của row trong table trước hoặc sau event. Các giá trị `OLD` và `NEW` là các cursor đại diện cho toàn bộ record. Để hiểu rõ hơn, hãy xét một thao tác `UPDATE`; trong trường hợp này, biến `OLD` chứa giá trị của record đã có trong table, còn biến `NEW` chứa giá trị mà record sẽ có trong table sau thao tác `UPDATE`.
 
 Ví dụ, hãy xét table tags với các record sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from tags;
  pk |            tag           | parent
@@ -37,15 +37,50 @@ forumdb=> select * from tags;
   [..]
 ....
 
-Giả sử chúng ta muốn thay đổi tag có `pk=3`, từ Ubuntu thành Fedora, bằng operation `UPDATE` sau:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |            tag           | parent
+----+-------------------+--------
+  1 | Operating Systems |
+  2 | Linux                    |        1
+  3 | Ubuntu                   |        2
+  [..]
+....
+
+
+Giả sử chúng ta muốn đổi tag có `pk=3` từ Ubuntu thành Fedora bằng thao tác `UPDATE` sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> update tags set tag='Fedora' where pk=3;
 UPDATE 1
 ....
 
-Variable `OLD` sẽ có các value sau:
+.SQL
+[source,sql]
+....
+UPDATE tags
+SET
+    tag = 'Fedora'
+WHERE pk = 3;
+....
+
+.Output
+[source,output]
+....
+UPDATE 1
+....
+
+
+Biến `OLD` sẽ có các giá trị sau:
 
 [source,text]
 ....
@@ -53,7 +88,7 @@ Variable `OLD` sẽ có các value sau:
                                   3        Ubuntu        1
 ....
 
-Variable `NEW` sẽ có các value sau:
+Biến `NEW` sẽ có các giá trị sau:
 
 [source,text]
 ....
@@ -61,7 +96,7 @@ Variable `NEW` sẽ có các value sau:
                                   3        Fedora         1
 ....
 
-Về mặt logic, với một số operation, cả variable `OLD` và variable `NEW` đều có thể tồn tại, nhưng với các operation khác thì chỉ một trong hai có thể tồn tại. Dưới đây là cách thể hiện chi tiết hơn:
+Về mặt logic, trong một số thao tác, cả biến `OLD` và biến `NEW` đều có thể tồn tại, nhưng trong các thao tác khác thì chỉ một trong hai biến có thể tồn tại. Dưới đây là phần trình bày chi tiết hơn:
 
 [source,text]
 ....
@@ -72,33 +107,31 @@ Về mặt logic, với một số operation, cả variable `OLD` và variable `
                       UPDATE                     present                  present
 ....
 
-Bây giờ mọi thứ đã rõ hơn, chúng ta có thể bắt đầu làm việc với rules.
+Bây giờ mọi thứ đã rõ hơn, chúng ta có thể bắt đầu làm việc với các rule.
 
-== Rules trên INSERT
+== Rule cho INSERT
 
-Hãy bắt đầu bằng việc giới thiệu syntax của rules:
+Hãy bắt đầu bằng cú pháp của rule:
 
-[source,text]
+[source,sql]
 ....
-CREATE [ OR REPLACE ] RULE name AS ON event
-     TO table [ WHERE condition ]
-     DO [ ALSO | INSTEAD ] { NOTHING | command | ( command ; command ... )
-}
+CREATE [ OR REPLACE ] RULE name AS ON event TO TABLE [ WHERE condition ] DO [ ALSO | INSTEAD ] { NOTHING | command | (command;
+command ...) }
 ....
 
-Như có thể thấy, rule definition cực kỳ đơn giản. Có ba option khi quyết định dùng một rule:
+Như có thể thấy, định nghĩa rule cực kỳ đơn giản. Khi sử dụng một rule, có ba tùy chọn:
 
-* Option ALSO
-* Option INSTEAD
-* Option INSTEAD NOTHING
+* Tùy chọn ALSO
+* Tùy chọn INSTEAD
+* Tùy chọn INSTEAD NOTHING
 
-== Option ALSO
+== Tùy chọn ALSO
 
-Giả sử từ table tags, chúng ta muốn copy tất cả record có value của field tag bắt đầu bằng chữ a vào table a_tag:
+Giả sử chúng ta muốn sao chép vào table a_tag mọi record trong table tags có giá trị của column tag bắt đầu bằng chữ a:
 
-. Trước hết, hãy tạo một table mới tên là `O_tags`:
+. Trước hết, hãy tạo một table mới có tên là `O_tags`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> create table O_tags (
         pk integer not null primary key,
@@ -107,9 +140,25 @@ Giả sử từ table tags, chúng ta muốn copy tất cả record có value c�
    CREATE TABLE
 ....
 
+.SQL
+[source,sql]
+....
+CREATE TABLE O_tags (
+    pk integer NOT NULL PRIMARY KEY,
+    tag text,
+    parent integer);
+....
+
+.Output
+[source,output]
+....
+   CREATE TABLE
+....
+
+
 . Sau đó, hãy tạo rule mới như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> create or replace rule r_tags1
         as on INSERT to tags
@@ -119,20 +168,51 @@ Giả sử từ table tags, chúng ta muốn copy tất cả record có value c�
    CREATE RULE
 ....
 
-   Trong rule vừa định nghĩa, chúng ta chỉ nói với PostgreSQL rằng mỗi khi một record được insert với value tag bắt đầu bằng chữ “O,” ngoài việc được insert vào table tags, nó cũng phải được insert vào table O_tags.
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE rule r_tags1
+        AS ON INSERT to tags
+        WHERE NEW.tag ilike 'O%' DO ALSO
+       INSERT INTO O_tags (pk, tag, parent)VALUES (NEW.pk, NEW.tag, NEW.
+   parent);
+....
+
+.Output
+[source,output]
+....
+   CREATE RULE
+....
+
+
+   Trong rule vừa định nghĩa, chúng ta chỉ cần cho PostgreSQL biết rằng mỗi khi một record được chèn với giá trị tag bắt đầu bằng chữ “O”, ngoài việc được chèn vào table tags, record đó cũng phải được chèn vào table O_tags.
 
 [%start=3]
-. Bây giờ hãy thực hiện query sau:
+. Bây giờ hãy chạy query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> insert into tags (tag) values ('OpenBSD');
    INSERT 0 1
 ....
 
-. Sau đó kiểm tra các record trong table tags và các record trong O_tags. Trong table tags, chúng ta sẽ thấy như sau:
+.SQL
+[source,sql]
+....
+INSERT INTO tags (tag)
+VALUES ('OpenBSD');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   INSERT 0 1
+....
+
+
+. Sau đó, hãy kiểm tra các record trong hai table tags và O_tags. Kết quả trong table tags như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select * from tags;
     pk |           tag           | parent
@@ -144,9 +224,29 @@ Giả sử từ table tags, chúng ta muốn copy tất cả record có value c�
    (4 rows)
 ....
 
-   Trong table O_tags, chúng ta sẽ thấy như sau:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+    pk |           tag           | parent
+   ----+-------------------+--------
+     1 | Operating Systems |
+     2 | Linux                   |       1
+     3 | Ubuntu                  |       2
+     4 | OpenBSD                 |
+   (4 rows)
+....
+
+
+    Trong table O_tags, chúng ta sẽ thấy như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> select * from O_tags;
     pk |     tag    | parent
@@ -155,15 +255,32 @@ Giả sử từ table tags, chúng ta muốn copy tất cả record có value c�
    (1 row)
 ....
 
-Record hiện diện trong cả hai table. Một câu hỏi đáng đặt ra là rules được execute trước hay sau event. Ví dụ, rule mới tạo được execute trước `INSERT` hay sau `INSERT`? Câu trả lời là rules trong PostgreSQL luôn được execute trước event.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM O_tags;
+....
 
-== Option INSTEAD OF
+.Output
+[source,output]
+....
+    pk |     tag    | parent
+   ----+---------+--------
+     5 | OpenBSD |
+   (1 row)
+....
 
-Bây giờ, giả sử chúng ta muốn move tất cả record có field tag bắt đầu bằng chữ F hoặc f vào table F_tags:
 
-. Trước hết, hãy tạo một table mới tên là `F_tags`:
+Record xuất hiện trong cả hai table. Một câu hỏi đáng đặt ra là rule được thực thi trước hay sau event: trước `INSERT` hay sau `INSERT`? Trong PostgreSQL, rule luôn được thực thi trước event.
 
-[source,text]
+== Tùy chọn INSTEAD OF
+
+Bây giờ, giả sử chúng ta muốn chuyển mọi record có column tag bắt đầu bằng chữ F hoặc f vào table F_tags:
+
+. Trước hết, hãy tạo một table mới có tên là `F_tags`:
+
+[source,console,role="transcript"]
 ....
    forumdb=> create table F_tags (
     pk integer not null primary key ,
@@ -172,13 +289,38 @@ Bây giờ, giả sử chúng ta muốn move tất cả record có field tag b�
    CREATE TABLE
 ....
 
+.SQL
+[source,sql]
+....
+CREATE TABLE F_tags (
+    pk integer NOT NULL PRIMARY KEY,
+    tag text,
+    parent integer);
+....
+
+.Output
+[source,output]
+....
+   CREATE TABLE
+....
+
+
 . Sau đó, hãy tạo rule mới:
 
-[source,text]
+[source,console,role="transcript"]
 ....
     forumdb=> create or replace rule r_tags2
          as on INSERT to tags
 ....
+
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE rule r_tags2
+    AS ON INSERT to tags
+....
+
+
 [source,text]
 ....
 where NEW.tag ilike 'f%'
@@ -186,23 +328,37 @@ DO INSTEAD insert into f_tags(pk,tag,parent)values (NEW.pk,NEW.
 tag,NEW.parent);
 ....
 
-Lần này, trong rule, chúng ta chỉ nói với PostgreSQL rằng mỗi khi một record được chèn vào với giá trị tag bắt đầu bằng chữ f hoặc chữ F viết hoa, record đó phải được chuyển vào table `f_tags`.
+Lần này, trong rule, chúng ta chỉ cần cho PostgreSQL biết rằng mỗi khi một record được chèn với giá trị tag bắt đầu bằng chữ f hoặc chữ F, record đó phải được chuyển vào table `f_tags`.
 
 [%start=3]
-. Bây giờ hãy thực hiện query sau:
+. Bây giờ hãy chạy query sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> insert into tags (tag) values ('Fedora Linux');
 INSERT 0 0
 ....
 
-Ngay từ câu trả lời `INSERT 0 0`, chúng ta có thể đoán rằng không có gì được chèn vào table `tags`.
+.SQL
+[source,sql]
+....
+INSERT INTO tags (tag)
+VALUES ('Fedora Linux');
+....
+
+.Output
+[source,output]
+....
+INSERT 0 0
+....
+
+
+Ngay từ output `INSERT 0 0`, chúng ta có thể đoán rằng không có gì được chèn vào table `tags`.
 
 [%start=4]
-. Bây giờ chúng ta sẽ thực hiện statement sau:
+. Bây giờ chúng ta sẽ thực thi statement sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from tags;
  pk |           tag           | parent
@@ -214,9 +370,29 @@ forumdb=> select * from tags;
 (4 rows)
 ....
 
-. Như có thể thấy trong snippet trước, value `Fedora Linux` không xuất hiện trong table `tags`, còn trong table `f_tags`, chúng ta sẽ có:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+ pk |           tag           | parent
+----+-------------------+--------
+  1 | Operating Systems |
+  2 | Linux                  |        1
+  3 | Ubuntu                 |        2
+  4 | OpenBSD                |
+(4 rows)
+....
+
+
+. Như có thể thấy ở trên, giá trị `Fedora Linux` không xuất hiện trong table `tags`, còn table `f_tags` sẽ chứa:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from f_tags ;
  pk |        tag        | parent
@@ -225,14 +401,31 @@ forumdb=> select * from f_tags ;
 (1 row)
 ....
 
-Rule chúng ta đã định nghĩa bảo đảm rằng record không được chèn vào table `tags` mà được chèn vào table `f_tags`.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM f_tags;
+....
+
+.Output
+[source,output]
+....
+ pk |        tag        | parent
+----+--------------+--------
+  6 | Fedora Linux |
+(1 row)
+....
+
+
+Rule chúng ta đã định nghĩa đảm bảo rằng record không được chèn vào table `tags` mà được chèn vào table `f_tags`.
 
 [%start=6]
-. Là ví dụ cuối cùng về rule INSERT, giả sử chúng ta không muốn có gì được chèn vào mỗi khi một record được chèn với field `tag` bắt đầu bằng chữ R hoặc r.
+. Trong ví dụ cuối cùng về rule INSERT, giả sử chúng ta không muốn chèn bất kỳ record nào có column `tag` bắt đầu bằng chữ R hoặc r.
 
-. Như trước, hãy thực hiện rule:
+. Như trước, hãy tạo rule:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create or replace rule r_tags3
     as on INSERT to tags
@@ -241,18 +434,48 @@ forumdb=> create or replace rule r_tags3
     CREATE RULE
 ....
 
-Lần này, chúng ta đã nói với PostgreSQL rằng mỗi khi table `tags` nhận một record có field `tag` bắt đầu bằng chữ r hoặc R, record này không được xem xét. Hãy thử điều chúng ta vừa nói:
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE rule r_tags3
+    AS ON INSERT to tags
+    WHERE NEW.tag ilike 'r%'
+    DO INSTEAD NOTHING;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+    CREATE RULE
+....
+
+
+Lần này, chúng ta đã chỉ dẫn PostgreSQL rằng mỗi khi table `tags` nhận một record có column `tag` bắt đầu bằng chữ r hoặc R, record đó sẽ bị bỏ qua. Hãy thử:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into tags (tag) values ('Red Hat Linux');
 INSERT 0 0
 ....
 
-[%start=8]
-. Lần này câu trả lời từ server vẫn là `INSERT 0 0`, và chúng ta có thể kiểm tra rằng record chưa được chèn vào bất kỳ table nào:
+.SQL
+[source,sql]
+....
+INSERT INTO tags (tag)
+VALUES ('Red Hat Linux');
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 0
+....
+
+
+[%start=8]
+. Lần này, output từ server vẫn là `INSERT 0 0`, và chúng ta có thể kiểm tra rằng record chưa được chèn vào bất kỳ table nào:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select pk,tag,parent,'tags' as tablename
 from tags
@@ -270,27 +493,56 @@ order by tablename, tag;
 (5 rows)
 ....
 
-Như có thể thấy, record không xuất hiện trong bất kỳ table nào. Trong query trước, chúng ta đã sử dụng `UNION ALL`. Nó bao gồm result của hai query. Điều quan trọng là các field type phải tương thích với nhau.
+.SQL
+[source,sql]
+....
+SELECT
+    pk,
+    tag,
+    parent,
+    'tags' AS tablename
+FROM tags
+UNION ALL SELECT pk, tag, parent, 'f_tags' AS tablename FROM f_tags
+ORDER BY
+    tablename,
+    tag;
+....
 
-== Rule trên DELETE/UPDATE
+.Output
+[source,output]
+....
+ pk |          tag           | parent | tablename
+----+-------------------+--------+-----------
+  6 | Fedora Linux           |            | f_tags
+  2 | Linux                  |          1 | tags
+  4 | OpenBSD                |            | tags
+  1 | Operating Systems |                 | tags
+  3 | Ubuntu                 |          2 | tags
+(5 rows)
+....
 
-Trong section trước, chúng ta đã xem cách sử dụng rule trên các event INSERT. Trong section này, chúng ta sẽ xem cách sử dụng rule trên các event DELETE và UPDATE.
 
-Bây giờ chúng ta sẽ xem một ví dụ hoàn chỉnh về cách sử dụng rule, bắt đầu từ các concept được mô tả ở trên.
+Như có thể thấy, record không xuất hiện trong bất kỳ table nào. Trong query trước, chúng ta đã sử dụng `UNION ALL`, kết hợp kết quả của hai query. Điều quan trọng là kiểu của các column phải tương thích với nhau.
 
-Mục tiêu chúng ta muốn đạt được được mô tả trong các bước sau:
+== Rule cho DELETE/UPDATE
 
-. Tạo một table có tên `new_tags` giống table `tags`; table này sẽ giúp chúng ta có một environment sạch để thực hiện các test.
-. Tạo hai table: một table có tên `new_a_tags` để copy tất cả record có tag bắt đầu bằng chữ a, và một table có tên `new_b_tags` để copy tất cả record có tag bắt đầu bằng chữ b.
-. Tạo tất cả rule INSERT/DELETE/UPDATE để mọi thứ hoạt động.
+Trong phần trước, chúng ta đã xem cách sử dụng rule với event INSERT. Trong phần này, chúng ta sẽ xem cách sử dụng rule với event DELETE và UPDATE.
+
+Bây giờ chúng ta sẽ xem một ví dụ hoàn chỉnh về cách sử dụng rule, bắt đầu từ các khái niệm được mô tả ở trên.
+
+Các bước để đạt mục tiêu này được mô tả như sau:
+
+. Tạo một table có tên `new_tags` giống table `tags`; table này sẽ cung cấp một môi trường sạch để kiểm thử.
+. Tạo hai table: một table có tên `new_a_tags` để sao chép mọi record có tag bắt đầu bằng chữ a, và một table có tên `new_b_tags` để sao chép mọi record có tag bắt đầu bằng chữ b.
+. Tạo các rule cần thiết cho INSERT, DELETE và UPDATE.
 
 Hãy bắt đầu.
 
 == Tạo table new_tags
 
-Bước đầu tiên là tạo một table `new_tags` mới. Chúng ta sẽ tạo table này dựa trên table `tags` hiện có:
+Bước đầu tiên là tạo table `new_tags` dựa trên table `tags` hiện có:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create table new_tags as select * from tags limit 0;
 SELECT 0
@@ -304,9 +556,30 @@ forumdb=# \d new_tags
    parent | integer |                    |             |
 ....
 
-Statement trước copy structure của các field trong table `tags` vào table `new_tags`, nhưng không copy các constraint hoặc index. Bây giờ chúng ta phải tạo constraint primary key trên table mới:
+.SQL
+[source,sql]
+....
+CREATE TABLE new_tags AS SELECT * FROM tags LIMIT 0;
+\d new_tags
+....
 
-[source,text]
+.Output
+[source,output]
+....
+SELECT 0
+
+                     Table "public.new_tags"
+   Column | Type          | Collation | Nullable | Default
+--------+---------+-----------+----------+---------
+   pk        | integer |                 |             |
+   tag       | text       |              |             |
+   parent | integer |                    |             |
+....
+
+
+Statement trước đã sao chép cấu trúc các column trong table `tags` vào table `new_tags`, nhưng không sao chép các constraint hoặc index. Bây giờ chúng ta phải tạo constraint primary key trên table mới:
+
+[source,console,role="transcript"]
 ....
 forumdb=> alter table new_tags alter pk set not null ;
 ALTER TABLE
@@ -316,7 +589,24 @@ ALTER TABLE
 forumdb=# \d new_tags
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+ALTER TABLE new_tags ALTER pk SET NOT NULL;
+ALTER TABLE new_tags ADD CONSTRAINT new_tags_pk PRIMARY KEY
+(pk);
+\d new_tags
+....
+
+.Output
+[source,output]
+....
+ALTER TABLE
+ALTER TABLE
+....
+
+
+[source,output]
 ....
                       Table "public.new_tags"
      Column | Type          | Collation | Nullable | Default
@@ -332,9 +622,9 @@ Như vậy, bước 1 đã hoàn tất.
 
 == Tạo hai table
 
-Tương tự như vừa làm, chúng ta hãy tạo các table `new_a_tags` và `new_b_tags`. Với table `new_a_tags`, chúng ta sẽ có:
+Tương tự như trên, chúng ta hãy tạo các table `new_a_tags` và `new_b_tags`. Với table `new_a_tags`, kết quả sẽ như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create table new_a_tags as select * from tags limit 0;
 SELECT 0
@@ -354,9 +644,36 @@ forumdb=> \d new_a_tags
           "new_a_tags_pk" PRIMARY KEY, btree (pk)
 ....
 
+.SQL
+[source,sql]
+....
+CREATE TABLE new_a_tags AS SELECT * FROM tags LIMIT 0;
+ALTER TABLE new_a_tags ALTER pk SET NOT NULL;
+ALTER TABLE new_a_tags ADD CONSTRAINT new_a_tags_pk PRIMARY KEY
+(pk);
+\d new_a_tags
+....
+
+.Output
+[source,output]
+....
+SELECT 0
+ALTER TABLE
+ALTER TABLE
+                     Table "forum.new_a_tags"
+     Column |     Type     | Collation | Nullable | Default
+    --------+---------+-----------+----------+---------
+     pk       | integer |              | not null |
+     tag      | text       |           |            |
+     parent | integer |                |            |
+    Indexes:
+          "new_a_tags_pk" PRIMARY KEY, btree (pk)
+....
+
+
 Tương tự, chúng ta sẽ tạo table `new_b_tags`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=>     create table new_b_tags as select * from tags limit 0;
 SELECT 0
@@ -376,29 +693,56 @@ forumdb=> \d new_b_tags
            "new_b_tags_pk" PRIMARY KEY, btree (pk)
 ....
 
+.SQL
+[source,sql]
+....
+CREATE TABLE new_b_tags AS SELECT * FROM tags LIMIT 0;
+ALTER TABLE new_b_tags ALTER pk SET NOT NULL;
+ALTER TABLE new_b_tags ADD CONSTRAINT new_b_tags_pk PRIMARY KEY
+(pk);
+\d new_b_tags
+....
+
+.Output
+[source,output]
+....
+SELECT 0
+ALTER TABLE
+ALTER TABLE
+                     Table "forum.new_b_tags"
+      Column |    Type   | Collation | Nullable | Default
+    --------+---------+-----------+----------+---------
+     pk       | integer |             | not null |
+     tag      | text     |             |           |
+     parent | integer |               |           |
+    Indexes:
+           "new_b_tags_pk" PRIMARY KEY, btree (pk)
+....
+
+
 Bước 2 đã hoàn tất, và chúng ta đã có mọi thứ cần thiết để bắt đầu ví dụ hoàn chỉnh.
 
-== Quản lý rule trên các event INSERT, DELETE và UPDATE
+== Quản lý rule cho các event INSERT, DELETE và UPDATE
 
-Mục tiêu chúng ta muốn đạt được được minh họa trong hình sau:
+Mục tiêu này được minh họa trong hình sau:
 
 *Hình 8.1: Quản lý rule*
 
-Sơ đồ cho thấy table `new_tags` (`pk` là primary key kiểu `integer`, `tag` kiểu `text`, `parent` kiểu `integer`) được nối tới `new_b_tags` với nhãn "COPY HERE ALL TAGS STARTING WITH 'b'", và được nối tới `new_a_tags` với nhãn "COPY HERE ALL TAGS STARTING WITH 'a'". Hai table đích cũng có `pk` là primary key cùng các column `tag`, `parent` như table `new_tags`.
+Sơ đồ cho thấy table `new_tags` (`pk` là primary key kiểu `integer`, `tag` kiểu `text`, `parent` kiểu `integer`) được nối với `new_b_tags` bằng nhãn "COPY HERE ALL TAGS STARTING WITH 'b'", và được nối với `new_a_tags` bằng nhãn "COPY HERE ALL TAGS STARTING WITH 'a'". Hai table đích cũng có `pk` là primary key và các column `tag`, `parent` như table `new_tags`.
 
-Chúng ta muốn tất cả tag bắt đầu bằng chữ a được lưu trong table `new_tags` và đồng thời được copy vào table `new_a_tags`; với các tag bắt đầu bằng chữ b cũng tương tự.
+Chúng ta muốn mọi tag bắt đầu bằng chữ a được lưu trong table `new_tags` và đồng thời được sao chép vào table `new_a_tags`; các tag bắt đầu bằng chữ b cũng tương tự.
 
-Chúng ta phải quản lý rule cho các event INSERT, DELETE và UPDATE theo những cách sau:
+Chúng ta phải quản lý rule cho các event INSERT, DELETE và UPDATE theo các cách sau:
 
-* Rule INSERT phải nhận diện tất cả tag bắt đầu bằng chữ a hoặc b và copy các record đó vào table tương ứng, `new_a_tags` và `new_b_tags`.
-* Rule DELETE phải nhận diện tất cả tag bắt đầu bằng chữ a hoặc b và xóa các record đó trong table tương ứng, `new_a_tags` và `new_b_tags`.
-* Rule UPDATE phải nhận diện tất cả tag bắt đầu bằng chữ a hoặc b; nếu một record thay đổi tag, rule phải kiểm tra xem record đó cần được copy vào hay xóa khỏi các table `new_a_tags` và `new_b_tags`.
+* Rule INSERT phải nhận diện mọi tag bắt đầu bằng chữ a hoặc b và sao chép các record đó vào table tương ứng, `new_a_tags` và `new_b_tags`.
+* Rule DELETE phải nhận diện mọi tag bắt đầu bằng chữ a hoặc b và xóa các record đó khỏi table tương ứng, `new_a_tags` và `new_b_tags`.
+* Rule UPDATE phải nhận diện mọi tag bắt đầu bằng chữ a hoặc b; nếu tag của một record thay đổi, rule phải kiểm tra xem record đó cần được sao chép vào hay xóa khỏi các table `new_a_tags` và `new_b_tags`.
 
-== Rule INSERT
+== Rule cho INSERT
 
 Hãy bắt đầu bằng cách tạo hai rule INSERT:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# create or replace rule r_new_tags_insert_a as on INSERT to new_
 tags where NEW.tag like 'a%' DO ALSO insert into new_a_tags(pk,tag,parent)
@@ -411,9 +755,29 @@ values (NEW.pk,NEW.tag,NEW.parent);
 CREATE RULE
 ....
 
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE rule r_new_tags_insert_a AS ON INSERT to new_
+tags WHERE NEW.tag like 'a%' DO ALSO INSERT INTO new_a_tags (pk, tag, parent)
+VALUES (NEW.pk, NEW.tag, NEW.parent);
+CREATE OR REPLACE rule r_new_tags_insert_b AS ON INSERT to new_
+tags WHERE NEW.tag like 'b%' DO ALSO INSERT INTO new_b_tags (pk, tag, parent)
+VALUES (NEW.pk, NEW.tag, NEW.parent);
+....
+
+.Output
+[source,output]
+....
+CREATE RULE
+
+CREATE RULE
+....
+
+
 Như có thể thấy, table `new_tags` hiện có hai rule mới:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=# \d new_tags
                         Table "forum.new_tags"
@@ -437,9 +801,40 @@ forumdb=# \d new_tags
         VALUES (new.pk, new.tag, new.parent)
 ....
 
-Để kiểm tra xem các rule có hoạt động hay không, hãy chèn một số data:
+.SQL
+[source,sql]
+....
+\d new_tags
+....
 
-[source,text]
+.Output
+[source,output]
+....
+                        Table "forum.new_tags"
+       Column |      Type     | Collation | Nullable | Default
+    --------+---------+-----------+----------+---------
+        pk        | integer |                 | not null |
+        tag       | text       |           |            |
+        parent | integer |                    |            |
+    Indexes:
+         "new_tags_pk" PRIMARY KEY, btree (pk)
+    Rules:
+             r_new_tags_insert_a AS
+             ON INSERT TO new_tags
+       WHERE new.tag ~~ 'a%'::text DO               INSERT INTO new_a_tags (pk, tag,
+    parent)
+        VALUES (new.pk, new.tag, new.parent)
+          r_new_tags_insert_b AS
+          ON INSERT TO new_tags
+       WHERE new.tag ~~ 'b%'::text DO          INSERT INTO new_b_tags (pk, tag,
+    parent)
+        VALUES (new.pk, new.tag, new.parent)
+....
+
+
+Để kiểm tra xem các rule có hoạt động hay không, hãy chèn một ít dữ liệu:
+
+[source,console,role="transcript"]
 ....
 forumdb=> insert into new_tags values(1,'linux',NULL);
 INSERT 0 1
@@ -450,9 +845,30 @@ forumdb=> insert into new_tags values(3,'bsd unix',NULL);
 INSERT 0 1
 ....
 
-Tiếp theo hãy kiểm tra parent table:
+.SQL
+[source,sql]
+....
+INSERT INTO new_tags
+VALUES (1, 'linux', NULL);
+INSERT INTO new_tags
+VALUES (2, 'alpine linux', 1);
+INSERT INTO new_tags
+VALUES (3, 'bsd unix', NULL);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+INSERT 0 1
+INSERT 0 1
+
+INSERT 0 1
+....
+
+
+Tiếp theo, hãy kiểm tra table cha:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from new_tags ;
    pk |     tag        | parent
@@ -463,9 +879,28 @@ forumdb=> select * from new_tags ;
   (3 rows)
 ....
 
-Bây giờ hãy xem những gì có trong child table `table_a`:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM new_tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   pk |     tag        | parent
+  ----+--------------+--------
+      1 | linux          |
+      2 | alpine linux |            1
+      3 | bsd unix       |
+  (3 rows)
+....
+
+
+Bây giờ hãy xem table con `table_a` có gì:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from new_a_tags ;
    pk |     tag        | parent
@@ -474,9 +909,26 @@ forumdb=> select * from new_a_tags ;
   (1 row)
 ....
 
-Và đây là những gì có trong child table `table_b`:
+.SQL
+[source,sql]
+....
+SELECT *
+FROM new_a_tags;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+   pk |     tag        | parent
+  ----+--------------+--------
+      2 | alpine linux |            1
+  (1 row)
+....
+
+
+Đây là những gì có trong table con `table_b`:
+
+[source,console,role="transcript"]
 ....
 forumdb=> select * from new_b_tags ;
    pk |   tag      | parent
@@ -485,13 +937,30 @@ forumdb=> select * from new_b_tags ;
   (1 row)
 ....
 
-Chúng ta có thể thấy hai rule hoạt động.
+.SQL
+[source,sql]
+....
+SELECT *
+FROM new_b_tags;
+....
 
-== Rule DELETE
+.Output
+[source,output]
+....
+   pk |   tag      | parent
+  ----+----------+--------
+  3 | bsd unix |
+  (1 row)
+....
 
-Bây giờ hãy tạo các rule DELETE. Chúng ta cần các rule sao cho nếu một record bị xóa khỏi table `new_tags` và bắt đầu bằng chữ a hoặc b, bản copy của nó trong table `new_a_tags` hoặc `new_b_tags` cũng phải bị xóa. Với tất cả record bắt đầu bằng chữ a, chúng ta cần rule sau:
 
-[source,text]
+Có thể thấy hai rule hoạt động.
+
+== Rule cho DELETE
+
+Bây giờ hãy tạo các rule DELETE. Cần tạo rule để khi một record có tag bắt đầu bằng chữ a hoặc b bị xóa khỏi table `new_tags`, bản sao của nó trong table `new_a_tags` hoặc `new_b_tags` cũng bị xóa. Với mọi record có tag bắt đầu bằng chữ a, chúng ta cần rule sau:
+
+[source,console,role="transcript"]
 ....
 forumdb=> create or replace rule r_new_tags_delete_a as on delete to new_
 tags where OLD.tag like 'a%' DO ALSO delete from new_a_tags where pk=OLD.
@@ -499,9 +968,24 @@ pk;
 CREATE RULE
 ....
 
-Tương tự, chúng ta cần rule này cho các record bắt đầu bằng chữ b:
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE rule r_new_tags_delete_a AS ON DELETE to new_
+tags WHERE OLD.tag like 'a%' DO ALSO DELETE FROM new_a_tags WHERE pk = OLD.
+pk;
+....
 
-[source,text]
+.Output
+[source,output]
+....
+CREATE RULE
+....
+
+
+Tương tự, chúng ta cần rule cho các record bắt đầu bằng chữ b:
+
+[source,console,role="transcript"]
 ....
 forumdb=> create or replace rule r_new_tags_delete_b as on delete to new_
 tags where OLD.tag like 'b%' DO ALSO delete from new_b_tags where pk=OLD.
@@ -509,9 +993,24 @@ pk;
 CREATE RULE
 ....
 
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE rule r_new_tags_delete_b AS ON DELETE to new_
+tags WHERE OLD.tag like 'b%' DO ALSO DELETE FROM new_b_tags WHERE pk = OLD.
+pk;
+....
+
+.Output
+[source,output]
+....
+CREATE RULE
+....
+
+
 Trạng thái hiện tại của table `new_tags` như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> \d new_tags
                      Table "forum.new_tags"
@@ -543,9 +1042,48 @@ forumdb=> \d new_tags
         VALUES (new.pk, new.tag, new.parent)
 ....
 
+.SQL
+[source,sql]
+....
+\d new_tags
+....
+
+.Output
+[source,output]
+....
+                     Table "forum.new_tags"
+     Column |    Type     | Collation | Nullable | Default
+    --------+---------+-----------+----------+---------
+     pk       | integer |                | not null |
+     tag      | text       |              |            |
+     parent | integer |                  |            |
+    Indexes:
+          "new_tags_pk" PRIMARY KEY, btree (pk)
+    Rules:
+          r_new_tags_delete_a AS
+          ON DELETE TO new_tags
+        WHERE old.tag ~~ 'a%'::text DO         DELETE FROM new_a_tags
+      WHERE new_a_tags.pk = old.pk
+          r_new_tags_delete_b AS
+          ON DELETE TO new_tags
+        WHERE old.tag ~~ 'b%'::text DO       DELETE FROM new_b_tags
+       WHERE new_b_tags.pk = old.pk
+          r_new_tags_insert_a AS
+          ON INSERT TO new_tags
+       WHERE new.tag ~~ 'a%'::text DO         INSERT INTO new_a_tags (pk, tag,
+    parent)
+        VALUES (new.pk, new.tag, new.parent)
+          r_new_tags_insert_b AS
+          ON INSERT TO new_tags
+       WHERE new.tag ~~ 'b%'::text DO         INSERT INTO new_b_tags (pk, tag,
+    parent)
+        VALUES (new.pk, new.tag, new.parent)
+....
+
+
 Hãy kiểm tra xem hai rule mới có hoạt động hay không:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> delete from new_tags where tag = 'alpine linux';
 DELETE 1
@@ -569,13 +1107,47 @@ forumdb=> select * from new_b_tags ;
   (0 rows)
 ....
 
-Từ đây chúng ta có thể thấy các rule mới hoạt động.
+.SQL
+[source,sql]
+....
+DELETE FROM new_tags WHERE tag = 'alpine linux';
+DELETE FROM new_tags WHERE tag = 'bsd unix';
+SELECT *
+FROM new_tags;
+SELECT *
+FROM new_a_tags;
+SELECT *
+FROM new_b_tags;
+....
 
-== Rule UPDATE
+.Output
+[source,output]
+....
+DELETE 1
+DELETE 1
 
-Bây giờ chúng ta cần giới thiệu một rule kiểm tra xem tag có được update bằng một từ bắt đầu bằng a hoặc b hay không. Cách đơn giản là trước tiên tạo một function thực hiện việc kiểm tra này, rồi tạo một rule dựa trên function đó. Hãy bắt đầu bằng cách tạo function:
+   pk |   tag   | parent
+  ----+-------+--------
+      1 | linux |
+  (1 row)
 
-[source,text]
+   pk | tag | parent
+  ----+-----+--------
+  (0 rows)
+
+   pk | tag | parent
+  ----+-----+--------
+  (0 rows)
+....
+
+
+Từ đây, có thể thấy các rule mới hoạt động.
+
+== Rule cho UPDATE
+
+Bây giờ chúng ta cần tạo một rule để kiểm tra xem tag có được cập nhật thành một từ bắt đầu bằng a hoặc b hay không. Cách đơn giản là trước tiên tạo một function thực hiện việc kiểm tra này, rồi tạo một rule dựa trên function đó. Hãy bắt đầu bằng cách tạo function:
+
+[source,console,role="transcript"]
 ....
 forumdb=> create or replace function move_record (p_pk integer, p_tag
 text, p_parent integer,p_old_pk integer,p_old_tag text ) returns void
@@ -591,20 +1163,63 @@ $$;
 CREATE FUNCTION
 ....
 
-Function này nhận năm parameter làm input; ba parameter đầu tiên là các value `NEW` đến từ update, còn hai parameter cuối là các value `OLD` của record hiện có trong record. Function kiểm tra xem record trong table có bắt đầu bằng chữ a hoặc b hay không, rồi xóa record cũ và chèn record mới.
+.Command
+[source,bash]
+....
+$
+$;
+....
+
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE FUNCTION move_record (p_pk integer, p_tag
+text, p_parent integer, p_old_pk integer, p_old_tag text)
+    returns void
+LANGUAGE plpgsql AS
+....
+
+.Output
+[source,output]
+....
+BEGIN
+     if left(lower(p_tag),1) in ('a','b') THEN
+           delete from new_tags where pk = p_old_pk;
+           insert into new_tags values(p_pk,p_tag,p_parent);
+   end if;
+END;
+CREATE FUNCTION
+....
+
+
+Function này nhận năm parameter; ba parameter đầu tiên là các giá trị `NEW` nhận được từ UPDATE, còn hai parameter cuối là các giá trị `OLD` của record hiện có. Function kiểm tra xem tag của record mới có bắt đầu bằng chữ a hoặc b hay không, rồi xóa record cũ và chèn record mới.
 
 Cuối cùng, rule là:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> create or replace rule r_new_tags_update_a as on UPDATE to new_
 tags DO ALSO select move_record(NEW.pk,NEW.tag,NEW.parent,OLD.pk,OLD.tag);
 CREATE RULE
 ....
 
-Rule gọi function khi có một update. Hãy xem rule này có hoạt động hay không:
+.SQL
+[source,sql]
+....
+CREATE OR REPLACE rule r_new_tags_update_a AS ON UPDATE to new_
+tags DO ALSO SELECT move_record(NEW.pk, NEW.tag, NEW.parent, OLD.pk, OLD.tag);
+....
 
-[source,text]
+.Output
+[source,output]
+....
+CREATE RULE
+....
+
+
+Rule gọi function mỗi khi có một UPDATE. Hãy kiểm tra xem rule này có hoạt động hay không:
+
+[source,console,role="transcript"]
 ....
 forumdb=> update new_tags set tag='alpine linux' where tag='linux';
  move_record
@@ -616,7 +1231,31 @@ UPDATE 0
 
 forumdb=> select * from new_a_tags ;
 ....
-[source,text]
+
+.SQL
+[source,sql]
+....
+UPDATE new_tags
+SET
+    tag = 'alpine linux'
+WHERE tag = 'linux';
+SELECT *
+FROM new_a_tags;
+....
+
+.Output
+[source,output]
+....
+ move_record
+-------------
+
+
+(1 row)
+UPDATE 0
+....
+
+
+[source,output]
 ....
       pk |     tag        | parent
 ----+--------------+--------
@@ -624,7 +1263,7 @@ forumdb=> select * from new_a_tags ;
 (1 row)
 ....
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> select * from new_tags ;
      pk |     tag        | parent
@@ -633,9 +1272,26 @@ forumdb=> select * from new_tags ;
 (1 row)
 ....
 
+.SQL
+[source,sql]
+....
+SELECT *
+FROM new_tags;
+....
+
+.Output
+[source,output]
+....
+     pk |     tag        | parent
+----+--------------+--------
+    1 | alpine linux |
+(1 row)
+....
+
+
 Bây giờ hãy xem điều gì xảy ra nếu một record đổi tag từ `alpine linux` thành `bsd unix`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 forumdb=> update new_tags set tag='bsd unix' where tag='alpine linux';
    move_record
@@ -668,6 +1324,52 @@ forumdb=> select * from new_b_tags ;
 (1 row)
 ....
 
-Rule hoạt động! Trong bài tập ngắn này, chúng ta đã thử đưa ra một ví dụ về việc quản lý rule hoàn chỉnh. Đây là một ví dụ mang tính minh họa, và có nhiều cách khác để đạt được cùng mục tiêu.
+.SQL
+[source,sql]
+....
+UPDATE new_tags
+SET
+    tag = 'bsd unix'
+WHERE tag = 'alpine linux';
+SELECT *
+FROM new_tags;
+SELECT *
+FROM new_a_tags;
+SELECT *
+FROM new_b_tags;
+....
 
-Trong section tiếp theo, chúng ta sẽ khám phá một cách khác để quản lý event trong PostgreSQL: trigger.
+.Output
+[source,output]
+....
+   move_record
+ -------------
+
+
+(1 row)
+
+
+UPDATE 0
+
+
+     pk |   tag     | parent
+----+----------+--------
+    1 | bsd unix |
+(1 row)
+
+
+     pk | tag | parent
+----+-----+--------
+(0 rows)
+
+
+     pk |   tag     | parent
+----+----------+--------
+    1 | bsd unix |
+(1 row)
+....
+
+
+Rule hoạt động! Trong bài tập ngắn này, chúng ta đã trình bày một ví dụ hoàn chỉnh về cách quản lý rule. Đây chỉ là một ví dụ minh họa; có nhiều cách khác để đạt được cùng mục tiêu.
+
+Trong phần tiếp theo, chúng ta sẽ khám phá một cách khác để quản lý event trong PostgreSQL: trigger.

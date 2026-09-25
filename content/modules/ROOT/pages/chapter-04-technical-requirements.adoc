@@ -1,45 +1,73 @@
-= Technical requirements
+= Yêu cầu kỹ thuật
 
-Đến thời điểm này trong sách, chúng ta đã học cách install PostgreSQL và configure user, nhưng nếu bạn chưa đọc các chapter trước, bạn vẫn có thể dễ dàng làm theo các bước tiếp theo bằng Docker image được mô tả dưới đây.
+Đến thời điểm này trong cuốn sách, chúng ta đã học cách cài đặt PostgreSQL và cấu hình user. Tuy nhiên, nếu chưa đọc các chương trước, bạn vẫn có thể dễ dàng làm theo các bước tiếp theo bằng Docker image được mô tả dưới đây.
 
-== Dùng Docker image
+== Sử dụng Docker image
 
-Nếu muốn làm theo các bước tiếp theo mà không install và configure PostgreSQL, bạn có thể dễ dàng thực hiện bằng Docker image trong GitHub repository (chi tiết về cách setup được trình bày trong Chapter 1, *Introduction to PostgreSQL*). Vì vậy, hãy start standalone container như được mô tả trong Chapter 1, *Introduction to PostgreSQL*, sau đó execute lệnh sau:
+Nếu muốn làm theo các bước tiếp theo mà không cài đặt và cấu hình PostgreSQL, bạn có thể dễ dàng thực hiện các bước đó bằng Docker image trong repository trên GitHub (chi tiết về cách thiết lập được trình bày trong chương 1, *Giới thiệu về PostgreSQL*). Vì vậy, hãy khởi động standalone container như mô tả trong chương 1, *Giới thiệu về PostgreSQL*, rồi thực thi lệnh sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 $ sudo docker exec -it standalone_learn_postgresql_1 /bin/bash
 ....
 
-Sau khi execute instruction này, chúng ta sẽ ở bên trong container `standalone_learn_postgresql_1` trong một root shell:
+.Command
+[source,bash]
+....
+sudo docker exec -it standalone_learn_postgresql_1 /bin/bash
+....
+
+
+Sau khi chạy lệnh này, chúng ta sẽ ở trong container `standalone_learn_postgresql_1` và có một root shell:
 
 [source,text]
 ....
 root@learn_postgresql:/#
 ....
 
-== Connect đến database
+== Kết nối đến database
 
-Ngay cả khi không dùng Docker container mà dùng native PostgreSQL installation như được mô tả trong Chapter 1, *Introduction to PostgreSQL*, chúng ta cũng sẽ đạt được kết quả giống như trên, bằng statement tương tự được execute với tư cách postgres user:
+Ngay cả khi dùng PostgreSQL được cài đặt trực tiếp thay vì Docker container như mô tả trong chương 1, *Giới thiệu về PostgreSQL*, chúng ta vẫn đạt được kết quả tương tự bằng cách thực thi cùng statement với tư cách user postgres:
 
-[source,text]
+[source,console,role="transcript"]
 ....
 root@learn_postgresql:/# su - postgres
 postgres@learn_postgresql:~$ psql
 postgres=#
 ....
 
-Bây giờ hãy bật expanded mode bằng command `\x`:
+.Command
+[source,bash]
+....
+root@learn_postgresql:/# su - postgres
+psql
+....
 
-[source,text]
+
+Bây giờ hãy bật expanded mode bằng lệnh `\x`:
+
+[source,console,role="transcript"]
 ....
 postgres=# \x
 Expanded display is on.
 ....
 
-Sau đó hãy list tất cả database hiện có trong cluster:
+.SQL
+[source,sql]
+....
+\x
+....
 
-[source,text]
+.Output
+[source,output]
+....
+Expanded display is on.
+....
+
+
+Sau đó, hãy liệt kê tất cả database hiện có trong cluster:
+
+[source,console,role="transcript"]
 ....
 postgres=# \l
 List of databases
@@ -54,12 +82,47 @@ Locale Provider        | libc
 Access privileges |
 ....
 
-Vì lý do không gian, chúng ta chỉ báo cáo database `forumdb` được import từ Docker script, nhưng cũng có các database `template0`, `template1` và `postgres` như đã thấy trong Chapter 2, *Getting to know your cluster*. Cuối cùng, hãy connect đến database `forumdb`:
+.SQL
+[source,sql]
+....
+\l
+....
 
-[source,text]
+.Output
+[source,output]
+....
+List of databases
+-[ RECORD 1 ]-----+--------------
+Name                 | forumdb
+Owner                  | forum
+Encoding               | UTF8
+Collate                | en_US.utf8
+Ctype                  | en_US.utf8
+ICU Locale             |
+Locale Provider        | libc
+Access privileges |
+....
+
+
+Để tiết kiệm không gian, chúng ta chỉ hiển thị database `forumdb` được import từ Docker script; tuy nhiên, như đã thấy trong chương 2, *Làm quen với cluster của bạn*, còn có các database `template0`, `template1` và `postgres`. Cuối cùng, hãy kết nối đến database `forumdb`:
+
+[source,console,role="transcript"]
 ....
 postgres=# \c forumdb
 You are now connected to database "forumdb" as user "postgres".
 ....
 
-Bây giờ chúng ta đã hoàn thành việc setup development environment, có thể chuyển sang tạo database trong đó.
+.SQL
+[source,sql]
+....
+\c forumdb
+....
+
+.Output
+[source,output]
+....
+You are now connected to database "forumdb" as user "postgres".
+....
+
+
+Bây giờ chúng ta đã hoàn tất việc thiết lập môi trường phát triển và có thể chuyển sang tạo database trong môi trường đó.

@@ -1,122 +1,161 @@
-= Indexes
+= Index
 
-Index là một data structure cho phép truy cập nhanh hơn tới underlying table để có thể nhanh chóng tìm được các tuple cụ thể. Ở đây, “nhanh” có nghĩa là nhanh hơn việc scan toàn bộ underlying table và phân tích từng tuple.
+Index là một cấu trúc dữ liệu cho phép truy cập table bên dưới nhanh hơn, nhờ đó có thể nhanh chóng tìm các tuple cụ thể. Ở đây, “nhanh” nghĩa là nhanh hơn so với việc scan toàn bộ table bên dưới và phân tích từng tuple.
 
-PostgreSQL hỗ trợ nhiều type index khác nhau, và không phải type nào cũng tối ưu cho mọi scenario và workload. Trong các section sau, bạn sẽ khám phá những type index chính mà PostgreSQL cung cấp; trong mọi trường hợp, bạn vẫn có thể mở rộng PostgreSQL bằng index của riêng mình hoặc index do extension cung cấp.
+PostgreSQL hỗ trợ nhiều loại index khác nhau, và không phải loại nào cũng tối ưu cho mọi tình huống và workload. Trong các phần sau, bạn sẽ tìm hiểu những loại index chính mà PostgreSQL cung cấp. Dù vậy, bạn vẫn có thể mở rộng PostgreSQL bằng index tự xây dựng hoặc index do extension cung cấp.
 
 Một index trong PostgreSQL có thể được build trên một column hoặc nhiều column cùng lúc; PostgreSQL hỗ trợ index có tối đa 32 column.
 
-Một index có thể bao phủ toàn bộ data trong underlying table, hoặc chỉ index những value cụ thể; trong trường hợp đó, index được gọi là “partial”. Ví dụ, bạn có thể quyết định chỉ index những value của một số column mà bạn sẽ sử dụng nhiều nhất.
+Một index có thể bao phủ toàn bộ data trong table bên dưới hoặc chỉ index các value cụ thể; trong trường hợp đó, index được gọi là “partial”. Ví dụ, bạn có thể chỉ index các value của những column nhất định mà bạn sẽ dùng nhiều nhất.
 
-Một index cũng có thể là unique, nghĩa là nó được dùng để bảo đảm tính duy nhất của các value mà nó index, chẳng hạn như primary key của một table. Ngoài ra, một index có thể được build trên một user-defined function, nghĩa là index sẽ index các giá trị return của những function đó.
+Index cũng có thể là unique, nghĩa là nó được dùng để bảo đảm tính duy nhất của các value mà nó index, chẳng hạn như primary key của một table. Ngoài ra, index có thể được build trên một user-defined function, tức là index sẽ index các giá trị mà những function đó trả về.
 
 [quote]
 ____
-Để được sử dụng trong một index, user-defined function phải được khai báo là `IMMUTABLE`, nghĩa là output của nó phải giống nhau với cùng một input.
+Để được sử dụng trong một index, user-defined function phải được khai báo là `IMMUTABLE`, nghĩa là kết quả trả về phải giống nhau với cùng một input.
 
 ____
-PostgreSQL có khả năng mix và match các index với nhau; do đó, nhiều index khác nhau có thể được dùng để đáp ứng query plan. Nhờ feature quan trọng này của PostgreSQL, bạn không cần định nghĩa mọi index permutation có thể có của column, vì PostgreSQL sẽ cố gắng mix các index không liên quan trực tiếp với nhau.
+PostgreSQL có thể kết hợp các index với nhau; do đó, nhiều index khác nhau có thể được dùng để đáp ứng query plan. Nhờ tính năng quan trọng này của PostgreSQL, bạn không cần định nghĩa mọi tổ hợp index khả dĩ của các column, vì PostgreSQL sẽ cố gắng kết hợp các index độc lập với nhau.
 
-Trong các subsection sau, bạn sẽ tìm hiểu tất cả type index có sẵn trong một PostgreSQL 16 cluster, cũng như cách create hoặc drop một index.
+Trong các phần sau, bạn sẽ tìm hiểu tất cả các loại index có sẵn trong một PostgreSQL 16 cluster, cũng như cách tạo hoặc xóa index.
 
-== Index types
+== Các loại index
 
-Index mặc định PostgreSQL sử dụng là Balanced Tree (B-Tree), một implementation cụ thể của tree giữ cho depth không đổi ngay cả khi size của underlying table tăng mạnh, do đó cần cùng một nỗ lực để traverse từ root đến leaf.
+Index mặc định mà PostgreSQL sử dụng là Balanced Tree (B-tree), một implementation cụ thể của tree giữ cho độ sâu không đổi ngay cả khi kích thước table bên dưới tăng mạnh; vì vậy, việc traverse từ root đến leaf luôn cần lượng công việc như nhau.
 
-Một B-Tree index có thể được dùng cho hầu hết operator và column type, kể cả so sánh string trong query dựa trên `LIKE`, nhưng nó chỉ hiệu quả nếu pattern bắt đầu bằng một string cố định. B-Tree index cũng hỗ trợ condition `UNIQUE` và vì vậy được dùng để build primary key index.
+B-tree index có thể được dùng với hầu hết operator và data type của column, kể cả so sánh string trong các query dựa trên `LIKE`, nhưng chỉ hiệu quả nếu pattern bắt đầu bằng một string cố định. B-tree index cũng hỗ trợ condition `UNIQUE` và vì vậy được dùng để build primary key index.
 
-Một nhược điểm của B-Tree index là nó copy toàn bộ value của column vào tree structure; do đó, nếu bạn dùng B-Tree để index các value lớn (ví dụ, string dài), index sẽ nhanh chóng tăng về size và space.
+Một nhược điểm của B-tree index là nó sao chép toàn bộ value của column vào tree structure; vì vậy, nếu dùng B-tree để index các value lớn (ví dụ, string dài), index sẽ nhanh chóng tăng kích thước và chiếm nhiều dung lượng.
 
-Một type index khác PostgreSQL cung cấp là hash index: index này được build trên kết quả của một hash function áp dụng cho value của column (hoặc các column). Điều quan trọng cần lưu ý là hash index chỉ có thể được dùng cho equality operator, không dùng được cho range operator hay disequality operator. Thực tế, vì đây là index được build trên một hash function, index không thể so sánh hai hash value để hiểu thứ tự của chúng; chỉ equality (tạo ra cùng một hash value) mới có thể được đánh giá.
+Một loại index khác mà PostgreSQL cung cấp là Hash index: index này được xây dựng trên kết quả của một hash function áp dụng cho value của column (hoặc các column). Điều quan trọng cần lưu ý là Hash index chỉ có thể được dùng với equality operator, không dùng được với range operator hoặc disequality operator. Thực tế, vì được xây dựng trên một hash function, index không thể so sánh hai hash value để xác định thứ tự của chúng; chỉ equality (tạo ra cùng một hash value) mới có thể được đánh giá.
 
-Block Range Index (BRIN) là một type index đặc biệt dựa trên range của các value trong data block trên storage. Ý tưởng là mỗi block có một value nhỏ nhất và một value lớn nhất, sau đó index lưu một cặp value cho mỗi data block trên storage. Khi một query tìm một value cụ thể, index biết các value có thể được tìm thấy trong data block nào, nhưng phải đánh giá tất cả tuple trong block.
+Block Range Index (BRIN) là một loại index đặc biệt, dựa trên range của các value trong data block trên storage. Ý tưởng là mỗi block có một value nhỏ nhất và một value lớn nhất, sau đó index lưu một cặp value cho mỗi data block trên storage. Khi query tìm một value cụ thể, index biết value có thể nằm trong data block nào, nhưng vẫn phải đánh giá tất cả tuple trong block.
 
-Vì vậy, type index này không chính xác bằng B-Tree và được gọi là lossy (nhấn mạnh rằng nó không exact, tức có thể có loss), nhưng nó nhỏ hơn nhiều so với mọi type index khác vì chỉ lưu một cặp value cho mỗi data block.
+Vì vậy, loại index này không chính xác bằng B-tree và được gọi là lossy (nhấn mạnh rằng nó không exact, tức có thể có loss), nhưng nhỏ hơn nhiều so với mọi loại index khác vì chỉ lưu một cặp value cho mỗi data block.
 
-GIN là một type index không trỏ tới một tuple duy nhất mà trỏ tới nhiều value, và ở một mức độ nào đó là một array các value. Thông thường, loại index này được dùng trong các scenario full-text search, khi bạn index một text được viết trong đó có nhiều key bị duplicate (ví dụ, cùng một word hoặc term) trỏ tới các vị trí khác nhau (ví dụ, cùng một word trong các phrase và line khác nhau).
+GIN là một loại index không trỏ tới một tuple duy nhất mà trỏ tới nhiều value, và ở một mức độ nào đó là một array các value. Thông thường, loại index này được dùng trong các trường hợp full-text search, khi bạn index một đoạn text có nhiều key trùng lặp (ví dụ, cùng một word hoặc term) trỏ tới các vị trí khác nhau (ví dụ, cùng một word trong các phrase và line khác nhau).
 
-Tiếp theo là Generalized Index Search Tree (GIST), một platform bên trên đó có thể build các type index mới. Ý tưởng là cung cấp một pluggable infrastructure nơi bạn có thể định nghĩa operator và feature có khả năng index một data structure. Một ví dụ là SP-GIST, một spatial index được dùng trong các application địa lý.
+Tiếp theo là Generalized Index Search Tree (GiST), một platform trên đó có thể xây dựng các loại index mới. Ý tưởng là cung cấp một pluggable infrastructure, nơi bạn có thể định nghĩa các operator và feature có khả năng index một data structure. Một ví dụ là SP-GiST, một spatial index được dùng trong các application địa lý.
 
-== Creating an index
+== Tạo index
 
-Index có thể được tạo bằng `CREATE INDEX` statement, có dạng như sau:
+Index có thể được tạo bằng statement `CREATE INDEX`, có dạng như sau:
 
 [source,sql]
 ....
-   CREATE [ UNIQUE ] INDEX [ CONCURRENTLY ] [ [ IF NOT EXISTS ] name ] ON [
-   ONLY ] table_name [ USING method ]
-       ( { column_name | ( expression ) } [ COLLATE collation ] [ opclass ] [
-   ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...] )
-        [ INCLUDE ( column_name [, ...] ) ]
-        [ WITH ( storage_parameter = value [, ... ] ) ]
-        [ TABLESPACE tablespace_name ]
-        [ WHERE predicate ]
+CREATE [ UNIQUE ] INDEX [ CONCURRENTLY ] [ [ IF NOT EXISTS ] name ] ON [ ONLY ] table_name [ USING method ] ({ column_name | (expression) } [ COLLATE collation ] [ opclass ] [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...]) [ INCLUDE (column_name [, ...]) ] [ WITH (storage_parameter = value [, ... ]) ] [ TABLESPACE tablespace_name ] [ WHERE predicate ]
 ....
 
-Index được nhận diện bằng một mnemonic name, tương tự table mà chúng liên quan. Điều thú vị cần lưu ý là index name luôn unqualified, nghĩa là nó không bao gồm schema nơi index sẽ được đặt: một index luôn được tìm thấy trong chính schema của underlying table. Tuy nhiên, có thể lưu index trong một tablespace khác với tablespace của underlying table, và điều này có thể hữu ích để lưu các index quan trọng trên storage nhanh hơn. Statement hỗ trợ `IF NOT EXISTS` clause để dừng việc create theo cách nhẹ nhàng nếu một index có cùng name đã tồn tại.
+Index được nhận diện bằng một mnemonic name, tương tự các table mà chúng liên quan. Điều đáng lưu ý là index name luôn unqualified, nghĩa là nó không bao gồm schema nơi index sẽ được đặt: một index luôn nằm trong cùng schema với table bên dưới. Tuy nhiên, bạn có thể lưu index trong một tablespace khác với tablespace của table bên dưới; điều này hữu ích khi cần lưu các index quan trọng trên storage nhanh hơn. Statement hỗ trợ clause `IF NOT EXISTS` để việc tạo index kết thúc êm thấm nếu index có cùng name đã tồn tại.
 
-`UNIQUE` clause chỉ định rằng index sẽ kiểm tra tính duy nhất của các column của nó. `WHERE` clause cho phép tạo partial index, tức một index chỉ chứa thông tin về các tuple thỏa mãn `WHERE` condition.
+Clause `UNIQUE` chỉ định rằng index sẽ kiểm tra tính duy nhất của các column. Clause `WHERE` cho phép tạo partial index, tức một index chỉ chứa thông tin về những tuple thỏa mãn condition `WHERE`.
 
-`INCLUDE` clause cho phép bạn chỉ định một số column bổ sung của underlying table sẽ được lưu trong index dù không được index. Ý tưởng là nếu index hữu ích cho một index-only scan, bạn vẫn có thể lấy thông tin bổ sung mà không cần quay lại underlying table. Dĩ nhiên, việc có một covering index (tên của một index dùng `INCLUDE` clause) nghĩa là index sẽ tăng size, đồng thời mỗi tuple update có thể cần thêm effort để update index.
+Clause `INCLUDE` cho phép chỉ định một số column bổ sung của table bên dưới sẽ được lưu trong index dù không được index. Ý tưởng là nếu index hữu ích cho một index-only scan, bạn vẫn có thể lấy thông tin bổ sung mà không cần quay lại table bên dưới. Dĩ nhiên, việc có một covering index (tức index dùng clause `INCLUDE`) nghĩa là index sẽ tăng kích thước, đồng thời mỗi lần update một tuple có thể cần thêm công sức để update index.
 
-`USING` clause cho phép chỉ định type index cần build; nếu không chỉ định, B-Tree mặc định sẽ được dùng.
+Clause `USING` cho phép chỉ định loại index cần tạo; nếu không chỉ định, B-tree mặc định sẽ được dùng.
 
-`CONCURRENTLY` clause cho phép tạo index theo cách concurrent: khi index đang ở build phase, underlying table bị lock chống thay đổi để index có thể hoàn tất việc index các tuple value. Trong một concurrent index creation, table vẫn cho phép thay đổi ngay cả khi index đang được tạo, nhưng sau khi index đã được build xong, cần một pass khác trên underlying table để “điều chỉnh” những gì đã thay đổi trong thời gian đó.
+Clause `CONCURRENTLY` cho phép tạo index theo cách concurrent: trong build phase, table bên dưới bị lock để ngăn thay đổi, nhờ đó index có thể hoàn tất việc index các value của tuple. Khi tạo index concurrent, table vẫn cho phép thay đổi trong lúc index đang được tạo, nhưng sau khi index được tạo xong, cần thêm một pass trên table bên dưới để “điều chỉnh” những thay đổi đã xảy ra trong thời gian đó.
 
-Để thực tế hơn, hãy xem cách build một index đơn giản trên table `posts`. Giả sử chúng ta muốn index category mà một post thuộc về:
+Để cụ thể hơn, hãy xem cách build một index đơn giản trên table `posts`. Giả sử chúng ta muốn index category mà một post thuộc về:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE INDEX idx_post_category
                 ON posts( category );
    CREATE INDEX
 ....
 
-Code trước đó sẽ tạo một index tên `idx_post_category` trên table `posts`, dùng column đơn `category` và type index mặc định (B-Tree).
+.SQL
+[source,sql]
+....
+CREATE INDEX idx_post_category
+    ON posts(category);
+....
 
-Ví dụ sau thực hiện điều tương tự, tạo một multi-column index:
+.Output
+[source,output]
+....
+   CREATE INDEX
+....
 
-[source,text]
+
+Đoạn code trên sẽ tạo một index có tên `idx_post_category` trên table `posts`, sử dụng column đơn `category` và loại index mặc định (B-tree).
+
+Ví dụ sau thực hiện điều tương tự nhưng tạo một multi-column index:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE INDEX idx_author_created_on
                 ON posts( author, created_on );
    CREATE INDEX
 ....
 
-Điều quan trọng cần lưu ý là khi tạo multi-column index, bạn luôn nên đặt các column có tính selectivity cao nhất ở trước. PostgreSQL sẽ xem xét multi-column index từ column đầu tiên trở đi, vì vậy nếu các column đầu có selectivity cao nhất, access method của index sẽ có cost thấp nhất.
+.SQL
+[source,sql]
+....
+CREATE INDEX idx_author_created_on
+    ON posts(author, created_on);
+....
 
-Trong ví dụ trước, giả sử chúng ta muốn tìm theo một tổ hợp author và date, ta có thể kỳ vọng nhiều author publish vào một ngày cụ thể, vì vậy date (column `created_on`) sẽ không có tính selectivity cao, ít nhất không cao bằng author cụ thể; đó là lý do chúng ta đẩy column `created_on` sang bên phải trong danh sách column.
+.Output
+[source,output]
+....
+   CREATE INDEX
+....
 
-Nếu muốn tạo một hash index, chúng ta có thể làm như sau:
 
-[source,text]
+Điều quan trọng cần lưu ý là khi tạo multi-column index, bạn nên luôn đặt các column có selectivity cao nhất ở trước. PostgreSQL sẽ xem xét multi-column index bắt đầu từ column đầu tiên, vì vậy nếu các column đầu tiên có selectivity cao nhất, index access method sẽ có cost thấp nhất.
+
+Trong ví dụ trước, giả sử chúng ta muốn tìm theo một tổ hợp author và date. Ta có thể kỳ vọng nhiều author sẽ publish vào một ngày cụ thể, vì vậy date (column `created_on`) sẽ không có selectivity cao, ít nhất không cao bằng một author cụ thể; đó là lý do chúng ta đẩy column `created_on` sang bên phải trong danh sách column.
+
+Nếu muốn tạo một Hash index, chúng ta có thể làm như sau:
+
+[source,console,role="transcript"]
 ....
    forumdb=> CREATE INDEX idx_post_created_on
                 ON posts USING hash ( created_on );
    CREATE INDEX
 ....
 
-Dĩ nhiên, index như vậy chỉ hữu ích cho equality comparison, vì vậy một query như sau sẽ không bao giờ sử dụng index trước đó:
+.SQL
+[source,sql]
+....
+CREATE INDEX idx_post_created_on
+    ON posts USING hash (created_on);
+....
+
+.Output
+[source,output]
+....
+   CREATE INDEX
+....
+
+
+Dĩ nhiên, index như vậy chỉ hữu ích cho equality comparison, vì vậy một query như sau sẽ không bao giờ sử dụng index nói trên:
 
 [source,sql]
 ....
-   SELECT * FROM posts WHERE created_on < CURRENT_DATE;
+SELECT *
+FROM posts
+WHERE created_on < CURRENT_DATE;
 ....
 
-Nhưng một query như sau có thể sử dụng hash index:
+Nhưng một query như sau có thể sử dụng Hash index:
 
 [source,sql]
 ....
-   SELECT * FROM posts WHERE created_on = CURRENT_DATE;
+SELECT *
+FROM posts
+WHERE created_on = CURRENT_DATE;
 ....
 
-Đó là vì chúng ta đang yêu cầu một equality comparison.
+Đó là vì query đang yêu cầu một equality comparison.
 
-== Inspecting indexes
+== Kiểm tra index
 
-Index được “gắn” với underlying table, vì vậy `psql` hiển thị các index đã định nghĩa bất cứ khi nào bạn yêu cầu nó mô tả một table bằng special command `\d`:
+Index được “gắn” với table bên dưới, vì vậy `psql` hiển thị các index đã định nghĩa bất cứ khi nào bạn yêu cầu nó mô tả một table bằng command đặc biệt `\d`:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=> \d posts
                                                      Table "forum.posts"
@@ -147,11 +186,49 @@ Index được “gắn” với underlying table, vì vậy `psql` hiển thị
     ...
 ....
 
-Như bạn có thể thấy từ code fragment trước đó, command hiển thị tất cả index có sẵn cùng method của chúng (ví dụ `btree`) và danh sách column mà index được build trên đó.
+.SQL
+[source,sql]
+....
+\d posts
+....
 
-Catalog đặc biệt `pg_index` chứa thông tin về các index và các attribute chính của chúng, vì vậy có thể query catalog này để lấy chính thông tin (và nhiều hơn) mà `psql` cung cấp. Cụ thể, vì một index được đăng ký trong `pg_class` với giá trị `relkind` đặc biệt là `i`, chúng ta có thể join `pg_class` và `pg_index` để lấy thông tin chi tiết trong một statement như sau:
+.Output
+[source,output]
+....
+                                                     Table "forum.posts"
+       Column         |             Type               | Collation | Nullable |
+    Default
+    ----------------+--------------------------+-----------+----------+-------
+    -----------------------
+    pk             | integer                            |              | not null |
+    generated always as identity
+    title              | text                           |              |              |
+    content            | text                           |              |              |
+    author             | integer                        |              | not null |
+    category           | integer                        |              | not null |
+    reply_to           | integer                        |              |              |
+    created_on     | timestamp with time zone |                        |              |
+    CURRENT_TIMESTAMP
+    last_edited_on | timestamp with time zone |                        |              |
+    CURRENT_TIMESTAMP
+    editable           | boolean                        |              |              | true
+    likes              | integer                        |              |              | 0
+    Indexes:
+        "posts_pkey" PRIMARY KEY, btree (pk)
+        "idx_author_created_on" btree (author, created_on)
+        "idx_post_category" btree (category)
+        "idx_post_created_on" hash (created_on)
 
-[source,text]
+
+    ...
+....
+
+
+Như bạn có thể thấy từ đoạn output trên, command hiển thị tất cả index hiện có cùng method của chúng (ví dụ `btree`) và danh sách column mà index được build trên đó.
+
+Catalog đặc biệt `pg_index` chứa thông tin về các index và các thuộc tính chính của chúng, vì vậy bạn có thể query catalog này để lấy thông tin tương tự (và nhiều hơn) thông tin mà `psql` cung cấp. Cụ thể, vì một index được đăng ký trong `pg_class` với giá trị `relkind` đặc biệt là `i`, chúng ta có thể join `pg_class` và `pg_index` để lấy thông tin chi tiết bằng statement sau:
+
+[source,console,role="transcript"]
 ....
     forumdb=> SELECT relname, relpages, reltuples,
                 i.indisunique, i.indisclustered, i.indisvalid,
@@ -160,7 +237,23 @@ Catalog đặc biệt `pg_index` chứa thông tin về các index và các attr
                 WHERE c.relname = 'posts';
 ....
 
-[source,text]
+.SQL
+[source,sql]
+....
+SELECT
+    relname,
+    relpages,
+    reltuples,
+    i.indisunique,
+    i.indisclustered,
+    i.indisvalid,
+    pg_catalog.pg_get_indexdef(i.indexrelid, 0, TRUE)
+FROM pg_class c JOIN pg_index i ON c.oid = i.indrelid
+WHERE c.relname = 'posts';
+....
+
+
+[source,output]
 ....
     -[ RECORD 1 ]---+---------------------------------------------------------
     --------------------
@@ -206,39 +299,38 @@ Catalog đặc biệt `pg_index` chứa thông tin về các index và các attr
    (created_on)
 ....
 
-Column `indisunique` được đặt thành true nếu index được tạo với clause `UNIQUE`, như trường hợp của index primary key. `indisvalid` là một giá trị boolean cho biết index có thể được sử dụng hay không (như bạn sẽ thấy sau đây, bạn có thể quyết định disable một index vì bất kỳ lý do nào).
+Column `indisunique` được đặt thành true nếu index được tạo với clause `UNIQUE`, như trường hợp của primary key index. `indisvalid` là một giá trị boolean cho biết index có thể được sử dụng hay không (như bạn sẽ thấy sau đây, bạn có thể quyết định disable một index vì bất kỳ lý do nào).
 
-Vì bạn có thể cluster một table theo một index, tức là sort table tùy theo một index cụ thể, `indisclustered` cho biết table có được cluster theo index cụ thể đó hay không.
+Vì bạn có thể cluster một table theo một index, tức là sort table theo một index cụ thể, `indisclustered` cho biết table có được cluster theo index cụ thể đó hay không.
 
-Function đặc biệt `pg_get_indexdef()` cung cấp biểu diễn dạng text của statement `CREATE INDEX` được dùng để tạo từng index, và có thể rất hữu ích để giải mã cũng như tìm hiểu cách build các index phức tạp.
+Function đặc biệt `pg_get_indexdef()` cung cấp biểu diễn dạng text của statement `CREATE INDEX` được dùng để tạo từng index và có thể rất hữu ích để giải mã cũng như tìm hiểu cách build các index phức tạp.
 
 Do đó, bằng cách dùng command `psql \d` hoặc query `pg_index`, bạn có thể lấy thông tin chi tiết về các index hiện có và trạng thái của chúng.
 
-== Dropping an index
+== Xóa index
 
 Để loại bỏ một index, bạn cần dùng statement `DROP INDEX`, có dạng như sau:
 
 [source,sql]
 ....
-   DROP INDEX [ CONCURRENTLY ] [ IF EXISTS ] name [, ...] [ CASCADE |
-   RESTRICT ]
+DROP INDEX [ CONCURRENTLY ] [ IF EXISTS ] name [, ...] [ CASCADE | RESTRICT ]
 ....
 
-Statement này nhận tên của index và có thể drop nhiều index cùng lúc nếu bạn chỉ định nhiều name trong cùng một statement.
+Statement này nhận tên của index và có thể xóa nhiều index cùng lúc nếu bạn chỉ định nhiều tên trong cùng một statement.
 
-Clause `CONCURRENTLY` ngăn command lấy exclusive lock trên table underlying, nhờ đó ngăn các query khác truy cập table cho đến khi index được drop. Lưu ý rằng clause này không phải lúc nào cũng dùng được; chẳng hạn, nó không thể được dùng bên trong một explicit transaction.
+Clause `CONCURRENTLY` ngăn command lấy exclusive lock trên table bên dưới, nhờ đó ngăn các query khác truy cập table cho đến khi index được xóa. Lưu ý rằng clause này không phải lúc nào cũng dùng được; chẳng hạn, nó không thể được dùng bên trong một explicit transaction.
 
-Option `CASCADE` drop index và mọi object khác phụ thuộc vào index đó (ví dụ, một table constraint), còn option `RESTRICT` là đối lập của nó và ngăn index bị drop nếu vẫn còn object yêu cầu index đó. Clause `RESTRICT` là mặc định.
+Option `CASCADE` xóa index và mọi object khác phụ thuộc vào index đó (ví dụ, một table constraint), còn option `RESTRICT` là đối lập: nó ngăn index bị xóa nếu vẫn còn object yêu cầu index đó. Clause `RESTRICT` là mặc định.
 
-Cuối cùng, option `IF EXISTS` cho phép command dừng nhẹ nhàng nếu index đã bị drop.
+Cuối cùng, option `IF EXISTS` cho phép command kết thúc êm thấm nếu index đã bị xóa.
 
-== Invalidating an index
+== Vô hiệu hóa index
 
-Có thể invalidate một index, tức là yêu cầu PostgreSQL hoàn toàn không xem xét index đó mà không drop index rồi build lại. Điều này có thể hữu ích trong những tình huống bạn đang nghiên cứu behavior của cluster và muốn buộc optimizer chọn một path khác để truy cập data, không bao gồm một index cụ thể, hoặc có thể cần thiết khi index gặp vấn đề.
+Có thể invalidate một index, tức là yêu cầu PostgreSQL hoàn toàn không xem xét index đó mà không cần xóa index rồi build lại. Điều này có thể hữu ích trong những tình huống bạn đang nghiên cứu hành vi của cluster và muốn buộc optimizer chọn một path khác để truy cập data, không bao gồm một index cụ thể; hoặc có thể cần thiết khi index gặp vấn đề.
 
 Để invalidate một index, bạn phải trực tiếp thao tác trên system catalog `pg_index` để đặt attribute `indisvalid` thành false. Ví dụ, để tạm dừng việc sử dụng index `idx_author_created_on`, bạn phải thực hiện một update trên `pg_index` như sau:
 
-[source,text]
+[source,console,role="transcript"]
 ....
    forumdb=# UPDATE pg_index SET indisvalid = false
                 WHERE indexrelid = ( SELECT oid FROM pg_class
@@ -257,29 +349,54 @@ Có thể invalidate một index, tức là yêu cầu PostgreSQL hoàn toàn kh
    ...
 ....
 
+.SQL
+[source,sql]
+....
+UPDATE pg_index
+SET
+    indisvalid = FALSE
+WHERE indexrelid = (SELECT oid FROM pg_class WHERE relkind = 'i' AND relname = 'idx_author_created_on');
+\d posts
+....
+
+.Output
+[source,output]
+....
+   UPDATE 1
+
+
+   ...
+   Indexes:
+         "posts_pkey" PRIMARY KEY, btree (pk)
+         "idx_author_created_on" btree (author, created_on) INVALID
+         "idx_post_category" btree (category)
+         "idx_post_created_on" hash (created_on)
+   ...
+....
+
+
 [quote]
 ____
-Bạn cần invalidate một index bằng administrator user, ngay cả khi bạn là user đã tạo index đó. Lý do là bạn cần thao tác trên system catalog, một hoạt động chỉ dành cho administrator user.
+Bạn cần invalidate một index với quyền administrator, ngay cả khi bạn là user đã tạo index đó. Lý do là bạn cần thao tác trên system catalog, một hoạt động chỉ dành cho administrator user.
 
 ____
 Như bạn có thể thấy, index sau đó được đánh dấu là `INVALID` để cho biết PostgreSQL sẽ không bao giờ thử xem xét nó trong execution plan. Dĩ nhiên, bạn có thể đưa index về trạng thái ban đầu bằng cách thực hiện update giống như trên và đặt column `indisvalid` thành giá trị true.
 
-== Rebuilding an index
+== Rebuild index
 
-Vì index được tách khỏi data được lưu trong table, thông tin bên trong index có thể bị corrupt hoặc trở nên không còn cập nhật theo một cách nào đó. Đây không phải là điều kiện bình thường và không xảy ra trong việc sử dụng database hằng ngày, nhưng storage lỗi có thể dẫn đến tình huống như vậy. Tuy nhiên, biết cách rebuild một index là kiến thức quan trọng vì nó giúp ngăn anomaly và cho phép bạn revalidate các index đã bị out of date (vì chúng không còn valid).
+Vì index tách rời khỏi data được lưu trong table, thông tin bên trong index có thể bị hỏng hoặc bằng cách nào đó trở nên lỗi thời. Đây không phải trạng thái bình thường và không xảy ra trong quá trình sử dụng database hằng ngày, nhưng storage bị lỗi có thể dẫn đến tình huống như vậy. Tuy nhiên, biết cách rebuild index là kiến thức quan trọng vì việc này giúp ngăn các bất thường và cho phép bạn xác thực lại các index đã lỗi thời (vì chúng không còn valid).
 
-Bạn luôn có thể rebuild một index bắt đầu từ data trong table underlying bằng command `REINDEX`, có dạng như sau:
+Bạn luôn có thể rebuild một index từ data trong table bên dưới bằng command `REINDEX`, có dạng như sau:
 
 [source,sql]
 ....
-   REINDEX [ ( VERBOSE ) ] { INDEX | TABLE | SCHEMA | DATABASE | SYSTEM } [
-   CONCURRENTLY ] name
+REINDEX [ (VERBOSE) ] { INDEX | TABLE | SCHEMA | DATABASE | SYSTEM } [ CONCURRENTLY ] name
 ....
 
-Bạn có thể rebuild một index duy nhất bằng argument `INDEX` theo sau là tên index, hoặc rebuild mọi index của một table bằng argument `TABLE` theo sau, như bạn có thể hình dung, là tên table.
+Bạn có thể rebuild một index duy nhất bằng argument `INDEX` theo sau là tên index, hoặc rebuild toàn bộ index của một table bằng argument `TABLE`, theo sau là tên table.
 
-Tiếp theo, bạn có thể rebuild mọi index của mọi table trong một schema cụ thể bằng argument `SCHEMA` (theo sau là tên schema), hoặc toàn bộ index của một database bằng argument `DATABASE` và tên database bạn muốn reindex. Cuối cùng, bạn cũng có thể rebuild index trên các system catalog table bằng argument `SYSTEM`.
+Tiếp theo, bạn có thể rebuild toàn bộ index của mọi table trong một schema cụ thể bằng argument `SCHEMA` (theo sau là tên schema), hoặc toàn bộ index của một database bằng argument `DATABASE` và tên database mà bạn muốn reindex. Cuối cùng, bạn cũng có thể rebuild index trên các system catalog table bằng argument `SYSTEM`.
 
-Bạn có thể thực thi `REINDEX` bên trong một transaction block nhưng chỉ với một index hoặc table duy nhất, tức là chỉ với các option `INDEX` và `TABLE`. Mọi dạng khác của command `REINDEX` không thể được thực thi trong một transaction block.
+Bạn có thể thực thi `REINDEX` bên trong một transaction block nhưng chỉ với một index hoặc một table duy nhất, tức là chỉ với các option `INDEX` và `TABLE`. Mọi dạng khác của command `REINDEX` không thể được thực thi trong một transaction block.
 
-Option `CONCURRENTLY` ngăn command lấy exclusive lock trên table underlying theo cách tương tự như khi build một index mới.
+Option `CONCURRENTLY` ngăn command lấy exclusive lock trên table bên dưới theo cách tương tự như khi build một index mới.
