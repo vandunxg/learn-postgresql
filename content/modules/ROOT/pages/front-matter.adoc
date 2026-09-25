@@ -95,540 +95,540 @@ https://discord.gg/jYWCjF6Tku
 == Mục lục
 
 * Lời nói đầu • xxv
-* Chương 1: Giới thiệu về PostgreSQL • 1
-** Yêu cầu kỹ thuật • 2
-** Tổng quan về PostgreSQL • 2
-*** Lược sử PostgreSQL • 4
-*** Có gì mới trong PostgreSQL 16? • 5
-*** Chính sách phát hành, số version và vòng đời của PostgreSQL • 5
-** Tìm hiểu thuật ngữ PostgreSQL • 6
-** Cài đặt PostgreSQL • 10
-*** Cần cài đặt những gì • 11
-*** Cài đặt PostgreSQL từ binary package • 12
-**** Sử dụng Docker image đi kèm sách • 13
-**** Cài đặt PostgreSQL trên GNU/Linux Debian, Ubuntu và các bản phân phối dẫn xuất • 14
-**** Cài đặt PostgreSQL trên Fedora Linux • 15
-**** Cài đặt PostgreSQL trên FreeBSD • 16
-*** Cài đặt PostgreSQL từ source • 17
-*** Cài đặt PostgreSQL qua pgenv • 18
-** Tóm tắt • 19
-** Tài liệu tham khảo • 20
-* Chương 2: Làm quen với cluster của bạn • 21
-** Yêu cầu kỹ thuật • 22
-** Quản lý cluster của bạn • 22
-*** pg_ctl • 22
-*** Các process của PostgreSQL • 28
-** Kết nối với cluster • 31
-**** Các template database • 31
-*** Client dòng lệnh psql • 33
-**** Nhập SQL statement bằng psql • 35
-**** Tổng quan về các command trong psql • 38
-*** Giới thiệu connection string • 39
-** Giải quyết các vấn đề connection thường gặp • 40
-*** Database “foo” không tồn tại • 40
-*** Connection bị từ chối • 40
-*** Không có entry trong pg_hba.conf • 41
-** Khám phá disk layout của PGDATA • 42
-*** Các object trong thư mục PGDATA • 43
-**** Các tablespace • 45
-** Tìm hiểu các configuration file và parameter • 46
-** Tóm tắt • 48
-** Kiểm tra kiến thức của bạn • 49
-** Tài liệu tham khảo • 49
-* Chương 3: Quản lý user và connection • 51
-** Yêu cầu kỹ thuật • 52
-** Giới thiệu về user và group • 52
-** Quản lý role • 53
-*** Tạo role mới • 53
-**** Password, connection và availability của role • 54
-*** Dùng role như một group • 55
-*** Xóa role hiện có • 57
-*** Kiểm tra role hiện có • 58
-** Quản lý incoming connection ở cấp role • 61
-*** Cú pháp của pg_hba.conf • 62
-*** Thứ tự các rule trong pg_hba.conf • 64
-*** Gộp nhiều rule thành một rule duy nhất • 64
-*** Dùng group thay cho các role đơn lẻ • 65
-*** Dùng file thay cho các role đơn lẻ • 66
-*** Kiểm tra các rule của pg_hba.conf • 67
-*** Include các file khác vào pg_hba.conf • 68
-** Tóm tắt • 68
-** Kiểm tra kiến thức của bạn • 69
-** Tài liệu tham khảo • 69
-* Chương 4: Các statement cơ bản • 71
-** Yêu cầu kỹ thuật • 72
-*** Sử dụng Docker image • 72
-*** Kết nối với database • 72
-** Tạo và quản lý database • 73
-*** Tạo database • 73
-*** Quản lý database • 74
-*** Giới thiệu schema • 74
-*** PostgreSQL và schema public • 74
-*** Biến search_path • 75
-*** Cách bắt đầu làm việc đúng cách • 75
-*** Liệt kê tất cả table • 76
-*** Tạo database mới từ template đã sửa đổi • 77
-*** Xóa table và database • 78
-*** Xóa table • 78
-*** Xóa database • 79
-*** Tạo bản sao database • 79
-*** Xác định kích thước database • 80
-*** Cách dùng `psql` • 80
-*** Cách dùng SQL • 81
-*** Cơ chế bên trong quá trình tạo database • 81
-* *Quản lý table* • 84
-** Tùy chọn `EXISTS` • 85
-** Quản lý temporary table • 86
-** Quản lý unlogged table • 88
-** Tạo table • 89
-* *Các statement thao tác table cơ bản* • 90
-** INSERT và SELECT dữ liệu • 90
-** Giá trị `NULL` • 94
-** Sắp xếp có giá trị `NULL` • 96
-** Tạo table bắt đầu từ một table khác • 97
-** UPDATE dữ liệu • 98
-** DELETE dữ liệu • 99
-* *Tóm tắt* • 101
-* *Kiểm tra kiến thức* • 101
-* *Tài liệu tham khảo* • 102
+* xref:chapter-01.adoc[Chương 1: Giới thiệu về PostgreSQL] • 1
+** xref:chapter-01.adoc[Yêu cầu kỹ thuật] • 2
+** xref:chapter-01.adoc[Tổng quan về PostgreSQL] • 2
+*** xref:chapter-01.adoc[Lược sử PostgreSQL] • 4
+*** xref:chapter-01.adoc[Có gì mới trong PostgreSQL 16?] • 5
+*** xref:chapter-01.adoc[Chính sách phát hành, số version và vòng đời của PostgreSQL] • 5
+** xref:chapter-01.adoc[Tìm hiểu thuật ngữ PostgreSQL] • 6
+** xref:chapter-01.adoc[Cài đặt PostgreSQL] • 10
+*** xref:chapter-01.adoc[Cần cài đặt những gì] • 11
+*** xref:chapter-01.adoc[Cài đặt PostgreSQL từ binary package] • 12
+**** xref:chapter-01.adoc[Sử dụng Docker image đi kèm sách] • 13
+**** xref:chapter-01.adoc[Cài đặt PostgreSQL trên GNU/Linux Debian, Ubuntu và các bản phân phối dẫn xuất] • 14
+**** xref:chapter-01.adoc[Cài đặt PostgreSQL trên Fedora Linux] • 15
+**** xref:chapter-01.adoc[Cài đặt PostgreSQL trên FreeBSD] • 16
+*** xref:chapter-01.adoc[Cài đặt PostgreSQL từ source] • 17
+*** xref:chapter-01.adoc[Cài đặt PostgreSQL qua pgenv] • 18
+** xref:chapter-01.adoc[Tóm tắt] • 19
+** xref:chapter-01.adoc[Tài liệu tham khảo] • 20
+* xref:chapter-02.adoc[Chương 2: Làm quen với cluster của bạn] • 21
+** xref:chapter-02-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 22
+** xref:chapter-02-quan-ly-cluster.adoc[Quản lý cluster của bạn] • 22
+*** xref:chapter-02-quan-ly-cluster.adoc[pg_ctl] • 22
+*** xref:chapter-02-quan-ly-cluster.adoc[Các process của PostgreSQL] • 28
+** xref:chapter-02-ket-noi-toi-cluster.adoc[Kết nối với cluster] • 31
+**** xref:chapter-02-ket-noi-toi-cluster.adoc[Các template database] • 31
+*** xref:chapter-02-ket-noi-toi-cluster.adoc[Client dòng lệnh psql] • 33
+**** xref:chapter-02-ket-noi-toi-cluster.adoc[Nhập SQL statement bằng psql] • 35
+**** xref:chapter-02-ket-noi-toi-cluster.adoc[Tổng quan về các command trong psql] • 38
+*** xref:chapter-02-ket-noi-toi-cluster.adoc[Giới thiệu connection string] • 39
+** xref:chapter-02-giai-quyet-cac-van-de-connection-thuong-gap.adoc[Giải quyết các vấn đề connection thường gặp] • 40
+*** xref:chapter-02-giai-quyet-cac-van-de-connection-thuong-gap.adoc[Database “foo” không tồn tại] • 40
+*** xref:chapter-02-giai-quyet-cac-van-de-connection-thuong-gap.adoc[Connection bị từ chối] • 40
+*** xref:chapter-02-giai-quyet-cac-van-de-connection-thuong-gap.adoc[Không có entry trong pg_hba.conf] • 41
+** xref:chapter-02-kham-pha-disk-layout-cua-pgdata.adoc[Khám phá disk layout của PGDATA] • 42
+*** xref:chapter-02-kham-pha-disk-layout-cua-pgdata.adoc[Các object trong thư mục PGDATA] • 43
+**** xref:chapter-02-kham-pha-disk-layout-cua-pgdata.adoc[Các tablespace] • 45
+** xref:chapter-02-kham-pha-cac-configuration-file-va-parameter.adoc[Tìm hiểu các configuration file và parameter] • 46
+** xref:chapter-02-tom-tat.adoc[Tóm tắt] • 48
+** xref:chapter-02-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức của bạn] • 49
+** xref:chapter-02-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 49
+* xref:chapter-03.adoc[Chương 3: Quản lý user và connection] • 51
+** xref:chapter-03.adoc[Yêu cầu kỹ thuật] • 52
+** xref:chapter-03.adoc[Giới thiệu về user và group] • 52
+** xref:chapter-03.adoc[Quản lý role] • 53
+*** xref:chapter-03.adoc[Tạo role mới] • 53
+**** xref:chapter-03.adoc[Password, connection và availability của role] • 54
+*** xref:chapter-03.adoc[Dùng role như một group] • 55
+*** xref:chapter-03.adoc[Xóa role hiện có] • 57
+*** xref:chapter-03.adoc[Kiểm tra role hiện có] • 58
+** xref:chapter-03.adoc[Quản lý incoming connection ở cấp role] • 61
+*** xref:chapter-03.adoc[Cú pháp của pg_hba.conf] • 62
+*** xref:chapter-03.adoc[Thứ tự các rule trong pg_hba.conf] • 64
+*** xref:chapter-03.adoc[Gộp nhiều rule thành một rule duy nhất] • 64
+*** xref:chapter-03.adoc[Dùng group thay cho các role đơn lẻ] • 65
+*** xref:chapter-03.adoc[Dùng file thay cho các role đơn lẻ] • 66
+*** xref:chapter-03.adoc[Kiểm tra các rule của pg_hba.conf] • 67
+*** xref:chapter-03.adoc[Include các file khác vào pg_hba.conf] • 68
+** xref:chapter-03.adoc[Tóm tắt] • 68
+** xref:chapter-03.adoc[Kiểm tra kiến thức của bạn] • 69
+** xref:chapter-03.adoc[Tài liệu tham khảo] • 69
+* xref:chapter-04.adoc[Chương 4: Các statement cơ bản] • 71
+** xref:chapter-04-technical-requirements.adoc[Yêu cầu kỹ thuật] • 72
+*** xref:chapter-04-technical-requirements.adoc[Sử dụng Docker image] • 72
+*** xref:chapter-04-technical-requirements.adoc[Kết nối với database] • 72
+** xref:chapter-04-tao-va-quan-ly-database.adoc[Tạo và quản lý database] • 73
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Tạo database] • 73
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Quản lý database] • 74
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Giới thiệu schema] • 74
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[PostgreSQL và schema public] • 74
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Biến search_path] • 75
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Cách bắt đầu làm việc đúng cách] • 75
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Liệt kê tất cả table] • 76
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Tạo database mới từ template đã sửa đổi] • 77
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Xóa table và database] • 78
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Xóa table] • 78
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Xóa database] • 79
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Tạo bản sao database] • 79
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Xác định kích thước database] • 80
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Cách dùng `psql`] • 80
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Cách dùng SQL] • 81
+*** xref:chapter-04-tao-va-quan-ly-database.adoc[Cơ chế bên trong quá trình tạo database] • 81
+* xref:chapter-04-quan-ly-table.adoc[*Quản lý table*] • 84
+** xref:chapter-04-quan-ly-table.adoc[Tùy chọn `EXISTS`] • 85
+** xref:chapter-04-quan-ly-table.adoc[Quản lý temporary table] • 86
+** xref:chapter-04-quan-ly-table.adoc[Quản lý unlogged table] • 88
+** xref:chapter-04-quan-ly-table.adoc[Tạo table] • 89
+* xref:chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban.adoc[*Các statement thao tác table cơ bản*] • 90
+** xref:chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban.adoc[INSERT và SELECT dữ liệu] • 90
+** xref:chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban.adoc[Giá trị `NULL`] • 94
+** xref:chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban.adoc[Sắp xếp có giá trị `NULL`] • 96
+** xref:chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban.adoc[Tạo table bắt đầu từ một table khác] • 97
+** xref:chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban.adoc[UPDATE dữ liệu] • 98
+** xref:chapter-04-tim-hieu-cac-statement-thao-tac-table-co-ban.adoc[DELETE dữ liệu] • 99
+* xref:chapter-04-tom-tat.adoc[*Tóm tắt*] • 101
+* xref:chapter-04-kiem-tra-kien-thuc.adoc[*Kiểm tra kiến thức*] • 101
+* xref:chapter-04-tai-lieu-tham-khao.adoc[*Tài liệu tham khảo*] • 102
 
-* *Chương 5: Các statement nâng cao* • 105
-** Yêu cầu kỹ thuật • 105
-** Tìm hiểu statement `SELECT` • 105
-** Sử dụng clause `like` • 106
-** Sử dụng `ilike` • 108
-** Sử dụng `distinct` • 108
-** Sử dụng `limit` và `offset` • 111
-** Sử dụng subquery • 112
-*** Subquery và điều kiện `IN/NOT IN` • 113
-*** Subquery và điều kiện `EXISTS/NOT EXISTS` • 116
-** Tìm hiểu join • 117
-*** Sử dụng `INNER JOIN` • 119
-*** `INNER JOIN` so với `EXISTS/IN` • 120
-*** Sử dụng `LEFT JOINS` • 121
-*** Sử dụng `RIGHT JOIN` • 125
-*** Sử dụng `FULL OUTER JOIN` • 127
-*** Sử dụng `LATERAL JOIN` • 129
-** Các aggregate function • 130
-*** `UNION/UNION ALL` • 133
-*** `EXCEPT/INTERSECT` • 135
-** Sử dụng `UPSERT` • 137
-*** UPSERT – cách thực hiện của PostgreSQL • 137
-** Tìm hiểu clause `RETURNING` của `INSERT` • 140
-*** Trả về tuple từ query • 141
-*** `UPDATE` trên nhiều record • 141
-*** `MERGE` • 142
-*** Tìm hiểu `UPDATE ... RETURNING` • 144
-*** Tìm hiểu `DELETE ... RETURNING` • 145
-** Tìm hiểu CTE • 145
-*** Khái niệm CTE • 145
-** CTE trong PostgreSQL kể từ version 12 • 146
-*** CTE – các use case • 147
-*** Query đệ quy • 149
-*** Các recursive CTE • 150
-** Tóm tắt • 151
-** Kiểm tra kiến thức • 152
-** Tài liệu tham khảo • 153
+* xref:chapter-05.adoc[*Chương 5: Các statement nâng cao*] • 105
+** xref:chapter-05-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 105
+** xref:chapter-05-kham-pha-statement-select.adoc[Tìm hiểu statement `SELECT`] • 105
+** xref:chapter-05-su-dung-clause-like.adoc[Sử dụng clause `like`] • 106
+** xref:chapter-05-su-dung-ilike.adoc[Sử dụng `ilike`] • 108
+** xref:chapter-05-su-dung-distinct.adoc[Sử dụng `distinct`] • 108
+** xref:chapter-05-su-dung-limit-va-offset.adoc[Sử dụng `limit` và `offset`] • 111
+** xref:chapter-05-su-dung-subquery.adoc[Sử dụng subquery] • 112
+*** xref:chapter-05-su-dung-subquery.adoc[Subquery và điều kiện `IN/NOT IN`] • 113
+*** xref:chapter-05-su-dung-subquery.adoc[Subquery và điều kiện `EXISTS/NOT EXISTS`] • 116
+** xref:chapter-05-tim-hieu-ve-join.adoc[Tìm hiểu join] • 117
+*** xref:chapter-05-tim-hieu-ve-join.adoc[Sử dụng `INNER JOIN`] • 119
+*** xref:chapter-05-tim-hieu-ve-join.adoc[`INNER JOIN` so với `EXISTS/IN`] • 120
+*** xref:chapter-05-tim-hieu-ve-join.adoc[Sử dụng `LEFT JOINS`] • 121
+*** xref:chapter-05-tim-hieu-ve-join.adoc[Sử dụng `RIGHT JOIN`] • 125
+*** xref:chapter-05-tim-hieu-ve-join.adoc[Sử dụng `FULL OUTER JOIN`] • 127
+*** xref:chapter-05-tim-hieu-ve-join.adoc[Sử dụng `LATERAL JOIN`] • 129
+** xref:chapter-05-aggregate-functions.adoc[Các aggregate function] • 130
+*** xref:chapter-05-aggregate-functions.adoc[`UNION/UNION ALL`] • 133
+*** xref:chapter-05-aggregate-functions.adoc[`EXCEPT/INTERSECT`] • 135
+** xref:chapter-05-su-dung-upsert.adoc[Sử dụng `UPSERT`] • 137
+*** xref:chapter-05-su-dung-upsert.adoc[UPSERT – cách thực hiện của PostgreSQL] • 137
+** xref:chapter-05-tim-hieu-clause-returning-cho-insert.adoc[Tìm hiểu clause `RETURNING` của `INSERT`] • 140
+*** xref:chapter-05-tim-hieu-clause-returning-cho-insert.adoc[Trả về tuple từ query] • 141
+*** xref:chapter-05-tim-hieu-clause-returning-cho-insert.adoc[`UPDATE` trên nhiều record] • 141
+*** xref:chapter-05-tim-hieu-clause-returning-cho-insert.adoc[`MERGE`] • 142
+*** xref:chapter-05-tim-hieu-clause-returning-cho-insert.adoc[Tìm hiểu `UPDATE ... RETURNING`] • 144
+*** xref:chapter-05-tim-hieu-clause-returning-cho-insert.adoc[Tìm hiểu `DELETE ... RETURNING`] • 145
+** xref:chapter-05-tim-hieu-cte.adoc[Tìm hiểu CTE] • 145
+*** xref:chapter-05-tim-hieu-cte.adoc[Khái niệm CTE] • 145
+** xref:chapter-05-cte-trong-postgresql-tu-version-12.adoc[CTE trong PostgreSQL kể từ version 12] • 146
+*** xref:chapter-05-cte-trong-postgresql-tu-version-12.adoc[CTE – các use case] • 147
+*** xref:chapter-05-cte-trong-postgresql-tu-version-12.adoc[Query đệ quy] • 149
+*** xref:chapter-05-cte-trong-postgresql-tu-version-12.adoc[Các recursive CTE] • 150
+** xref:chapter-05-tom-tat.adoc[Tóm tắt] • 151
+** xref:chapter-05-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 152
+** xref:chapter-05-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 153
 
-* *Chương 6: Các window function* • 155
-** Yêu cầu kỹ thuật • 155
-** Sử dụng các statement với window function cơ bản • 156
-*** Sử dụng function `PARTITION BY` và clause `WINDOW` • 157
-*** Giới thiệu một số function hữu ích • 158
-**** Function `ROW_NUMBER` • 159
-**** Clause `ORDER BY` • 159
-**** `FIRST_VALUE` • 160
-**** `LAST_VALUE` • 161
-**** `RANK` • 161
-**** `DENSE_RANK` • 162
-**** Function `LAG` và `LEAD` • 163
-**** Function `CUME_DIST` • 165
-**** Function `NTILE` • 165
-** Sử dụng các statement với window function nâng cao • 167
-*** Frame clause • 167
-**** `ROWS BETWEEN start_point and end_point` • 168
-**** `RANGE BETWEEN start_point and end_point` • 174
-** Tóm tắt • 178
-** Kiểm tra kiến thức • 179
-** Tài liệu tham khảo • 180
+* xref:chapter-06.adoc[*Chương 6: Các window function*] • 155
+** xref:chapter-06-technical-requirements.adoc[Yêu cầu kỹ thuật] • 155
+** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Sử dụng các statement với window function cơ bản] • 156
+*** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Sử dụng function `PARTITION BY` và clause `WINDOW`] • 157
+*** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Giới thiệu một số function hữu ích] • 158
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Function `ROW_NUMBER`] • 159
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Clause `ORDER BY`] • 159
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[`FIRST_VALUE`] • 160
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[`LAST_VALUE`] • 161
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[`RANK`] • 161
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[`DENSE_RANK`] • 162
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Function `LAG` và `LEAD`] • 163
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Function `CUME_DIST`] • 165
+**** xref:chapter-06-su-dung-cac-statement-window-function-co-ban.adoc[Function `NTILE`] • 165
+** xref:chapter-06-su-dung-advanced-statement-window-function.adoc[Sử dụng các statement với window function nâng cao] • 167
+*** xref:chapter-06-su-dung-advanced-statement-window-function.adoc[Frame clause] • 167
+**** xref:chapter-06-su-dung-advanced-statement-window-function.adoc[`ROWS BETWEEN start_point and end_point`] • 168
+**** xref:chapter-06-su-dung-advanced-statement-window-function.adoc[`RANGE BETWEEN start_point and end_point`] • 174
+** xref:chapter-06-tom-tat.adoc[Tóm tắt] • 178
+** xref:chapter-06-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 179
+** xref:chapter-06-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 180
 
-* *Chương 7: Lập trình phía server* • 181
-** Yêu cầu kỹ thuật • 182
-** Tìm hiểu về data type • 182
-*** Khái niệm về extensibility • 182
-*** Các data type chuẩn • 182
-*** Boolean data type • 183
-*** Numeric data type • 184
-**** Các integer type • 185
-**** Data type numeric với precision cố định • 186
-**** Data type numeric với precision tùy ý • 186
-*** Character data type • 188
-**** Data type char fixed-length • 188
-**** Data type char variable-length có giới hạn • 190
-**** Data type char variable-length không giới hạn • 191
-*** Date/timestamp data type • 192
-**** Date data type • 192
-**** Timestamp data type • 195
-** Data type NoSQL • 197
-*** Data type hstore • 198
-*** Data type JSON • 201
-** Tìm hiểu về function và language • 205
-*** Các function • 205
-*** SQL function • 206
-*** Function cơ bản • 206
-*** SQL function trả về một set phần tử • 207
-*** SQL function trả về một table • 208
-*** Polymorphic SQL function • 210
-*** Function PL/pgSQL • 211
-*** Tổng quan ban đầu • 211
-*** Xóa function • 213
-*** Khai báo parameter của function • 213
-**** Parameter `IN/OUT` • 214
-**** Các nhóm volatility của function • 216
-*** Cấu trúc điều khiển • 219
-*** Conditional statement • 220
-**** Statement `IF` • 220
-**** Statement `CASE` • 222
-*** Loop statement • 225
-**** Data type record • 226
-*** Statement xử lý exception • 228
-*** Security definer • 229
-** Tóm tắt • 231
-** Kiểm tra kiến thức • 231
-** Tài liệu tham khảo • 232
+* xref:chapter-07.adoc[*Chương 7: Lập trình phía server*] • 181
+** xref:chapter-07-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 182
+** xref:chapter-07-kham-pha-data-types.adoc[Tìm hiểu về data type] • 182
+*** xref:chapter-07-kham-pha-data-types.adoc[Khái niệm về extensibility] • 182
+*** xref:chapter-07-kham-pha-data-types.adoc[Các data type chuẩn] • 182
+*** xref:chapter-07-kham-pha-data-types.adoc[Boolean data type] • 183
+*** xref:chapter-07-kham-pha-data-types.adoc[Numeric data type] • 184
+**** xref:chapter-07-kham-pha-data-types.adoc[Các integer type] • 185
+**** xref:chapter-07-kham-pha-data-types.adoc[Data type numeric với precision cố định] • 186
+**** xref:chapter-07-kham-pha-data-types.adoc[Data type numeric với precision tùy ý] • 186
+*** xref:chapter-07-kham-pha-data-types.adoc[Character data type] • 188
+**** xref:chapter-07-kham-pha-data-types.adoc[Data type char fixed-length] • 188
+**** xref:chapter-07-kham-pha-data-types.adoc[Data type char variable-length có giới hạn] • 190
+**** xref:chapter-07-kham-pha-data-types.adoc[Data type char variable-length không giới hạn] • 191
+*** xref:chapter-07-kham-pha-data-types.adoc[Date/timestamp data type] • 192
+**** xref:chapter-07-kham-pha-data-types.adoc[Date data type] • 192
+**** xref:chapter-07-kham-pha-data-types.adoc[Timestamp data type] • 195
+** xref:chapter-07-data-type-nosql.adoc[Data type NoSQL] • 197
+*** xref:chapter-07-data-type-nosql.adoc[Data type hstore] • 198
+*** xref:chapter-07-data-type-nosql.adoc[Data type JSON] • 201
+** xref:chapter-07-kham-pha-function-va-language.adoc[Tìm hiểu về function và language] • 205
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Các function] • 205
+*** xref:chapter-07-kham-pha-function-va-language.adoc[SQL function] • 206
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Function cơ bản] • 206
+*** xref:chapter-07-kham-pha-function-va-language.adoc[SQL function trả về một set phần tử] • 207
+*** xref:chapter-07-kham-pha-function-va-language.adoc[SQL function trả về một table] • 208
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Polymorphic SQL function] • 210
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Function PL/pgSQL] • 211
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Tổng quan ban đầu] • 211
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Xóa function] • 213
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Khai báo parameter của function] • 213
+**** xref:chapter-07-kham-pha-function-va-language.adoc[Parameter `IN/OUT`] • 214
+**** xref:chapter-07-kham-pha-function-va-language.adoc[Các nhóm volatility của function] • 216
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Cấu trúc điều khiển] • 219
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Conditional statement] • 220
+**** xref:chapter-07-kham-pha-function-va-language.adoc[Statement `IF`] • 220
+**** xref:chapter-07-kham-pha-function-va-language.adoc[Statement `CASE`] • 222
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Loop statement] • 225
+**** xref:chapter-07-kham-pha-function-va-language.adoc[Data type record] • 226
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Statement xử lý exception] • 228
+*** xref:chapter-07-kham-pha-function-va-language.adoc[Security definer] • 229
+** xref:chapter-07-tong-ket.adoc[Tóm tắt] • 231
+** xref:chapter-07-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 231
+** xref:chapter-07-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 232
 
-* *Chương 8: Trigger và rule* • 233
-** Yêu cầu kỹ thuật • 234
-** Tìm hiểu về rule trong PostgreSQL • 234
-*** Tìm hiểu biến `OLD` và `NEW` • 234
-*** Rule trên `INSERT` • 235
-**** Tùy chọn `ALSO` • 236
-**** Tùy chọn `INSTEAD OF` • 237
-*** Rule trên `DELETE/UPDATE` • 239
-**** Tạo table `new_tags` • 240
-**** Tạo hai table • 241
-*** Quản lý rule cho các event `INSERT`, `DELETE` và `UPDATE` • 242
-**** Rule `INSERT` • 243
-**** Rule `DELETE` • 245
-**** Rule `UPDATE` • 247
-** Quản lý trigger trong PostgreSQL • 249
-*** Cú pháp trigger • 250
-*** Trigger trên `INSERT` • 252
-*** Biến `TG_OP` • 257
-*** Trigger trên `UPDATE` / `DELETE` • 257
-** Event trigger • 264
-*** Một ví dụ về event trigger • 265
-** Tóm tắt • 267
-** Kiểm tra kiến thức • 268
-** Tài liệu tham khảo • 269
+* xref:chapter-08.adoc[*Chương 8: Trigger và rule*] • 233
+** xref:chapter-08-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 234
+** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Tìm hiểu về rule trong PostgreSQL] • 234
+*** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Tìm hiểu biến `OLD` và `NEW`] • 234
+*** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Rule trên `INSERT`] • 235
+**** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Tùy chọn `ALSO`] • 236
+**** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Tùy chọn `INSTEAD OF`] • 237
+*** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Rule trên `DELETE/UPDATE`] • 239
+**** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Tạo table `new_tags`] • 240
+**** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Tạo hai table] • 241
+*** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Quản lý rule cho các event `INSERT`, `DELETE` và `UPDATE`] • 242
+**** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Rule `INSERT`] • 243
+**** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Rule `DELETE`] • 245
+**** xref:chapter-08-kham-pha-rules-trong-postgresql.adoc[Rule `UPDATE`] • 247
+** xref:chapter-08-quan-ly-trigger-trong-postgresql.adoc[Quản lý trigger trong PostgreSQL] • 249
+*** xref:chapter-08-quan-ly-trigger-trong-postgresql.adoc[Cú pháp trigger] • 250
+*** xref:chapter-08-quan-ly-trigger-trong-postgresql.adoc[Trigger trên `INSERT`] • 252
+*** xref:chapter-08-quan-ly-trigger-trong-postgresql.adoc[Biến `TG_OP`] • 257
+*** xref:chapter-08-quan-ly-trigger-trong-postgresql.adoc[Trigger trên `UPDATE` / `DELETE`] • 257
+** xref:chapter-08-event-trigger.adoc[Event trigger] • 264
+*** xref:chapter-08-event-trigger.adoc[Một ví dụ về event trigger] • 265
+** xref:chapter-08-tom-tat.adoc[Tóm tắt] • 267
+** xref:chapter-08-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 268
+** xref:chapter-08-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 269
 
-* *Chương 9: Partitioning* • 271
-** Yêu cầu kỹ thuật • 271
-** Các khái niệm cơ bản • 271
-*** Range partitioning • 273
-*** List partitioning • 274
-*** Hash partitioning • 275
-*** Table inheritance • 276
-**** Xóa table • 280
-** Tìm hiểu declarative partitioning • 280
-*** List partitioning • 281
-*** Range partitioning • 284
-*** Bảo trì partition • 288
-**** Attach partition mới • 288
-**** Detach partition hiện có • 289
-**** Attach table hiện có vào parent table • 290
-** Default partition • 291
-** Partitioning và tablespaces • 292
-** Một case study đơn giản • 295
-** Tóm tắt • 303
-** Kiểm tra kiến thức • 303
-** Tài liệu tham khảo • 305
+* xref:chapter-09.adoc[*Chương 9: Partitioning*] • 271
+** xref:chapter-09-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 271
+** xref:chapter-09-concept-co-ban.adoc[Các khái niệm cơ bản] • 271
+*** xref:chapter-09-concept-co-ban.adoc[Range partitioning] • 273
+*** xref:chapter-09-concept-co-ban.adoc[List partitioning] • 274
+*** xref:chapter-09-concept-co-ban.adoc[Hash partitioning] • 275
+*** xref:chapter-09-concept-co-ban.adoc[Table inheritance] • 276
+**** xref:chapter-09-concept-co-ban.adoc[Xóa table] • 280
+** xref:chapter-09-exploring-declarative-partitioning.adoc[Tìm hiểu declarative partitioning] • 280
+*** xref:chapter-09-exploring-declarative-partitioning.adoc[List partitioning] • 281
+*** xref:chapter-09-exploring-declarative-partitioning.adoc[Range partitioning] • 284
+*** xref:chapter-09-exploring-declarative-partitioning.adoc[Bảo trì partition] • 288
+**** xref:chapter-09-exploring-declarative-partitioning.adoc[Attach partition mới] • 288
+**** xref:chapter-09-exploring-declarative-partitioning.adoc[Detach partition hiện có] • 289
+**** xref:chapter-09-exploring-declarative-partitioning.adoc[Attach table hiện có vào parent table] • 290
+** xref:chapter-09-default-partition.adoc[Default partition] • 291
+** xref:chapter-09-partitioning-va-tablespace.adoc[Partitioning và tablespaces] • 292
+** xref:chapter-09-mot-case-study-don-gian.adoc[Một case study đơn giản] • 295
+** xref:chapter-09-tom-tat.adoc[Tóm tắt] • 303
+** xref:chapter-09-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 303
+** xref:chapter-09-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 305
 
-* *Chương 10: User, role và database security* • 307
-** Yêu cầu kỹ thuật • 308
-** Tìm hiểu role • 308
-*** Properties liên quan đến object mới • 308
-*** Properties liên quan đến superuser • 309
-*** Properties liên quan đến replication • 309
-*** Properties liên quan đến RLS • 309
-*** Thay đổi properties của role hiện có: statement `ALTER ROLE` • 310
-**** Đổi tên role hiện có • 310
-**** `SESSION_USER` so với `CURRENT_USER` • 311
-**** Configuration parameter theo role • 312
-*** Kiểm tra role • 313
-*** Role kế thừa từ role khác • 316
-**** Tìm hiểu cách resolve privilege • 319
-**** Tổng quan về role inheritance • 323
-** ACLs • 323
-*** ACLs mặc định • 327
-**** Tìm hiểu ACL mặc định • 330
-** Cấp và thu hồi permission • 331
-*** Permission liên quan đến table • 332
-*** Permission theo column • 333
-*** Permission liên quan đến sequence • 337
-*** Permission liên quan đến schema • 339
-**** Tất cả object trong schema • 341
-*** Permission liên quan đến programming language • 342
-*** Permission liên quan đến routine • 342
-*** Permission liên quan đến database • 343
-*** Các statements `GRANT` và `REVOKE` khác • 344
-*** Gán owner cho object • 344
-*** Kiểm tra ACL • 345
-** RLS • 346
-** Mã hóa password của role • 352
-** SSL connection • 353
-*** Cấu hình cluster cho SSL • 353
-*** Kết nối với cluster qua SSL • 354
-** Tóm tắt • 355
-** Kiểm tra kiến thức • 356
-** Tài liệu tham khảo • 356
+* xref:chapter-10.adoc[*Chương 10: User, role và database security*] • 307
+** xref:chapter-10-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 308
+** xref:chapter-10-tim-hieu-ve-role.adoc[Tìm hiểu role] • 308
+*** xref:chapter-10-tim-hieu-ve-role.adoc[Properties liên quan đến object mới] • 308
+*** xref:chapter-10-tim-hieu-ve-role.adoc[Properties liên quan đến superuser] • 309
+*** xref:chapter-10-tim-hieu-ve-role.adoc[Properties liên quan đến replication] • 309
+*** xref:chapter-10-tim-hieu-ve-role.adoc[Properties liên quan đến RLS] • 309
+*** xref:chapter-10-tim-hieu-ve-role.adoc[Thay đổi properties của role hiện có: statement `ALTER ROLE`] • 310
+**** xref:chapter-10-tim-hieu-ve-role.adoc[Đổi tên role hiện có] • 310
+**** xref:chapter-10-tim-hieu-ve-role.adoc[`SESSION_USER` so với `CURRENT_USER`] • 311
+**** xref:chapter-10-tim-hieu-ve-role.adoc[Configuration parameter theo role] • 312
+*** xref:chapter-10-tim-hieu-ve-role.adoc[Kiểm tra role] • 313
+*** xref:chapter-10-tim-hieu-ve-role.adoc[Role kế thừa từ role khác] • 316
+**** xref:chapter-10-tim-hieu-ve-role.adoc[Tìm hiểu cách resolve privilege] • 319
+**** xref:chapter-10-tim-hieu-ve-role.adoc[Tổng quan về role inheritance] • 323
+** xref:chapter-10-acls.adoc[ACLs] • 323
+*** xref:chapter-10-acls.adoc[ACLs mặc định] • 327
+**** xref:chapter-10-acls.adoc[Tìm hiểu ACL mặc định] • 330
+** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Cấp và thu hồi permission] • 331
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Permission liên quan đến table] • 332
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Permission theo column] • 333
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Permission liên quan đến sequence] • 337
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Permission liên quan đến schema] • 339
+**** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Tất cả object trong schema] • 341
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Permission liên quan đến programming language] • 342
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Permission liên quan đến routine] • 342
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Permission liên quan đến database] • 343
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Các statements `GRANT` và `REVOKE` khác] • 344
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Gán owner cho object] • 344
+*** xref:chapter-10-cap-va-thu-hoi-permission.adoc[Kiểm tra ACL] • 345
+** xref:chapter-10-rls.adoc[RLS] • 346
+** xref:chapter-10-ma-hoa-password-cua-role.adoc[Mã hóa password của role] • 352
+** xref:chapter-10-ket-noi-ssl.adoc[SSL connection] • 353
+*** xref:chapter-10-ket-noi-ssl.adoc[Cấu hình cluster cho SSL] • 353
+*** xref:chapter-10-ket-noi-ssl.adoc[Kết nối với cluster qua SSL] • 354
+** xref:chapter-10-tom-tat.adoc[Tóm tắt] • 355
+** xref:chapter-10-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 356
+** xref:chapter-10-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 356
 
-* *Chương 11: Transaction, MVCC, WAL và checkpoint* • 359
-** Yêu cầu kỹ thuật • 360
-** Giới thiệu transaction • 360
-*** So sánh transaction implicit và explicit • 362
-**** Thời gian bên trong transaction • 368
-*** Thông tin thêm về transaction identifier – vấn đề XID wraparound • 369
-**** Transaction identifier virtual và real • 371
-*** Multi-version concurrency control • 373
-** Các isolation level của transaction • 379
-*** `READ UNCOMMITTED` • 381
-*** `READ COMMITTED` • 381
-*** `REPEATABLE READ` • 381
-*** `SERIALIZABLE` • 382
-** Giải thích MVCC • 384
-** Savepoint • 387
-** Deadlock • 390
-** PostgreSQL xử lý persistency và consistency như thế nào: WAL • 393
-*** WAL • 393
-**** WAL như một cơ chế phục hồi khi xảy ra crash • 397
-**** Checkpoint • 398
-*** Configuration parameter của checkpoint • 399
-**** `checkpoint_timeout` và `max_wal_size` • 400
-*** Checkpoint throttling • 402
-*** Phát hành checkpoint thủ công • 403
-** `VACUUM` • 403
-*** `VACUUM` thủ công • 404
-*** `VACUUM` tự động • 410
-** Tóm tắt • 412
-** Kiểm tra kiến thức • 413
-** Tài liệu tham khảo • 414
+* xref:chapter-11.adoc[*Chương 11: Transaction, MVCC, WAL và checkpoint*] • 359
+** xref:chapter-11-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 360
+** xref:chapter-11-gioi-thieu-transaction.adoc[Giới thiệu transaction] • 360
+*** xref:chapter-11-gioi-thieu-transaction.adoc[So sánh transaction implicit và explicit] • 362
+**** xref:chapter-11-gioi-thieu-transaction.adoc[Thời gian bên trong transaction] • 368
+*** xref:chapter-11-gioi-thieu-transaction.adoc[Thông tin thêm về transaction identifier – vấn đề XID wraparound] • 369
+**** xref:chapter-11-gioi-thieu-transaction.adoc[Transaction identifier virtual và real] • 371
+*** xref:chapter-11-gioi-thieu-transaction.adoc[Multi-version concurrency control] • 373
+** xref:chapter-11-cac-isolation-level-cua-transaction.adoc[Các isolation level của transaction] • 379
+*** xref:chapter-11-cac-isolation-level-cua-transaction.adoc[`READ UNCOMMITTED`] • 381
+*** xref:chapter-11-cac-isolation-level-cua-transaction.adoc[`READ COMMITTED`] • 381
+*** xref:chapter-11-cac-isolation-level-cua-transaction.adoc[`REPEATABLE READ`] • 381
+*** xref:chapter-11-cac-isolation-level-cua-transaction.adoc[`SERIALIZABLE`] • 382
+** xref:chapter-11-giai-thich-mvcc.adoc[Giải thích MVCC] • 384
+** xref:chapter-11-savepoint.adoc[Savepoint] • 387
+** xref:chapter-11-deadlocks.adoc[Deadlock] • 390
+** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[PostgreSQL xử lý persistency và consistency như thế nào: WAL] • 393
+*** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[WAL] • 393
+**** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[WAL như một cơ chế phục hồi khi xảy ra crash] • 397
+**** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[Checkpoint] • 398
+*** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[Configuration parameter của checkpoint] • 399
+**** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[`checkpoint_timeout` và `max_wal_size`] • 400
+*** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[Checkpoint throttling] • 402
+*** xref:chapter-11-postgresql-xu-ly-persistency-va-consistency-nhu-the-nao-wals.adoc[Phát hành checkpoint thủ công] • 403
+** xref:chapter-11-vacuum.adoc[`VACUUM`] • 403
+*** xref:chapter-11-vacuum.adoc[`VACUUM` thủ công] • 404
+*** xref:chapter-11-vacuum.adoc[`VACUUM` tự động] • 410
+** xref:chapter-11-tom-tat.adoc[Tóm tắt] • 412
+** xref:chapter-11-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 413
+** xref:chapter-11-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 414
 
-* *Chương 12: Mở rộng database – extension ecosystem* • 415
-** Yêu cầu kỹ thuật • 415
-** Giới thiệu extension • 416
-*** Hệ sinh thái extension • 417
-*** Các thành phần của extension • 418
-**** Control file • 419
-*** Script file • 420
-** Quản lý extension • 421
-*** Tạo extension • 421
-*** Xem extension đã cài đặt • 422
-*** Tìm các version extension hiện có • 423
-*** Thay đổi extension hiện có • 424
-*** Gỡ extension hiện có • 427
-** Tìm hiểu PGXN client • 428
-*** Cài đặt pgxnclient trên Debian GNU/Linux và các bản phân phối dẫn xuất • 429
-*** Cài đặt pgxnclient trên Fedora Linux và các bản phân phối dựa trên Red Hat • 429
-*** Cài đặt pgxnclient trên FreeBSD • 429
-*** Cài đặt pgxnclient từ source • 429
-*** Command-line interface của pgxnclient • 430
-** Cài đặt extension • 432
-*** Cài đặt extension qua pgxnclient • 432
-*** Cài đặt extension thủ công • 433
-*** Sử dụng extension đã cài đặt • 436
-*** Gỡ extension đã cài đặt • 437
-**** Gỡ extension qua pgxnclient • 439
-**** Gỡ extension được compile thủ công • 439
-** Tạo extension của riêng bạn • 439
-*** Định nghĩa một extension mẫu • 439
-*** Tạo các file extension • 440
-*** Cài đặt extension • 442
-*** Tạo bản upgrade của extension • 443
-*** Thực hiện upgrade extension • 445
-** Tóm tắt • 446
-** Kiểm tra kiến thức • 446
-** Tài liệu tham khảo • 447
+* xref:chapter-12.adoc[*Chương 12: Mở rộng database – extension ecosystem*] • 415
+** xref:chapter-12-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 415
+** xref:chapter-12-gioi-thieu-extension.adoc[Giới thiệu extension] • 416
+*** xref:chapter-12-gioi-thieu-extension.adoc[Hệ sinh thái extension] • 417
+*** xref:chapter-12-gioi-thieu-extension.adoc[Các thành phần của extension] • 418
+**** xref:chapter-12-gioi-thieu-extension.adoc[Control file] • 419
+*** xref:chapter-12-gioi-thieu-extension.adoc[Script file] • 420
+** xref:chapter-12-quan-ly-extension.adoc[Quản lý extension] • 421
+*** xref:chapter-12-quan-ly-extension.adoc[Tạo extension] • 421
+*** xref:chapter-12-quan-ly-extension.adoc[Xem extension đã cài đặt] • 422
+*** xref:chapter-12-quan-ly-extension.adoc[Tìm các version extension hiện có] • 423
+*** xref:chapter-12-quan-ly-extension.adoc[Thay đổi extension hiện có] • 424
+*** xref:chapter-12-quan-ly-extension.adoc[Gỡ extension hiện có] • 427
+** xref:chapter-12-kham-pha-pgxn-client.adoc[Tìm hiểu PGXN client] • 428
+*** xref:chapter-12-kham-pha-pgxn-client.adoc[Cài đặt pgxnclient trên Debian GNU/Linux và các bản phân phối dẫn xuất] • 429
+*** xref:chapter-12-kham-pha-pgxn-client.adoc[Cài đặt pgxnclient trên Fedora Linux và các bản phân phối dựa trên Red Hat] • 429
+*** xref:chapter-12-kham-pha-pgxn-client.adoc[Cài đặt pgxnclient trên FreeBSD] • 429
+*** xref:chapter-12-kham-pha-pgxn-client.adoc[Cài đặt pgxnclient từ source] • 429
+*** xref:chapter-12-kham-pha-pgxn-client.adoc[Command-line interface của pgxnclient] • 430
+** xref:chapter-12-cai-dat-extension.adoc[Cài đặt extension] • 432
+*** xref:chapter-12-cai-dat-extension.adoc[Cài đặt extension qua pgxnclient] • 432
+*** xref:chapter-12-cai-dat-extension.adoc[Cài đặt extension thủ công] • 433
+*** xref:chapter-12-cai-dat-extension.adoc[Sử dụng extension đã cài đặt] • 436
+*** xref:chapter-12-cai-dat-extension.adoc[Gỡ extension đã cài đặt] • 437
+**** xref:chapter-12-cai-dat-extension.adoc[Gỡ extension qua pgxnclient] • 439
+**** xref:chapter-12-cai-dat-extension.adoc[Gỡ extension được compile thủ công] • 439
+** xref:chapter-12-tao-extension-cua-rieng-ban.adoc[Tạo extension của riêng bạn] • 439
+*** xref:chapter-12-tao-extension-cua-rieng-ban.adoc[Định nghĩa một extension mẫu] • 439
+*** xref:chapter-12-tao-extension-cua-rieng-ban.adoc[Tạo các file extension] • 440
+*** xref:chapter-12-tao-extension-cua-rieng-ban.adoc[Cài đặt extension] • 442
+*** xref:chapter-12-tao-extension-cua-rieng-ban.adoc[Tạo bản upgrade của extension] • 443
+*** xref:chapter-12-tao-extension-cua-rieng-ban.adoc[Thực hiện upgrade extension] • 445
+** xref:chapter-12-tom-tat.adoc[Tóm tắt] • 446
+** xref:chapter-12-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 446
+** xref:chapter-12-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 447
 
-* *Chương 13: Query tuning, index và performance optimization* • 449
-** Yêu cầu kỹ thuật • 450
-** Thực thi một statement • 450
-*** Các giai đoạn thực thi • 451
-*** Optimizer • 452
-*** Các node được optimizer sử dụng • 454
-**** Sequential node • 454
-**** Parallel node • 457
-**** Khi nào optimizer chọn parallel plan? • 458
-**** Utility node • 459
-*** Cost của node • 460
-** Index • 462
-*** Loại index • 462
-*** Tạo index • 463
-*** Kiểm tra index • 465
-*** Xóa index • 468
-*** Invalidate index • 469
-*** Rebuild index • 470
-** Statement `EXPLAIN` • 470
-*** Các định dạng output của `EXPLAIN` • 473
-*** `EXPLAIN ANALYZE` • 474
-*** Tùy chọn `EXPLAIN` • 476
-** Ví dụ về query tuning • 480
-** `ANALYZE` và cách cập nhật statistics • 491
-** Auto-explain • 494
-** Tóm tắt • 498
-** Kiểm tra kiến thức • 499
-** Tài liệu tham khảo • 500
-* Chương 14: Logging và auditing — 503
+* xref:chapter-13.adoc[*Chương 13: Query tuning, index và performance optimization*] • 449
+** xref:chapter-13-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] • 450
+** xref:chapter-13-thuc-thi-mot-statement.adoc[Thực thi một statement] • 450
+*** xref:chapter-13-thuc-thi-mot-statement.adoc[Các giai đoạn thực thi] • 451
+*** xref:chapter-13-thuc-thi-mot-statement.adoc[Optimizer] • 452
+*** xref:chapter-13-thuc-thi-mot-statement.adoc[Các node được optimizer sử dụng] • 454
+**** xref:chapter-13-thuc-thi-mot-statement.adoc[Sequential node] • 454
+**** xref:chapter-13-thuc-thi-mot-statement.adoc[Parallel node] • 457
+**** xref:chapter-13-thuc-thi-mot-statement.adoc[Khi nào optimizer chọn parallel plan?] • 458
+**** xref:chapter-13-thuc-thi-mot-statement.adoc[Utility node] • 459
+*** xref:chapter-13-thuc-thi-mot-statement.adoc[Cost của node] • 460
+** xref:chapter-13-indexes.adoc[Index] • 462
+*** xref:chapter-13-indexes.adoc[Loại index] • 462
+*** xref:chapter-13-indexes.adoc[Tạo index] • 463
+*** xref:chapter-13-indexes.adoc[Kiểm tra index] • 465
+*** xref:chapter-13-indexes.adoc[Xóa index] • 468
+*** xref:chapter-13-indexes.adoc[Invalidate index] • 469
+*** xref:chapter-13-indexes.adoc[Rebuild index] • 470
+** xref:chapter-13-the-explain-statement.adoc[Statement `EXPLAIN`] • 470
+*** xref:chapter-13-the-explain-statement.adoc[Các định dạng output của `EXPLAIN`] • 473
+*** xref:chapter-13-the-explain-statement.adoc[`EXPLAIN ANALYZE`] • 474
+*** xref:chapter-13-the-explain-statement.adoc[Tùy chọn `EXPLAIN`] • 476
+** xref:chapter-13-vi-du-ve-query-tuning.adoc[Ví dụ về query tuning] • 480
+** xref:chapter-13-analyze-va-cach-cap-nhat-statistics.adoc[`ANALYZE` và cách cập nhật statistics] • 491
+** xref:chapter-13-auto-explain.adoc[Auto-explain] • 494
+** xref:chapter-13-tom-tat.adoc[Tóm tắt] • 498
+** xref:chapter-13-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] • 499
+** xref:chapter-13-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] • 500
+* xref:chapter-14.adoc[Chương 14: Logging và auditing] — 503
 
-* Yêu cầu kỹ thuật — 503
-* Giới thiệu về logging — 504
-** Ghi log ở đâu — 505
-** Khi nào ghi log — 508
-** Ghi log gì — 512
-* Trích xuất thông tin từ log – pgBadger — 514
-** Cài đặt pgBadger — 514
-** Cấu hình logging của PostgreSQL để sử dụng pgBadger — 515
-** Sử dụng pgBadger — 516
-** Lập lịch cho pgBadger — 521
-* Triển khai auditing — 524
-** Cài đặt PgAudit — 525
-** Cấu hình PostgreSQL để khai thác PgAudit — 526
-** Cấu hình PgAudit — 527
-** Auditing theo session — 528
-** Auditing theo role — 530
-* Tóm tắt — 532
-* Kiểm tra kiến thức — 532
-* Tài liệu tham khảo — 533
+* xref:chapter-14-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] — 503
+* xref:chapter-14-gioi-thieu-ve-logging.adoc[Giới thiệu về logging] — 504
+** xref:chapter-14-gioi-thieu-ve-logging.adoc[Ghi log ở đâu] — 505
+** xref:chapter-14-gioi-thieu-ve-logging.adoc[Khi nào ghi log] — 508
+** xref:chapter-14-gioi-thieu-ve-logging.adoc[Ghi log gì] — 512
+* xref:chapter-14-trich-xuat-thong-tin-tu-log-pgbadger.adoc[Trích xuất thông tin từ log – pgBadger] — 514
+** xref:chapter-14-trich-xuat-thong-tin-tu-log-pgbadger.adoc[Cài đặt pgBadger] — 514
+** xref:chapter-14-trich-xuat-thong-tin-tu-log-pgbadger.adoc[Cấu hình logging của PostgreSQL để sử dụng pgBadger] — 515
+** xref:chapter-14-trich-xuat-thong-tin-tu-log-pgbadger.adoc[Sử dụng pgBadger] — 516
+** xref:chapter-14-trich-xuat-thong-tin-tu-log-pgbadger.adoc[Lập lịch cho pgBadger] — 521
+* xref:chapter-14-trien-khai-auditing.adoc[Triển khai auditing] — 524
+** xref:chapter-14-trien-khai-auditing.adoc[Cài đặt PgAudit] — 525
+** xref:chapter-14-trien-khai-auditing.adoc[Cấu hình PostgreSQL để khai thác PgAudit] — 526
+** xref:chapter-14-trien-khai-auditing.adoc[Cấu hình PgAudit] — 527
+** xref:chapter-14-trien-khai-auditing.adoc[Auditing theo session] — 528
+** xref:chapter-14-trien-khai-auditing.adoc[Auditing theo role] — 530
+* xref:chapter-14-tom-tat.adoc[Tóm tắt] — 532
+* xref:chapter-14-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] — 532
+* xref:chapter-14-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] — 533
 
-* Chương 15: Backup và restore — 535
+* xref:chapter-15.adoc[Chương 15: Backup và restore] — 535
 
-* Yêu cầu kỹ thuật — 536
-* Giới thiệu các loại backup và restore — 536
-* Tìm hiểu logical backup — 537
-** Dump một database — 539
-** Restore một database — 543
-** Giới hạn lượng dữ liệu cần backup — 547
-** Nén — 548
-** Các định dạng dump và pg_restore — 549
-* Thực hiện selective restore — 552
-* Dump toàn bộ cluster — 555
-* Backup song song — 556
-* Tự động hóa backup — 558
-* Lệnh COPY — 559
-* Tìm hiểu physical backup — 563
-** Thực hiện physical backup thủ công — 564
-*** pg_verifybackup — 566
-** Khởi động cluster đã clone — 567
-** Restore từ physical backup — 568
-* Các khái niệm cơ bản đằng sau PITR — 569
-* Tóm tắt — 570
-* Kiểm tra kiến thức — 570
-* Tài liệu tham khảo — 571
+* xref:chapter-15-technical-requirements.adoc[Yêu cầu kỹ thuật] — 536
+* xref:chapter-15-gioi-thieu-cac-loai-backup-va-restore.adoc[Giới thiệu các loại backup và restore] — 536
+* xref:chapter-15-tim-hieu-logical-backup.adoc[Tìm hiểu logical backup] — 537
+** xref:chapter-15-tim-hieu-logical-backup.adoc[Dump một database] — 539
+** xref:chapter-15-tim-hieu-logical-backup.adoc[Restore một database] — 543
+** xref:chapter-15-tim-hieu-logical-backup.adoc[Giới hạn lượng dữ liệu cần backup] — 547
+** xref:chapter-15-tim-hieu-logical-backup.adoc[Nén] — 548
+** xref:chapter-15-tim-hieu-logical-backup.adoc[Các định dạng dump và pg_restore] — 549
+* xref:chapter-15-thuc-hien-selective-restore.adoc[Thực hiện selective restore] — 552
+* xref:chapter-15-dump-toan-bo-cluster.adoc[Dump toàn bộ cluster] — 555
+* xref:chapter-15-parallel-backups.adoc[Backup song song] — 556
+* xref:chapter-15-tu-dong-hoa-backup.adoc[Tự động hóa backup] — 558
+* xref:chapter-15-lenh-copy.adoc[Lệnh COPY] — 559
+* xref:chapter-15-kham-pha-physical-backup.adoc[Tìm hiểu physical backup] — 563
+** xref:chapter-15-kham-pha-physical-backup.adoc[Thực hiện physical backup thủ công] — 564
+*** xref:chapter-15-kham-pha-physical-backup.adoc[pg_verifybackup] — 566
+** xref:chapter-15-kham-pha-physical-backup.adoc[Khởi động cluster đã clone] — 567
+** xref:chapter-15-kham-pha-physical-backup.adoc[Restore từ physical backup] — 568
+* xref:chapter-15-cac-khai-niem-co-ban-dang-sau-pitr.adoc[Các khái niệm cơ bản đằng sau PITR] — 569
+* xref:chapter-15-tom-tat.adoc[Tóm tắt] — 570
+* xref:chapter-15-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] — 570
+* xref:chapter-15-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] — 571
 
-* Chương 16: Configuration và monitoring — 573
+* xref:chapter-16.adoc[Chương 16: Configuration và monitoring] — 573
 
-* Yêu cầu kỹ thuật — 574
-* Cấu hình cluster — 574
-** Kiểm tra toàn bộ configuration parameter — 576
-** Tìm lỗi trong configuration — 578
-** Include các configuration file — 579
-** Các configuration context — 580
-** Các configuration setting quan trọng — 581
-*** Các setting về WAL — 582
-*** Các setting liên quan đến memory — 584
-*** Các setting liên quan đến process — 585
-*** Các setting liên quan đến network — 585
-*** Các setting về archiving và replication — 586
-*** Các setting liên quan đến VACUUM và autovacuum — 587
-*** Các setting của optimizer — 587
-*** Statistics collector — 587
-** Thay đổi configuration trên system đang chạy — 588
-** Các tool tạo configuration — 589
-* Monitoring cluster — 592
-** Thông tin về query và session đang chạy — 593
-** Kiểm tra lock — 594
-** Kiểm tra database — 596
-** Kiểm tra table và index — 597
-** Các statistics khác — 599
-* Statistics nâng cao với extension pg_stat_statements — 600
-** Cài đặt extension pg_stat_statements — 600
-** Sử dụng pg_stat_statements — 601
-** Reset dữ liệu đã thu thập từ pg_stat_statements — 602
-** Tuning pg_stat_statements — 602
-* Tóm tắt — 603
-* Kiểm tra kiến thức — 603
-* Tài liệu tham khảo — 604
+* xref:chapter-16-technical-requirements.adoc[Yêu cầu kỹ thuật] — 574
+* xref:chapter-16-cau-hinh-cluster.adoc[Cấu hình cluster] — 574
+** xref:chapter-16-cau-hinh-cluster.adoc[Kiểm tra toàn bộ configuration parameter] — 576
+** xref:chapter-16-cau-hinh-cluster.adoc[Tìm lỗi trong configuration] — 578
+** xref:chapter-16-cau-hinh-cluster.adoc[Include các configuration file] — 579
+** xref:chapter-16-cau-hinh-cluster.adoc[Các configuration context] — 580
+** xref:chapter-16-cau-hinh-cluster.adoc[Các configuration setting quan trọng] — 581
+*** xref:chapter-16-cau-hinh-cluster.adoc[Các setting về WAL] — 582
+*** xref:chapter-16-cau-hinh-cluster.adoc[Các setting liên quan đến memory] — 584
+*** xref:chapter-16-cau-hinh-cluster.adoc[Các setting liên quan đến process] — 585
+*** xref:chapter-16-cau-hinh-cluster.adoc[Các setting liên quan đến network] — 585
+*** xref:chapter-16-cau-hinh-cluster.adoc[Các setting về archiving và replication] — 586
+*** xref:chapter-16-cau-hinh-cluster.adoc[Các setting liên quan đến VACUUM và autovacuum] — 587
+*** xref:chapter-16-cau-hinh-cluster.adoc[Các setting của optimizer] — 587
+*** xref:chapter-16-cau-hinh-cluster.adoc[Statistics collector] — 587
+** xref:chapter-16-cau-hinh-cluster.adoc[Thay đổi configuration trên system đang chạy] — 588
+** xref:chapter-16-cau-hinh-cluster.adoc[Các tool tạo configuration] — 589
+* xref:chapter-16-monitoring-the-cluster.adoc[Monitoring cluster] — 592
+** xref:chapter-16-monitoring-the-cluster.adoc[Thông tin về query và session đang chạy] — 593
+** xref:chapter-16-monitoring-the-cluster.adoc[Kiểm tra lock] — 594
+** xref:chapter-16-monitoring-the-cluster.adoc[Kiểm tra database] — 596
+** xref:chapter-16-monitoring-the-cluster.adoc[Kiểm tra table và index] — 597
+** xref:chapter-16-monitoring-the-cluster.adoc[Các statistics khác] — 599
+* xref:chapter-16-thong-ke-nang-cao-voi-pg-stat-statements.adoc[Statistics nâng cao với extension pg_stat_statements] — 600
+** xref:chapter-16-thong-ke-nang-cao-voi-pg-stat-statements.adoc[Cài đặt extension pg_stat_statements] — 600
+** xref:chapter-16-thong-ke-nang-cao-voi-pg-stat-statements.adoc[Sử dụng pg_stat_statements] — 601
+** xref:chapter-16-thong-ke-nang-cao-voi-pg-stat-statements.adoc[Reset dữ liệu đã thu thập từ pg_stat_statements] — 602
+** xref:chapter-16-thong-ke-nang-cao-voi-pg-stat-statements.adoc[Tuning pg_stat_statements] — 602
+* xref:chapter-16-tom-tat.adoc[Tóm tắt] — 603
+* xref:chapter-16-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] — 603
+* xref:chapter-16-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] — 604
 
-* Chương 17: Physical Replication — 607
+* xref:chapter-17.adoc[Chương 17: Physical Replication] — 607
 
-* Yêu cầu kỹ thuật — 608
-* Tìm hiểu các khái niệm cơ bản về replication — 609
-** Physical replication và WAL — 609
-*** Directive wal_level — 610
-** Chuẩn bị môi trường cho streaming replication — 610
-* Quản lý streaming replication — 612
-** Các khái niệm cơ bản của streaming replication — 612
-** Môi trường asynchronous replication — 614
-** Tùy chọn wal_keep_segments — 615
-** Cách dùng slot — 616
-** Lệnh pg_basebackup — 616
-** Asynchronous replication — 617
-*** Monitoring replica — 619
-** Synchronous replication — 620
-*** PostgreSQL setting — 621
-*** Cascading replication — 623
-*** Delayed replication — 626
-** Promote replica server thành primary — 626
-* Tóm tắt — 627
-* Kiểm tra kiến thức — 628
-* Tài liệu tham khảo — 628
+* xref:chapter-17-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] — 608
+* xref:chapter-17-kham-pha-cac-khai-niem-co-ban-ve-replication.adoc[Tìm hiểu các khái niệm cơ bản về replication] — 609
+** xref:chapter-17-kham-pha-cac-khai-niem-co-ban-ve-replication.adoc[Physical replication và WAL] — 609
+*** xref:chapter-17-kham-pha-cac-khai-niem-co-ban-ve-replication.adoc[Directive wal_level] — 610
+** xref:chapter-17-kham-pha-cac-khai-niem-co-ban-ve-replication.adoc[Chuẩn bị môi trường cho streaming replication] — 610
+* xref:chapter-17-quan-ly-streaming-replication.adoc[Quản lý streaming replication] — 612
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Các khái niệm cơ bản của streaming replication] — 612
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Môi trường asynchronous replication] — 614
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Tùy chọn wal_keep_segments] — 615
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Cách dùng slot] — 616
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Lệnh pg_basebackup] — 616
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Asynchronous replication] — 617
+*** xref:chapter-17-quan-ly-streaming-replication.adoc[Monitoring replica] — 619
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Synchronous replication] — 620
+*** xref:chapter-17-quan-ly-streaming-replication.adoc[PostgreSQL setting] — 621
+*** xref:chapter-17-quan-ly-streaming-replication.adoc[Cascading replication] — 623
+*** xref:chapter-17-quan-ly-streaming-replication.adoc[Delayed replication] — 626
+** xref:chapter-17-quan-ly-streaming-replication.adoc[Promote replica server thành primary] — 626
+* xref:chapter-17-tom-tat.adoc[Tóm tắt] — 627
+* xref:chapter-17-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] — 628
+* xref:chapter-17-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] — 628
 
-* Chương 18: Logical Replication — 631
+* xref:chapter-18.adoc[Chương 18: Logical Replication] — 631
 
-* Yêu cầu kỹ thuật — 631
-* Tìm hiểu các khái niệm cơ bản của logical replication — 632
-* So sánh logical replication và physical replication — 635
-* Tìm hiểu cách thiết lập logical replication và các tính năng mới của logical replication trên PostgreSQL 16 — 636
-** Thiết lập môi trường cho logical replication — 636
-*** Role của replica — 637
-*** Primary server – postgresql.conf — 637
-*** Replica server – postgresql.conf — 638
-*** File pg_hba.conf — 639
-** Thiết lập logical replication — 639
-** Monitoring logical replication — 641
-*** Read-only và cho phép ghi — 643
-** DDL command — 649
-** Vô hiệu hóa logical replication — 651
-** Tạo logical replication bằng một physical replication instance — 652
-* Tóm tắt — 657
-* Kiểm tra kiến thức — 658
-* Tài liệu tham khảo — 658
+* xref:chapter-18-technical-requirements.adoc[Yêu cầu kỹ thuật] — 631
+* xref:chapter-18-tim-hieu-cac-concept-co-ban-cua-logical-replication.adoc[Tìm hiểu các khái niệm cơ bản của logical replication] — 632
+* xref:chapter-18-so-sanh-logical-replication-va-physical-replication.adoc[So sánh logical replication và physical replication] — 635
+* xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Tìm hiểu cách thiết lập logical replication và các tính năng mới của logical replication trên PostgreSQL 16] — 636
+** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Thiết lập môi trường cho logical replication] — 636
+*** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Role của replica] — 637
+*** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Primary server – postgresql.conf] — 637
+*** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Replica server – postgresql.conf] — 638
+*** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[File pg_hba.conf] — 639
+** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Thiết lập logical replication] — 639
+** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Monitoring logical replication] — 641
+*** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Read-only và cho phép ghi] — 643
+** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[DDL command] — 649
+** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Vô hiệu hóa logical replication] — 651
+** xref:chapter-18-kham-pha-mot-logical-replication-setup-va-cac-feature-logical-replication-moi-tren-postgresql-16.adoc[Tạo logical replication bằng một physical replication instance] — 652
+* xref:chapter-18-tom-tat.adoc[Tóm tắt] — 657
+* xref:chapter-18-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] — 658
+* xref:chapter-18-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] — 658
 
-* Chương 19: Các công cụ và extension hữu ích — 661
+* xref:chapter-19.adoc[Chương 19: Các công cụ và extension hữu ích] — 661
 
-* Yêu cầu kỹ thuật — 662
-* Tìm hiểu extension pg_trgm — 662
-* Sử dụng foreign data wrapper và extension postgres_fdw — 665
-* Disaster recovery bằng pgbackrest — 667
-** Các khái niệm cơ bản — 668
-** Thiết lập môi trường — 669
-*** Trao đổi public key — 669
-** Cài đặt pgbackrest — 671
-** Cấu hình pgbackrest — 672
-*** Cấu hình repository — 672
-*** Sử dụng pgbackrest với object store support — 675
-*** Cấu hình PostgreSQL server — 675
-* File postgresql.conf — 675
-* File pgbackrest.conf — 676
-* Tạo và quản lý continuous backup — 677
-** Tạo stanza — 677
-** Kiểm tra stanza — 677
-** Quản lý base backup — 678
-** Quản lý PITR — 681
-* Di chuyển từ MySQL/MariaDB sang PostgreSQL bằng pgloader — 684
-* Tóm tắt — 688
-* Kiểm tra kiến thức — 688
-* Tài liệu tham khảo — 689
+* xref:chapter-19-yeu-cau-ky-thuat.adoc[Yêu cầu kỹ thuật] — 662
+* xref:chapter-19-kham-pha-extension-pg-trgm.adoc[Tìm hiểu extension pg_trgm] — 662
+* xref:chapter-19-su-dung-foreign-data-wrappers-va-extension-postgres-fdw.adoc[Sử dụng foreign data wrapper và extension postgres_fdw] — 665
+* xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Disaster recovery bằng pgbackrest] — 667
+** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Các khái niệm cơ bản] — 668
+** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Thiết lập môi trường] — 669
+*** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Trao đổi public key] — 669
+** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Cài đặt pgbackrest] — 671
+** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Cấu hình pgbackrest] — 672
+*** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Cấu hình repository] — 672
+*** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Sử dụng pgbackrest với object store support] — 675
+*** xref:chapter-19-disaster-recovery-voi-pgbackrest.adoc[Cấu hình PostgreSQL server] — 675
+* xref:chapter-19-file-postgresql-conf.adoc[File postgresql.conf] — 675
+* xref:chapter-19-file-pgbackrest-conf.adoc[File pgbackrest.conf] — 676
+* xref:chapter-19-tao-va-quan-ly-continuous-backup.adoc[Tạo và quản lý continuous backup] — 677
+** xref:chapter-19-tao-va-quan-ly-continuous-backup.adoc[Tạo stanza] — 677
+** xref:chapter-19-tao-va-quan-ly-continuous-backup.adoc[Kiểm tra stanza] — 677
+** xref:chapter-19-tao-va-quan-ly-continuous-backup.adoc[Quản lý base backup] — 678
+** xref:chapter-19-tao-va-quan-ly-continuous-backup.adoc[Quản lý PITR] — 681
+* xref:chapter-19-migrate-tu-mysql-mariadb-sang-postgresql-bang-pgloader.adoc[Di chuyển từ MySQL/MariaDB sang PostgreSQL bằng pgloader] — 684
+* xref:chapter-19-tom-tat.adoc[Tóm tắt] — 688
+* xref:chapter-19-kiem-tra-kien-thuc.adoc[Kiểm tra kiến thức] — 688
+* xref:chapter-19-tai-lieu-tham-khao.adoc[Tài liệu tham khảo] — 689
 
 * Các sách khác bạn có thể quan tâm — 691
 

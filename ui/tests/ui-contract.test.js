@@ -203,8 +203,36 @@ test('front matter does not turn cover or contents entries into page headings', 
   const frontMatter = read('content/modules/ROOT/pages/front-matter.adoc');
 
   assert.doesNotMatch(frontMatter, /^== (Learn PostgreSQL|Ấn bản thứ hai|Chương (14|15|16|17|18|19):|Các sách khác|Mục lục tra cứu)/m);
-  assert.match(frontMatter, /^\* Chương 14: Logging và auditing —/m);
-  assert.match(frontMatter, /^\* Chương 19: Các công cụ và extension hữu ích —/m);
+  assert.match(frontMatter, /^\* xref:chapter-14\.adoc\[Chương 14: Logging và auditing\] —/m);
+  assert.match(frontMatter, /^\* xref:chapter-19\.adoc\[Chương 19: Các công cụ và extension hữu ích\] —/m);
+});
+
+test('front matter contents links to every chapter and semantic section', () => {
+  const frontMatter = read('content/modules/ROOT/pages/front-matter.adoc');
+  const navigation = read('content/modules/ROOT/nav.adoc');
+  const contentsStart = frontMatter.indexOf('== Mục lục');
+  const contentsEnd = frontMatter.indexOf('== Lời nói đầu', contentsStart);
+  const contents = frontMatter.slice(contentsStart, contentsEnd);
+  const targets = [...navigation.matchAll(/xref:(chapter-[a-z0-9-]+\.adoc)\[/g)]
+    .map((match) => match[1]);
+
+  for (const target of new Set(targets)) {
+    const escapedTarget = target.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    assert.match(contents, new RegExp(`xref:${escapedTarget}\\[`), target);
+  }
+});
+
+test('front matter knowledge entries are all clickable', () => {
+  const frontMatter = read('content/modules/ROOT/pages/front-matter.adoc');
+  const contentsStart = frontMatter.indexOf('== Mục lục');
+  const contentsEnd = frontMatter.indexOf('== Lời nói đầu', contentsStart);
+  const contents = frontMatter.slice(contentsStart, contentsEnd);
+  const nonPageEntries = /^(?:\* Lời nói đầu|\* Các sách khác|\* Mục lục tra cứu)/;
+
+  for (const entry of contents.split('\n').filter((line) => /^\*+\s/.test(line))) {
+    if (nonPageEntries.test(entry)) continue;
+    assert.match(entry, /xref:/, entry);
+  }
 });
 
 test('playbook consumes the local UI bundle', () => {
